@@ -1,0 +1,9 @@
+[package]
+name = "gibberish"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.97"
+clap = { version = "4.5.32", features = ["derive"] }
+logos = { version = "0.15.0" }
