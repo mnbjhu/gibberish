@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::lex::lex;
+use super::{lex::lex, parse::parse};
 
 #[derive(clap::Parser)]
 pub enum Command {
@@ -15,7 +15,7 @@ impl Command {
     pub fn run(&self) {
         match self {
             Command::Lex { path } => lex(path),
-            Command::Parse { path } => todo!(),
+            Command::Parse { path } => parse(path),
         }
     }
 }

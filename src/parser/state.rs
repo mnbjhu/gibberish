@@ -1,7 +1,7 @@
 use crate::dsl::Parser;
 
 use super::{
-    err::ParseError,
+    err::{Expected, ParseError},
     lang::Lang,
     node::{Lexeme, Node},
     res::PRes,
@@ -11,60 +11,127 @@ pub struct ParserState<L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
     errors: Vec<ParseError<L>>,
-    current_err: ParseError<L>,
+    current_err: Option<ParseError<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
 }
 
 impl<L: Lang> ParserState<L> {
-    pub fn current(&self) -> &Lexeme<L> {
-        self.input
-            .get(self.offset)
-            .unwrap_or_else(|| panic!("Index {} is out of range for the input", self.offset))
+    pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
+        ParserState {
+            stack: vec![Node::Group {
+                kind: L::root(),
+                errors: vec![],
+                children: vec![],
+            }],
+            input,
+            errors: vec![],
+            current_err: None,
+            offset: 0,
+            delim_stack: vec![],
+        }
+    }
+
+    pub fn current(&self) -> Option<&Lexeme<L>> {
+        self.input.get(self.offset)
     }
 
     pub fn bump(&mut self) {
-        let current = self.current().clone();
+        let current = self.current().expect("Called bump at EOF").clone();
         self.stack
             .last_mut()
             .expect("Tree has no root node")
             .push_tok(current);
+        self.offset += 1;
         self.finish_err();
     }
 
-    pub fn bump_err(&mut self) {}
+    pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
+        let tok = self.current().cloned();
+        if let Some(tok) = tok {
+            self.offset += 1;
+            if let Some(err) = &mut self.current_err {
+                err.actual.push(Some(tok.kind));
+            } else {
+                self.current_err = Some(ParseError {
+                    expected,
+                    actual: vec![Some(tok.kind)],
+                })
+            }
+        } else {
+            let err = ParseError {
+                expected,
+                actual: vec![None],
+            };
+            self.stack
+                .last_mut()
+                .expect("Tree has no root node")
+                .push_err(err);
+        }
+    }
 
     pub fn finish_err(&mut self) {
-        todo!()
+        let err = self.current_err.take();
+        if let Some(err) = err {
+            self.stack
+                .last_mut()
+                .expect("Tree has no root node")
+                .push_err(err);
+        }
     }
 
     pub fn try_delim(&self) -> Option<usize> {
         self.delim_stack
             .iter()
-            .position(|it| it.peak(&self) == PRes::Ok)
-    }
-
-    // TODO: Maybe think about this
-    pub fn parse_delim(&mut self, index: usize) -> PRes {
-        // TODO: L-CLone
-        let parser = self.delim_stack[index].clone();
-        parser.parse(self)
+            .position(|it| it.peak(self) == PRes::Ok)
     }
 
     pub fn push_delim(&mut self, delim: Parser<L>) {
         self.delim_stack.push(delim);
     }
+    pub fn pop_delim(&mut self) {
+        self.delim_stack
+            .pop()
+            .expect("Attempted to pop delim but stack was empty");
+    }
 
-    pub fn try_parse(&mut self, parser: &Parser) {
+    pub fn try_parse(&mut self, parser: &Parser<L>) -> Option<PRes> {
         loop {
             let res = parser.parse(self);
             match res {
                 PRes::Err => {
-                    state.bump_err();
+                    self.bump_err(parser.expected());
                 }
-                PRes::Break(_) => return res,
+                PRes::Eof => {
+                    self.bump_err(parser.expected());
+                    break;
+                }
+                PRes::Break(_) => return Some(res),
                 PRes::Ok => break,
             }
         }
+        None
+    }
+
+    pub fn enter(&mut self, name: L::Syntax) {
+        self.stack.push(Node::Group {
+            kind: name,
+            errors: vec![],
+            children: vec![],
+        });
+    }
+
+    pub fn exit(&mut self) {
+        let node = self.stack.pop().expect("Node stack underflow");
+        let current = self.stack.last_mut().expect("Node stack underflow");
+        match current {
+            Node::Group { children, .. } => children.push(node),
+            Node::Lexeme(_) => panic!("Cannot push child to lexeme"),
+        }
+    }
+
+    pub fn finish(mut self) -> Node<L> {
+        assert_eq!(self.stack.len(), 1);
+        self.stack.pop().unwrap()
     }
 }
