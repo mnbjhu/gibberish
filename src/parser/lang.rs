@@ -16,13 +16,13 @@ pub trait Lang: Clone + PartialEq + Eq {
         Self: Sized;
 
     fn root() -> Self::Syntax;
+}
 
-    fn parser() -> Parser<Self>;
-
-    fn parse(src: &str) -> Node<Self> {
-        let tokens = Self::lex(src);
+impl<L: Lang> Parser<L> {
+    pub fn parse(&self, src: &str) -> Node<L> {
+        let tokens = L::lex(src);
         let mut state = ParserState::new(tokens);
-        let res = Self::parser().parse(&mut state);
+        let res = self.do_parse(&mut state);
         assert_eq!(res, PRes::Ok);
         state.finish()
     }

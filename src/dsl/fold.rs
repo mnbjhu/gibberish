@@ -14,7 +14,7 @@ pub struct Fold<L: Lang> {
 impl<L: Lang> Fold<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
         state.enter(self.name.clone());
-        let first = self.first.parse(state);
+        let first = self.first.do_parse(state);
         if first.is_err() {
             warn!("Disolving name");
             state.disolve_name();
@@ -22,7 +22,7 @@ impl<L: Lang> Fold<L> {
         }
         let mut count = 0;
         loop {
-            let next = self.next.parse(state);
+            let next = self.next.do_parse(state);
             if next.is_err() {
                 if count == 0 {
                     warn!("Disolving name");

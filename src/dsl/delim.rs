@@ -13,7 +13,7 @@ pub struct Delim<L: Lang> {
 
 impl<L: Lang> Delim<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let start = self.start.parse(state);
+        let start = self.start.do_parse(state);
         if start != PRes::Ok {
             warn!("Failed to parse delim");
             return start;

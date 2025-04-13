@@ -36,7 +36,7 @@ pub enum Parser<L: Lang> {
 }
 
 impl<L: Lang> Parser<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
+    pub fn do_parse(&self, state: &mut ParserState<L>) -> PRes {
         info!("Parsing: {}", self.name());
         let res = match self {
             Parser::Just(just) => just.parse(state),

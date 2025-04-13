@@ -12,7 +12,7 @@ impl<L: Lang> Choice<L> {
         let Some(parser) = self.options.iter().find(|it| it.peak(state) != PRes::Err) else {
             return PRes::Err;
         };
-        parser.parse(state)
+        parser.do_parse(state)
     }
 
     pub fn peak(&self, state: &ParserState<L>) -> PRes {

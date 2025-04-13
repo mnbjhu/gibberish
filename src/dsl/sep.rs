@@ -12,7 +12,7 @@ pub struct Sep<L: Lang> {
 
 impl<L: Lang> Sep<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let start = self.item.parse(state);
+        let start = self.item.do_parse(state);
         if start.is_err() {
             return start;
         }

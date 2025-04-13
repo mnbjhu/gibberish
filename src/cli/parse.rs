@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use crate::{json::lang::JsonLang, parser::lang::Lang};
+use crate::json::parser::json_parser;
 
 pub fn parse(path: &Path) {
     let log = OpenOptions::new()
@@ -12,8 +12,11 @@ pub fn parse(path: &Path) {
         .truncate(true)
         .open("out.log")
         .unwrap();
-    tracing_subscriber::fmt().with_writer(log).with_ansi(false).init();
+    tracing_subscriber::fmt()
+        .with_writer(log)
+        .with_ansi(false)
+        .init();
     let text = fs::read_to_string(path).unwrap();
-    let res = JsonLang::parse(&text);
+    let res = json_parser().parse(&text);
     res.debug_print();
 }

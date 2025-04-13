@@ -13,8 +13,8 @@ pub enum Recursive<L: Lang> {
 impl<L: Lang> Recursive<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
         match self {
-            Recursive::Ptr(parser) => parser.parse(state),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().parse(state),
+            Recursive::Ptr(parser) => parser.do_parse(state),
+            Recursive::Weak(weak) => weak.upgrade().unwrap().do_parse(state),
         }
     }
 

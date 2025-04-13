@@ -10,7 +10,6 @@ use super::{
 pub struct ParserState<L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
-    errors: Vec<ParseError<L>>,
     current_err: Option<ParseError<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
@@ -25,7 +24,6 @@ impl<L: Lang> ParserState<L> {
                 children: vec![],
             })],
             input,
-            errors: vec![],
             current_err: None,
             offset: 0,
             delim_stack: vec![],
@@ -97,7 +95,7 @@ impl<L: Lang> ParserState<L> {
 
     pub fn try_parse(&mut self, parser: &Parser<L>) -> PRes {
         loop {
-            let res = parser.parse(self);
+            let res = parser.do_parse(self);
             match res {
                 PRes::Err => {
                     self.bump_err(parser.expected());
@@ -145,9 +143,5 @@ impl<L: Lang> ParserState<L> {
         } else {
             panic!("Expected a group")
         }
-    }
-
-    pub fn has_more(&self) -> bool {
-        self.input.len() <= self.offset
     }
 }

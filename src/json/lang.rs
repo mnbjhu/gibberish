@@ -39,7 +39,4 @@ impl Lang for JsonLang {
         JsonSyntax::Root
     }
 
-    fn parser() -> Parser<Self> {
-        json_parser()
-    }
 }

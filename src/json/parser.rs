@@ -34,17 +34,14 @@ pub fn json_parser() -> Parser<JsonLang> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        json::{lang::JsonLang, syntax::JsonSyntax},
-        parser::{
-            lang::Lang,
-            node::{Group, Node},
-        },
+        json::{parser::json_parser, syntax::JsonSyntax},
+        parser::node::{Group, Node},
     };
 
     #[test]
     fn test_parse_string() {
         let input = r#""Test""#;
-        let root = JsonLang::parse(input);
+        let root = json_parser().parse(input);
         if let Node::Group(Group { kind, children, .. }) = root {
             assert_eq!(kind, JsonSyntax::Root);
             assert_eq!(children.len(), 1, "Expected a single child");
@@ -59,7 +56,7 @@ mod tests {
     #[test]
     fn test_parse_array() {
         let input = r#"["Test"]"#;
-        let root = JsonLang::parse(input);
+        let root = json_parser().parse(input);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -73,7 +70,7 @@ mod tests {
     #[test]
     fn test_parse_array_2() {
         let input = r#"[123, 456]"#;
-        let root = JsonLang::parse(input);
+        let root = json_parser().parse(input);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -93,7 +90,7 @@ mod tests {
     #[test]
     fn test_parse_obj() {
         let input = r#"{"thing": 123}"#;
-        let root = JsonLang::parse(input);
+        let root = json_parser().parse(input);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 

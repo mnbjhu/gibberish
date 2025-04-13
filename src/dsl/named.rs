@@ -13,7 +13,7 @@ pub struct Named<L: Lang> {
 impl<L: Lang> Named<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
         state.enter(self.name.clone());
-        let res = self.inner.parse(state);
+        let res = self.inner.do_parse(state);
         state.exit();
         res
     }
