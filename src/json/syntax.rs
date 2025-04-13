@@ -8,6 +8,8 @@ pub enum JsonSyntax {
     Array,
     Object,
     Root,
+    Key,
+    Add,
 }
 
 impl Display for JsonSyntax {
@@ -19,6 +21,8 @@ impl Display for JsonSyntax {
             JsonSyntax::Array => f.write_str("Array"),
             JsonSyntax::Object => f.write_str("Object"),
             JsonSyntax::Root => f.write_str("Root"),
+            JsonSyntax::Key => f.write_str("Key"),
+            JsonSyntax::Add => f.write_str("Add"),
         }
     }
 }

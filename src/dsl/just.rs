@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
@@ -39,4 +41,10 @@ impl<L: Lang> Just<L> {
 
 pub fn just<L: Lang>(tok: L::Token) -> Parser<L> {
     Parser::Just(Just(tok))
+}
+
+impl<L: Lang> Display for Just<L> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Just({})", self.0)
+    }
 }

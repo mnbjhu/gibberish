@@ -14,12 +14,15 @@ impl<L: Lang> Choice<L> {
         };
         parser.parse(state)
     }
+
     pub fn peak(&self, state: &ParserState<L>) -> PRes {
-        self.options
-            .iter()
-            .map(|it| it.peak(state))
-            .find(|it| *it != PRes::Err)
-            .unwrap_or(PRes::Err)
+        for p in &self.options {
+            let res = p.peak(state);
+            if res.is_ok() {
+                return PRes::Ok;
+            }
+        }
+        PRes::Err
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

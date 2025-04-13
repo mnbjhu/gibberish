@@ -7,7 +7,7 @@ pub enum Command {
     /// Lexes a file
     Lex { path: PathBuf },
 
-    /// Lexes a file
+    /// Parses a file
     Parse { path: PathBuf },
 }
 

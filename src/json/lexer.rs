@@ -19,6 +19,10 @@ pub enum JsonToken {
     LBrace,
     #[token("}")]
     RBrace,
+    #[token("+")]
+    Plus,
+    #[token("*")]
+    Mul,
     Eof,
 }
 
@@ -34,6 +38,8 @@ impl Display for JsonToken {
             JsonToken::LBrace => f.write_str("LBrace"),
             JsonToken::RBrace => f.write_str("RBrace"),
             JsonToken::Eof => f.write_str("EOF"),
+            JsonToken::Plus => f.write_str("Plus"),
+            JsonToken::Mul => f.write_str("Mul"),
         }
     }
 }
@@ -51,6 +57,8 @@ mod tests {
         assert_eq!(lex.next(), Some(Ok(JsonToken::String)));
         assert_eq!(lex.next(), Some(Ok(JsonToken::Colon)));
         assert_eq!(lex.next(), Some(Ok(JsonToken::Int)));
+        assert_eq!(lex.next(), Some(Ok(JsonToken::LBrace)));
+        assert_eq!(lex.next(), Some(Ok(JsonToken::RBrace)));
         assert_eq!(lex.next(), None)
     }
 }

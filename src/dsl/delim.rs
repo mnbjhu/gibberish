@@ -19,18 +19,16 @@ impl<L: Lang> Delim<L> {
             return start;
         };
         state.push_delim(self.end.as_ref().clone());
-        if let Some(res) = state.try_parse(self.inner.as_ref()) {
-            if res != PRes::Ok {
-                state.pop_delim();
-                return res;
-            }
-        };
-        if let Some(res) = state.try_parse(self.end.as_ref()) {
-            if res != PRes::Ok {
-                state.pop_delim();
-                return res;
-            }
-        };
+        let inner = state.try_parse(self.inner.as_ref());
+        if inner != PRes::Ok {
+            state.pop_delim();
+            return inner;
+        }
+        let end = state.try_parse(self.end.as_ref());
+        if end != PRes::Ok {
+            state.pop_delim();
+            return end;
+        }
         state.pop_delim();
         PRes::Ok
     }

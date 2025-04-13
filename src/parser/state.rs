@@ -3,7 +3,7 @@ use crate::dsl::Parser;
 use super::{
     err::{Expected, ParseError},
     lang::Lang,
-    node::{Lexeme, Node},
+    node::{Group, Lexeme, Node},
     res::PRes,
 };
 
@@ -19,11 +19,11 @@ pub struct ParserState<L: Lang> {
 impl<L: Lang> ParserState<L> {
     pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
         ParserState {
-            stack: vec![Node::Group {
+            stack: vec![Node::Group(Group {
                 kind: L::root(),
                 errors: vec![],
                 children: vec![],
-            }],
+            })],
             input,
             errors: vec![],
             current_err: None,
@@ -95,7 +95,7 @@ impl<L: Lang> ParserState<L> {
             .expect("Attempted to pop delim but stack was empty");
     }
 
-    pub fn try_parse(&mut self, parser: &Parser<L>) -> Option<PRes> {
+    pub fn try_parse(&mut self, parser: &Parser<L>) -> PRes {
         loop {
             let res = parser.parse(self);
             match res {
@@ -106,26 +106,26 @@ impl<L: Lang> ParserState<L> {
                     self.bump_err(parser.expected());
                     break;
                 }
-                PRes::Break(_) => return Some(res),
+                PRes::Break(_) => return res,
                 PRes::Ok => break,
             }
         }
-        None
+        PRes::Ok
     }
 
     pub fn enter(&mut self, name: L::Syntax) {
-        self.stack.push(Node::Group {
+        self.stack.push(Node::Group(Group {
             kind: name,
             errors: vec![],
             children: vec![],
-        });
+        }));
     }
 
     pub fn exit(&mut self) {
         let node = self.stack.pop().expect("Node stack underflow");
         let current = self.stack.last_mut().expect("Node stack underflow");
         match current {
-            Node::Group { children, .. } => children.push(node),
+            Node::Group(Group { children, .. }) => children.push(node),
             Node::Lexeme(_) => panic!("Cannot push child to lexeme"),
         }
     }
@@ -133,5 +133,21 @@ impl<L: Lang> ParserState<L> {
     pub fn finish(mut self) -> Node<L> {
         assert_eq!(self.stack.len(), 1);
         self.stack.pop().unwrap()
+    }
+
+    pub fn disolve_name(&mut self) {
+        let Node::Group(disolved) = self.stack.pop().unwrap() else {
+            panic!("Expected a group")
+        };
+        if let Node::Group(group) = self.stack.last_mut().unwrap() {
+            group.children.extend(disolved.children);
+            group.errors.extend(disolved.errors);
+        } else {
+            panic!("Expected a group")
+        }
+    }
+
+    pub fn has_more(&self) -> bool {
+        self.input.len() <= self.offset
     }
 }

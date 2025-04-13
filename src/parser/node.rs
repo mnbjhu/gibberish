@@ -10,26 +10,28 @@ pub struct Lexeme<L: Lang> {
     pub kind: L::Token,
 }
 
+pub struct Group<L: Lang> {
+    pub kind: L::Syntax,
+    pub errors: Vec<ParseError<L>>,
+    pub children: Vec<Node<L>>,
+}
+
 pub enum Node<L: Lang> {
-    Group {
-        kind: L::Syntax,
-        errors: Vec<ParseError<L>>,
-        children: Vec<Node<L>>,
-    },
+    Group(Group<L>),
     Lexeme(Lexeme<L>),
 }
 
 impl<L: Lang> Node<L> {
     pub fn push_tok(&mut self, lexeme: Lexeme<L>) {
         match self {
-            Node::Group { children, .. } => children.push(Node::Lexeme(lexeme)),
+            Node::Group(Group { children, .. }) => children.push(Node::Lexeme(lexeme)),
             Node::Lexeme(_) => panic!("Cannot push token to a lexeme"),
         }
     }
 
     pub fn push_err(&mut self, error: ParseError<L>) {
         match self {
-            Node::Group { errors, .. } => errors.push(error),
+            Node::Group(Group { errors, .. }) => errors.push(error),
             Node::Lexeme(_) => panic!("Cannot push error to a lexeme"),
         }
     }
@@ -39,11 +41,11 @@ impl<L: Lang> Node<L> {
             print!("  ");
         }
         match self {
-            Node::Group {
+            Node::Group(Group {
                 kind,
                 children,
                 errors,
-            } => {
+            }) => {
                 println!("{kind}");
                 for error in errors {
                     for _ in 0..offset + 1 {
@@ -63,5 +65,35 @@ impl<L: Lang> Node<L> {
 
     pub fn debug_print(&self) {
         self.debug_at(0);
+    }
+
+    pub fn name(&self) -> L::Syntax {
+        match self {
+            Node::Group(Group { kind, .. }) => kind.clone(),
+            Node::Lexeme(_) => panic!("Lexeme has no name"),
+        }
+    }
+
+    pub fn green_children(&self) -> impl Iterator<Item = &Group<L>> {
+        match self {
+            Node::Group(Group { children, .. }) => children.iter().filter_map(|it| match it {
+                Node::Group(group) => Some(group),
+                Node::Lexeme(_) => None,
+            }),
+            Node::Lexeme(_) => panic!("Lexeme has no children"),
+        }
+    }
+}
+
+impl<L: Lang> Group<L> {
+    pub fn name(&self) -> L::Syntax {
+        self.kind.clone()
+    }
+
+    pub fn green_children(&self) -> impl Iterator<Item = &Group<L>> {
+        self.children.iter().filter_map(|it| match it {
+            Node::Group(group) => Some(group),
+            Node::Lexeme(_) => None,
+        })
     }
 }

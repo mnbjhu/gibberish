@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
@@ -31,5 +33,11 @@ impl<L: Lang> Parser<L> {
             inner: Box::new(self),
             name,
         })
+    }
+}
+
+impl<L: Lang> Display for Named<L> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Named({})", self.name)
     }
 }

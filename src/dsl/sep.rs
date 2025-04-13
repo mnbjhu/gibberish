@@ -6,8 +6,8 @@ use super::Parser;
 
 #[derive(Clone)]
 pub struct Sep<L: Lang> {
-    pub sep: Box<Parser<L>>,
-    pub item: Box<Parser<L>>,
+    sep: Box<Parser<L>>,
+    item: Box<Parser<L>>,
 }
 
 impl<L: Lang> Sep<L> {
@@ -18,10 +18,10 @@ impl<L: Lang> Sep<L> {
         }
         state.push_delim(self.sep.as_ref().clone());
         loop {
-            let sep = self.sep.parse(state);
+            let sep = state.try_parse(&self.sep);
             if sep.is_ok() {
-                let item = self.item.parse(state);
-                if !item.is_ok() {
+                let item = state.try_parse(&self.item);
+                if item.is_err() {
                     warn!("Failed to parse item");
                     state.pop_delim();
                     return item;

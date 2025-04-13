@@ -1,5 +1,6 @@
 use choice::Choice;
 use delim::Delim;
+use fold::Fold;
 use just::Just;
 use named::Named;
 use rec::Recursive;
@@ -11,6 +12,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 pub mod choice;
 pub mod delim;
+pub mod fold;
 pub mod just;
 pub mod named;
 pub mod no_skip;
@@ -28,6 +30,7 @@ pub enum Parser<L: Lang> {
     Delim(Delim<L>),
     Rec(Recursive<L>),
     Named(Named<L>),
+    Fold(Fold<L>),
     // Skip(Box<Parser<L>>),
     // NoSkip(Box<Parser<L>>),
 }
@@ -43,6 +46,7 @@ impl<L: Lang> Parser<L> {
             Parser::Delim(delim) => delim.parse(state),
             Parser::Rec(recursive) => recursive.parse(state),
             Parser::Named(named) => named.parse(state),
+            Parser::Fold(fold) => fold.parse(state),
         };
         info!("Done parsing: {}", self.name());
         res
@@ -58,6 +62,7 @@ impl<L: Lang> Parser<L> {
             Parser::Delim(delim) => delim.peak(state),
             Parser::Rec(recursive) => recursive.peak(state),
             Parser::Named(named) => named.peak(state),
+            Parser::Fold(fold) => fold.peak(state),
         };
         info!("Done peaking: {}", self.name());
         res
@@ -72,18 +77,20 @@ impl<L: Lang> Parser<L> {
             Parser::Delim(delim) => delim.expected(),
             Parser::Rec(recursive) => recursive.expected(),
             Parser::Named(named) => named.expected(),
+            Parser::Fold(fold) => fold.expected(),
         }
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> String {
         match self {
-            Parser::Just(_) => "Just",
-            Parser::Choice(_) => "Choice",
-            Parser::Seq(_) => "Seq",
-            Parser::Sep(_) => "Sep",
-            Parser::Delim(_) => "Delim",
-            Parser::Rec(_) => "Rec",
-            Parser::Named(_) => "Named",
+            Parser::Just(just) => just.to_string(),
+            Parser::Choice(_) => "Choice".to_string(),
+            Parser::Seq(_) => "Seq".to_string(),
+            Parser::Sep(_) => "Sep".to_string(),
+            Parser::Delim(_) => "Delim".to_string(),
+            Parser::Rec(_) => "Rec".to_string(),
+            Parser::Named(named) => named.to_string(),
+            Parser::Fold(_) => "Fold".to_string(),
         }
     }
 }
