@@ -4,7 +4,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Sep<L: Lang> {
     sep: Box<Parser<L>>,
     item: Box<Parser<L>>,

@@ -4,7 +4,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Recursive<L: Lang> {
     Ptr(Rc<Parser<L>>),
     Weak(Weak<Parser<L>>),

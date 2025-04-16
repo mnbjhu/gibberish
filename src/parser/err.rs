@@ -3,11 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use super::lang::Lang;
 
+#[derive(Debug)]
 pub struct ParseError<L: Lang> {
     pub expected: Vec<Expected<L>>,
     pub actual: Vec<Option<L::Token>>,
 }
 
+#[derive(Debug)]
 pub enum Expected<L: Lang> {
     Token(L::Token),
     Label(L::Syntax),

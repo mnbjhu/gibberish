@@ -110,4 +110,26 @@ mod tests {
         let value = kv.next().unwrap();
         assert_eq!(value.name(), JsonSyntax::Number)
     }
+
+    #[test]
+    fn test_err() {
+        let input = r#"[123 +]"#;
+        let root = json_parser().parse(input);
+        assert_eq!(root.name(), JsonSyntax::Root);
+        assert_eq!(root.green_children().count(), 1, "Expected a single child");
+
+        let arr = root.green_children().next().unwrap();
+        assert_eq!(arr.name(), JsonSyntax::Array);
+        assert_eq!(arr.green_children().count(), 1, "Expected a single child");
+
+        let sum = arr.green_children().next().unwrap();
+        assert_eq!(sum.name(), JsonSyntax::Add);
+        assert_eq!(sum.green_children().count(), 1, "Expected a single child");
+
+        assert_eq!(sum.errors.len(), 1);
+
+        let num = sum.green_children().next().unwrap();
+        assert_eq!(num.name(), JsonSyntax::Number);
+        assert_eq!(num.green_children().count(), 0, "Expected no children");
+    }
 }

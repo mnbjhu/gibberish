@@ -4,7 +4,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Fold<L: Lang> {
     name: L::Syntax,
     first: Box<Parser<L>>,
@@ -20,18 +20,16 @@ impl<L: Lang> Fold<L> {
             state.disolve_name();
             return first;
         }
-        let mut count = 0;
+        if self.next.peak(state).is_err() {
+            warn!("Disolving name");
+            state.disolve_name();
+            return PRes::Ok;
+        }
         loop {
             let next = self.next.do_parse(state);
             if next.is_err() {
-                if count == 0 {
-                    warn!("Disolving name");
-                    state.disolve_name();
-                    return PRes::Ok;
-                }
                 break;
             }
-            count += 1;
         }
         state.exit();
         PRes::Ok
@@ -53,5 +51,61 @@ impl<L: Lang> Parser<L> {
             first: Box::new(self),
             next: Box::new(next),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        dsl::{Parser, just::just, seq::seq},
+        json::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax},
+    };
+
+    fn sum_parser() -> Parser<JsonLang> {
+        let number: Parser<JsonLang> = just(JsonToken::Int).named(JsonSyntax::Number);
+        number
+            .clone()
+            .fold(JsonSyntax::Add, seq(vec![just(JsonToken::Plus), number]))
+    }
+
+    #[test]
+    fn test_add_op() {
+        let res = sum_parser().parse("123 + 456");
+        assert_eq!(res.name(), JsonSyntax::Root);
+        assert_eq!(res.green_children().count(), 1);
+
+        let sum = res.green_children().next().unwrap();
+        assert_eq!(sum.name(), JsonSyntax::Add);
+        assert_eq!(sum.green_children().count(), 2);
+
+        for child in sum.green_children() {
+            assert_eq!(child.name(), JsonSyntax::Number);
+        }
+    }
+
+    #[test]
+    fn test_disolve() {
+        let res = sum_parser().parse("123");
+        assert_eq!(res.name(), JsonSyntax::Root);
+        assert_eq!(res.green_children().count(), 1);
+
+        let sum = res.green_children().next().unwrap();
+        assert_eq!(sum.name(), JsonSyntax::Number);
+        assert_eq!(sum.green_children().count(), 0);
+    }
+
+    #[test]
+    fn test_error_recover() {
+        let res = sum_parser().parse("123 +");
+        assert_eq!(res.name(), JsonSyntax::Root);
+        assert_eq!(res.green_children().count(), 1);
+
+        let sum = res.green_children().next().unwrap();
+        assert_eq!(sum.name(), JsonSyntax::Add);
+        assert_eq!(sum.green_children().count(), 1);
+
+        for child in sum.green_children() {
+            assert_eq!(child.name(), JsonSyntax::Number);
+        }
     }
 }

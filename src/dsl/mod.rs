@@ -15,13 +15,11 @@ pub mod delim;
 pub mod fold;
 pub mod just;
 pub mod named;
-pub mod no_skip;
 pub mod rec;
 pub mod sep;
 pub mod seq;
-pub mod skip;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Parser<L: Lang> {
     Just(Just<L>),
     Choice(Choice<L>),
@@ -31,8 +29,6 @@ pub enum Parser<L: Lang> {
     Rec(Recursive<L>),
     Named(Named<L>),
     Fold(Fold<L>),
-    // Skip(Box<Parser<L>>),
-    // NoSkip(Box<Parser<L>>),
 }
 
 impl<L: Lang> Parser<L> {
@@ -48,7 +44,7 @@ impl<L: Lang> Parser<L> {
             Parser::Named(named) => named.parse(state),
             Parser::Fold(fold) => fold.parse(state),
         };
-        info!("Done parsing: {}", self.name());
+        info!("Done parsing: {};{res:?}", self.name());
         res
     }
 
@@ -64,7 +60,7 @@ impl<L: Lang> Parser<L> {
             Parser::Named(named) => named.peak(state),
             Parser::Fold(fold) => fold.peak(state),
         };
-        info!("Done peaking: {}", self.name());
+        info!("Done peaking: {};{res:?}", self.name());
         res
     }
 

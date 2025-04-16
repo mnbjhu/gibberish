@@ -4,7 +4,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Named<L: Lang> {
     inner: Box<Parser<L>>,
     name: L::Syntax,
@@ -12,6 +12,10 @@ pub struct Named<L: Lang> {
 
 impl<L: Lang> Named<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
+        let peak = self.peak(state);
+        if peak.is_err() {
+            return peak;
+        };
         state.enter(self.name.clone());
         let res = self.inner.do_parse(state);
         state.exit();

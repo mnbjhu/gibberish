@@ -2,7 +2,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Choice<L: Lang> {
     options: Vec<Parser<L>>,
 }

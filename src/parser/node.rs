@@ -4,18 +4,20 @@ use super::{err::ParseError, lang::Lang};
 
 pub type Span = Range<usize>;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lexeme<L: Lang> {
     pub span: Span,
     pub kind: L::Token,
 }
 
+#[derive(Debug)]
 pub struct Group<L: Lang> {
     pub kind: L::Syntax,
     pub errors: Vec<ParseError<L>>,
     pub children: Vec<Node<L>>,
 }
 
+#[derive(Debug)]
 pub enum Node<L: Lang> {
     Group(Group<L>),
     Lexeme(Lexeme<L>),

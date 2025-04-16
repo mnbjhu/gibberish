@@ -7,6 +7,7 @@ use super::{
     res::PRes,
 };
 
+#[derive(Debug)]
 pub struct ParserState<L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
@@ -102,7 +103,7 @@ impl<L: Lang> ParserState<L> {
                 }
                 PRes::Eof => {
                     self.bump_err(parser.expected());
-                    break;
+                    return PRes::Eof;
                 }
                 PRes::Break(_) => return res,
                 PRes::Ok => break,

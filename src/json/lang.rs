@@ -1,11 +1,8 @@
 use logos::Logos;
 
-use crate::{
-    dsl::Parser,
-    parser::{lang::Lang, node::Lexeme},
-};
+use crate::parser::{lang::Lang, node::Lexeme};
 
-use super::{lexer::JsonToken, parser::json_parser, syntax::JsonSyntax};
+use super::{lexer::JsonToken, syntax::JsonSyntax};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct JsonLang;
@@ -38,5 +35,4 @@ impl Lang for JsonLang {
     fn root() -> JsonSyntax {
         JsonSyntax::Root
     }
-
 }
