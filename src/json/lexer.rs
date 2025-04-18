@@ -23,7 +23,6 @@ pub enum JsonToken {
     Plus,
     #[token("*")]
     Mul,
-    Eof,
 }
 
 impl Display for JsonToken {
@@ -37,7 +36,6 @@ impl Display for JsonToken {
             JsonToken::RBracket => f.write_str("RBracket"),
             JsonToken::LBrace => f.write_str("LBrace"),
             JsonToken::RBrace => f.write_str("RBrace"),
-            JsonToken::Eof => f.write_str("EOF"),
             JsonToken::Plus => f.write_str("Plus"),
             JsonToken::Mul => f.write_str("Mul"),
         }

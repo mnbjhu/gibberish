@@ -12,22 +12,26 @@ pub struct Fold<L: Lang> {
 }
 
 impl<L: Lang> Fold<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
+    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         state.enter(self.name.clone());
-        let first = self.first.do_parse(state);
+        let first = self.first.do_parse(state, recover);
         if first.is_err() {
             warn!("Disolving name");
             state.disolve_name();
             return first;
         }
-        if self.next.peak(state).is_err() {
+        if self.next.peak(state, recover).is_err() {
             warn!("Disolving name");
             state.disolve_name();
             return PRes::Ok;
         }
         loop {
-            let next = self.next.do_parse(state);
+            let next = self.next.do_parse(state, recover);
             if next.is_err() {
+                if matches!(next, PRes::Break(_)) {
+                    state.exit();
+                    return next
+                }
                 break;
             }
         }
@@ -35,8 +39,8 @@ impl<L: Lang> Fold<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
-        self.first.peak(state)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+        self.first.peak(state, recover)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

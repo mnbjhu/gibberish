@@ -8,18 +8,25 @@ pub struct Choice<L: Lang> {
 }
 
 impl<L: Lang> Choice<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let Some(parser) = self.options.iter().find(|it| it.peak(state) != PRes::Err) else {
-            return PRes::Err;
-        };
-        parser.do_parse(state)
+    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+        for option in &self.options {
+            let res = option.peak(state, recover);
+            if res.is_ok() {
+                return option.do_parse(state, recover);
+            } else if matches!(res, PRes::Break(_)) {
+                return res
+            }
+        }
+        PRes::Err
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
         for p in &self.options {
-            let res = p.peak(state);
+            let res = p.peak(state, recover);
             if res.is_ok() {
                 return PRes::Ok;
+            } else if matches!(res, PRes::Break(_)) {
+                return res
             }
         }
         PRes::Err

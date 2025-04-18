@@ -1,3 +1,5 @@
+use tracing::{info, warn};
+
 use crate::dsl::Parser;
 
 use super::{
@@ -37,6 +39,7 @@ impl<L: Lang> ParserState<L> {
 
     pub fn bump(&mut self) {
         let current = self.current().expect("Called bump at EOF").clone();
+        info!("Bumping token {current:?}");
         self.stack
             .last_mut()
             .expect("Tree has no root node")
@@ -47,6 +50,12 @@ impl<L: Lang> ParserState<L> {
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let tok = self.current().cloned();
+        warn!(
+            "Bumping error {}",
+            tok.as_ref()
+                .map(|t| t.kind.to_string())
+                .unwrap_or("EOF".to_string())
+        );
         if let Some(tok) = tok {
             self.offset += 1;
             if let Some(err) = &mut self.current_err {
@@ -80,13 +89,21 @@ impl<L: Lang> ParserState<L> {
     }
 
     pub fn try_delim(&self) -> Option<usize> {
-        self.delim_stack
+        let res = self
+            .delim_stack
             .iter()
-            .position(|it| it.peak(self) == PRes::Ok)
+            .position(|it| it.peak(self, true) == PRes::Ok);
+        if let Some(index) = res {
+            info!("Hit delim: {index}");
+        }
+        res
     }
 
-    pub fn push_delim(&mut self, delim: Parser<L>) {
+    #[must_use]
+    pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
+        let index = self.delim_stack.len();
         self.delim_stack.push(delim);
+        index
     }
     pub fn pop_delim(&mut self) {
         self.delim_stack
@@ -94,9 +111,9 @@ impl<L: Lang> ParserState<L> {
             .expect("Attempted to pop delim but stack was empty");
     }
 
-    pub fn try_parse(&mut self, parser: &Parser<L>) -> PRes {
+    pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
         loop {
-            let res = parser.do_parse(self);
+            let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
                     self.bump_err(parser.expected());
@@ -144,5 +161,16 @@ impl<L: Lang> ParserState<L> {
         } else {
             panic!("Expected a group")
         }
+    }
+
+    pub fn error(&mut self, err: ParseError<L>) {
+        self.stack.last_mut().unwrap().push_err(err);
+    }
+
+    pub fn missing(&mut self, parser: &Parser<L>) {
+        self.error(ParseError {
+            expected: parser.expected(),
+            actual: vec![],
+        });
     }
 }

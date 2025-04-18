@@ -11,16 +11,25 @@ pub struct Sep<L: Lang> {
 }
 
 impl<L: Lang> Sep<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let start = self.item.do_parse(state);
+    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+        let start = self.item.do_parse(state, recover);
         if start.is_err() {
             return start;
         }
-        state.push_delim(self.sep.as_ref().clone());
+        let index = state.push_delim(self.sep.as_ref().clone());
         loop {
-            let sep = state.try_parse(&self.sep);
+            let sep = state.try_parse(&self.sep, recover);
             if sep.is_ok() {
-                let item = state.try_parse(&self.item);
+                let item = state.try_parse(&self.item, recover);
+                if item == PRes::Break(index) {
+                    state.pop_delim();
+                    state.missing(&self.item);
+                    continue;
+                } else if matches!(item, PRes::Break(_)) {
+                    state.pop_delim();
+                    state.missing(&self.item);
+                    return PRes::Ok;
+                }
                 if item.is_err() {
                     warn!("Failed to parse item");
                     state.pop_delim();
@@ -35,8 +44,8 @@ impl<L: Lang> Sep<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
-        self.item.peak(state)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+        self.item.peak(state, recover)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

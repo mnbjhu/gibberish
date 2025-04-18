@@ -11,19 +11,19 @@ pub struct Named<L: Lang> {
 }
 
 impl<L: Lang> Named<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let peak = self.peak(state);
+    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+        let peak = self.peak(state, recover);
         if peak.is_err() {
             return peak;
         };
         state.enter(self.name.clone());
-        let res = self.inner.do_parse(state);
+        let res = self.inner.do_parse(state, recover);
         state.exit();
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
-        self.inner.peak(state)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+        self.inner.peak(state, recover)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

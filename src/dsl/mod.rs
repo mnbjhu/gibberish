@@ -32,33 +32,33 @@ pub enum Parser<L: Lang> {
 }
 
 impl<L: Lang> Parser<L> {
-    pub fn do_parse(&self, state: &mut ParserState<L>) -> PRes {
+    pub fn do_parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         info!("Parsing: {}", self.name());
         let res = match self {
             Parser::Just(just) => just.parse(state),
-            Parser::Choice(choice) => choice.parse(state),
-            Parser::Seq(seq) => seq.parse(state),
-            Parser::Sep(sep) => sep.parse(state),
-            Parser::Delim(delim) => delim.parse(state),
-            Parser::Rec(recursive) => recursive.parse(state),
-            Parser::Named(named) => named.parse(state),
-            Parser::Fold(fold) => fold.parse(state),
+            Parser::Choice(choice) => choice.parse(state, recover),
+            Parser::Seq(seq) => seq.parse(state, recover),
+            Parser::Sep(sep) => sep.parse(state, recover),
+            Parser::Delim(delim) => delim.parse(state, recover),
+            Parser::Rec(recursive) => recursive.parse(state, recover),
+            Parser::Named(named) => named.parse(state, recover),
+            Parser::Fold(fold) => fold.parse(state, recover),
         };
         info!("Done parsing: {};{res:?}", self.name());
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
         info!("Peaking: {}", self.name());
         let res = match self {
-            Parser::Just(just) => just.peak(state),
-            Parser::Choice(choice) => choice.peak(state),
-            Parser::Seq(seq) => seq.peak(state),
-            Parser::Sep(sep) => sep.peak(state),
-            Parser::Delim(delim) => delim.peak(state),
-            Parser::Rec(recursive) => recursive.peak(state),
-            Parser::Named(named) => named.peak(state),
-            Parser::Fold(fold) => fold.peak(state),
+            Parser::Just(just) => just.peak(state, recover),
+            Parser::Choice(choice) => choice.peak(state, recover),
+            Parser::Seq(seq) => seq.peak(state, recover),
+            Parser::Sep(sep) => sep.peak(state, recover),
+            Parser::Delim(delim) => delim.peak(state, recover),
+            Parser::Rec(recursive) => recursive.peak(state, recover),
+            Parser::Named(named) => named.peak(state, recover),
+            Parser::Fold(fold) => fold.peak(state, recover),
         };
         info!("Done peaking: {};{res:?}", self.name());
         res

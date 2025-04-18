@@ -4,7 +4,7 @@ use cli::command::Command;
 mod cli;
 mod dsl;
 mod json;
-mod parser;
+pub mod parser;
 
 fn main() {
     Command::parse().run();

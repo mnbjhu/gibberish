@@ -11,17 +11,17 @@ pub enum Recursive<L: Lang> {
 }
 
 impl<L: Lang> Recursive<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
+    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         match self {
-            Recursive::Ptr(parser) => parser.do_parse(state),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().do_parse(state),
+            Recursive::Ptr(parser) => parser.do_parse(state, recover),
+            Recursive::Weak(weak) => weak.upgrade().unwrap().do_parse(state, recover),
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
         match self {
-            Recursive::Ptr(parser) => parser.peak(state),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state),
+            Recursive::Ptr(parser) => parser.peak(state, recover),
+            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover),
         }
     }
 

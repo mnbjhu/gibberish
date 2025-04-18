@@ -23,15 +23,18 @@ impl<L: Lang> Just<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
         let Some(tok) = state.current() else {
             return PRes::Eof;
         };
         if tok.kind == self.0 {
-            PRes::Ok
-        } else {
-            PRes::Err
+            return PRes::Ok;
+        } else if !recover {
+            if let Some(pos) = state.try_delim() {
+                return PRes::Break(pos);
+            }
         }
+        PRes::Err
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

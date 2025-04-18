@@ -22,7 +22,7 @@ impl<L: Lang> Parser<L> {
     pub fn parse(&self, src: &str) -> Node<L> {
         let tokens = L::lex(src);
         let mut state = ParserState::new(tokens);
-        let res = self.do_parse(&mut state);
+        let res = self.do_parse(&mut state, false);
         if !matches!(res, PRes::Ok | PRes::Eof) {
             panic!("Unhandled result: {res:?}")
         }

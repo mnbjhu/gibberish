@@ -121,6 +121,7 @@ mod tests {
         let arr = root.green_children().next().unwrap();
         assert_eq!(arr.name(), JsonSyntax::Array);
         assert_eq!(arr.green_children().count(), 1, "Expected a single child");
+        assert_eq!(arr.errors.len(), 0);
 
         let sum = arr.green_children().next().unwrap();
         assert_eq!(sum.name(), JsonSyntax::Add);
@@ -129,6 +130,7 @@ mod tests {
         assert_eq!(sum.errors.len(), 1);
 
         let num = sum.green_children().next().unwrap();
+        assert_eq!(num.errors.len(), 0);
         assert_eq!(num.name(), JsonSyntax::Number);
         assert_eq!(num.green_children().count(), 0, "Expected no children");
     }
