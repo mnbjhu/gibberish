@@ -30,7 +30,7 @@ impl<L: Lang> Fold<L> {
             if next.is_err() {
                 if matches!(next, PRes::Break(_)) {
                     state.exit();
-                    return next
+                    return PRes::Ok
                 }
                 break;
             }

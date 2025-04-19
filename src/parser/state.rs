@@ -92,7 +92,15 @@ impl<L: Lang> ParserState<L> {
         let res = self
             .delim_stack
             .iter()
-            .position(|it| it.peak(self, true) == PRes::Ok);
+            .enumerate()
+            .rev()
+            .find_map(|(n, it)| {
+                if it.peak(self, true) == PRes::Ok {
+                    Some(n)
+                } else {
+                    None
+                }
+            });
         if let Some(index) = res {
             info!("Hit delim: {index}");
         }

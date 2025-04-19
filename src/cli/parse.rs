@@ -12,10 +12,12 @@ pub fn parse(path: &Path) {
         .truncate(true)
         .open("out.log")
         .unwrap();
+
     tracing_subscriber::fmt()
         .with_writer(log)
         .with_ansi(false)
         .init();
+
     let text = fs::read_to_string(path).unwrap();
     let res = json_parser().parse(&text);
     res.debug_print();

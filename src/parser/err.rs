@@ -47,7 +47,11 @@ where
             .join("");
         if self.expected.len() == 1 {
             let expected = self.expected.first().unwrap();
-            write!(f, "Expected {expected} but found {actual}")
+            if self.actual.is_empty() {
+                write!(f, "Missing {expected}")
+            } else {
+                write!(f, "Expected {expected} but found {actual}")
+            }
         } else {
             let expected = self
                 .expected
@@ -55,7 +59,11 @@ where
                 .map(|it| it.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-            write!(f, "Expected one of {expected} but found {actual}")
+            if self.actual.is_empty() {
+                write!(f, "Missing one of {expected}")
+            } else {
+                write!(f, "Expected one of {expected} but found {actual}")
+            }
         }
     }
 }
