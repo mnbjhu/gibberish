@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use crate::json::parser::json_parser;
+use crate::dsl::parser::p_parser;
 
 pub fn parse(path: &Path) {
     let log = OpenOptions::new()
@@ -19,6 +19,6 @@ pub fn parse(path: &Path) {
         .init();
 
     let text = fs::read_to_string(path).unwrap();
-    let res = json_parser().parse(&text);
+    let res = p_parser().parse(&text);
     res.debug_print();
 }

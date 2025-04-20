@@ -13,12 +13,13 @@ impl<L: Lang> Seq<L> {
         }
         for p in &self.0 {
             let res = state.try_parse(p, recover);
-            if matches!(res, PRes::Break(_)) {
-                state.missing(p);
-                return PRes::Ok;
-            }
-            if res.is_err() {
-                return res;
+            match res {
+                PRes::Break(_) => {
+                    state.missing(p);
+                    return PRes::Ok;
+                }
+                PRes::Ok => continue,
+                PRes::Eof | PRes::Err => return PRes::Ok,
             }
         }
         PRes::Ok

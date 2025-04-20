@@ -28,9 +28,9 @@ impl<L: Lang> Fold<L> {
         loop {
             let next = self.next.do_parse(state, recover);
             if next.is_err() {
-                if matches!(next, PRes::Break(_)) {
+                if matches!(next, PRes::Break(_) | PRes::Eof) {
                     state.exit();
-                    return PRes::Ok
+                    return PRes::Ok;
                 }
                 break;
             }
@@ -61,7 +61,7 @@ impl<L: Lang> Parser<L> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        dsl::{Parser, just::just, seq::seq},
+        api::{Parser, just::just, seq::seq},
         json::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax},
     };
 

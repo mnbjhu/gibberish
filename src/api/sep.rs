@@ -18,7 +18,7 @@ impl<L: Lang> Sep<L> {
         }
         let index = state.push_delim(self.sep.as_ref().clone());
         loop {
-            let sep = state.try_parse(&self.sep, recover);
+            let sep = state.maybe_parse(&self.sep, recover);
             if sep.is_ok() {
                 let item = state.try_parse(&self.item, recover);
                 if item == PRes::Break(index) {
@@ -32,7 +32,7 @@ impl<L: Lang> Sep<L> {
                 if item.is_err() {
                     warn!("Failed to parse item");
                     state.pop_delim();
-                    return item;
+                    return PRes::Ok;
                 }
             } else {
                 warn!("Failed to parse sep");

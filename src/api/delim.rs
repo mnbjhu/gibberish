@@ -27,12 +27,12 @@ impl<L: Lang> Delim<L> {
         }
         if inner != PRes::Ok {
             state.pop_delim();
-            return inner;
+            return PRes::Ok;
         }
         let end = state.try_parse(&self.end, recover);
         if end != PRes::Ok {
             state.pop_delim();
-            return end;
+            return PRes::Ok;
         }
         state.pop_delim();
         PRes::Ok

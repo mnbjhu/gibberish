@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{dsl::Parser, parser::res::PRes};
+use crate::{api::Parser, parser::res::PRes};
 
 use super::{
     node::{Lexeme, Node},
@@ -22,10 +22,8 @@ impl<L: Lang> Parser<L> {
     pub fn parse(&self, src: &str) -> Node<L> {
         let tokens = L::lex(src);
         let mut state = ParserState::new(tokens);
-        let res = self.do_parse(&mut state, false);
-        if !matches!(res, PRes::Ok | PRes::Eof) {
-            panic!("Unhandled result: {res:?}")
-        }
+        let res = state.try_parse(self, false);
+        assert!(matches!(res, PRes::Ok | PRes::Eof));
         state.finish()
     }
 }
