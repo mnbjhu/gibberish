@@ -43,7 +43,7 @@ impl<L: Lang> Delim<L> {
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {
-        self.inner.expected()
+        self.start.expected()
     }
 }
 

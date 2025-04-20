@@ -1,2 +1,5 @@
 hello = "Thing";
-test = "Hello" -> ["Another" | "Thing"]
+test = rec {
+  ex:
+  test = ["Hello" | "other"]
+))]

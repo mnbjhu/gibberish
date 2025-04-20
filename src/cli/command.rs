@@ -8,18 +8,38 @@ pub enum Command {
     Lex { path: PathBuf },
 
     /// Parses a file
-    Parse { path: PathBuf },
+    Parse {
+        path: PathBuf,
+        #[clap(short('e'), long)]
+        hide_errors: bool,
+        #[clap(short('t'), long)]
+        hide_tokens: bool,
+    },
 
     /// Parses a file
-    Watch { path: PathBuf },
+    Watch {
+        path: PathBuf,
+        #[clap(short('e'), long)]
+        hide_errors: bool,
+        #[clap(short('t'), long)]
+        hide_tokens: bool,
+    },
 }
 
 impl Command {
     pub fn run(&self) {
         match self {
             Command::Lex { path } => lex(path),
-            Command::Parse { path } => parse(path),
-            Command::Watch { path } => watch(path).unwrap(),
+            Command::Parse {
+                path,
+                hide_errors,
+                hide_tokens,
+            } => parse(path, !hide_errors, !hide_tokens),
+            Command::Watch {
+                path,
+                hide_errors,
+                hide_tokens,
+            } => watch(path, !hide_errors, !hide_tokens).unwrap(),
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
 
 use super::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax};
 
-pub fn json_parser() -> Parser<JsonLang> {
+fn json_parser() -> Parser<JsonLang> {
     recursive(|e| {
         let string = just(JsonToken::String).named(JsonSyntax::String);
         let int = just(JsonToken::Int).named(JsonSyntax::Number);
@@ -121,16 +121,16 @@ mod tests {
         let arr = root.green_children().next().unwrap();
         assert_eq!(arr.name(), JsonSyntax::Array);
         assert_eq!(arr.green_children().count(), 1, "Expected a single child");
-        assert_eq!(arr.errors.len(), 0);
+        assert_eq!(arr.errors().count(), 0);
 
         let sum = arr.green_children().next().unwrap();
         assert_eq!(sum.name(), JsonSyntax::Add);
         assert_eq!(sum.green_children().count(), 1, "Expected a single child");
 
-        assert_eq!(sum.errors.len(), 1);
+        assert_eq!(sum.errors().count(), 1);
 
         let num = sum.green_children().next().unwrap();
-        assert_eq!(num.errors.len(), 0);
+        assert_eq!(num.errors().count(), 0);
         assert_eq!(num.name(), JsonSyntax::Number);
         assert_eq!(num.green_children().count(), 0, "Expected no children");
     }

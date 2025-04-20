@@ -3,13 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use super::lang::Lang;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ParseError<L: Lang> {
     pub expected: Vec<Expected<L>>,
-    pub actual: Vec<Option<L::Token>>,
+    pub actual: Vec<L::Token>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Expected<L: Lang> {
     Token(L::Token),
     Label(L::Syntax),
@@ -38,13 +38,10 @@ where
         let actual = self
             .actual
             .iter()
-            .map(|it| {
-                it.as_ref()
-                    .map(|tok| tok.to_string())
-                    .unwrap_or("eof".to_string())
-            })
+            .map(|it| it.to_string())
             .collect::<Vec<_>>()
-            .join("");
+            .join(",");
+
         if self.expected.len() == 1 {
             let expected = self.expected.first().unwrap();
             if self.actual.is_empty() {
