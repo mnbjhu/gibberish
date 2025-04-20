@@ -42,6 +42,9 @@ pub enum PToken {
     #[token("sep")]
     SepBy,
 
+    #[token("named")]
+    Named,
+
     #[token("fold")]
     Fold,
 
@@ -79,6 +82,7 @@ impl Display for PToken {
             PToken::Ident => f.write_str("Ident"),
             PToken::Semi => f.write_str("Semi"),
             PToken::Fold => f.write_str("Fold"),
+            PToken::Named => f.write_str("Named"),
         }
     }
 }

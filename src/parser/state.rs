@@ -1,4 +1,4 @@
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::api::Parser;
 
@@ -13,7 +13,6 @@ use super::{
 pub struct ParserState<L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
-    current_err: Option<ParseError<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
 }
@@ -23,11 +22,9 @@ impl<L: Lang> ParserState<L> {
         ParserState {
             stack: vec![Node::Group(Group {
                 kind: L::root(),
-                errors: vec![],
                 children: vec![],
             })],
             input,
-            current_err: None,
             offset: 0,
             delim_stack: vec![],
         }
@@ -45,46 +42,60 @@ impl<L: Lang> ParserState<L> {
             .expect("Tree has no root node")
             .push_tok(current);
         self.offset += 1;
-        self.finish_err();
     }
+    //
+    // pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
+    //     let tok = self.current().cloned();
+    //     warn!(
+    //         "Bumping error {}",
+    //         tok.as_ref()
+    //             .map(|t| t.kind.to_string())
+    //             .unwrap_or("EOF".to_string())
+    //     );
+    //     if let Some(tok) = tok {
+    //         self.offset += 1;
+    //         if let Some(err) = &mut self.current_err {
+    //             err.actual.push(Some(tok.kind));
+    //         } else {
+    //             self.current_err = Some(ParseError {
+    //                 expected,
+    //                 actual: vec![Some(tok.kind)],
+    //             })
+    //         }
+    //     } else {
+    //         let err = ParseError {
+    //             expected,
+    //             actual: vec![None],
+    //         };
+    //         self.stack
+    //             .last_mut()
+    //             .expect("Tree has no root node")
+    //             .push_err(err);
+    //     }
+    // }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
-        let tok = self.current().cloned();
-        warn!(
-            "Bumping error {}",
-            tok.as_ref()
-                .map(|t| t.kind.to_string())
-                .unwrap_or("EOF".to_string())
-        );
-        if let Some(tok) = tok {
+        let current = self.current().cloned();
+        if current.is_some() {
             self.offset += 1;
-            if let Some(err) = &mut self.current_err {
-                err.actual.push(Some(tok.kind));
-            } else {
-                self.current_err = Some(ParseError {
-                    expected,
-                    actual: vec![Some(tok.kind)],
-                })
-            }
-        } else {
-            let err = ParseError {
-                expected,
-                actual: vec![None],
-            };
-            self.stack
-                .last_mut()
-                .expect("Tree has no root node")
-                .push_err(err);
         }
-    }
+        let err = if let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() {
+            err
+        } else {
+            self.current_group_mut()
+                .children
+                .push(Node::Err(ParseError {
+                    expected,
+                    actual: vec![],
+                }));
+            let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() else {
+                unreachable!()
+            };
+            err
+        };
 
-    pub fn finish_err(&mut self) {
-        let err = self.current_err.take();
-        if let Some(err) = err {
-            self.stack
-                .last_mut()
-                .expect("Tree has no root node")
-                .push_err(err);
+        if let Some(current) = current {
+            err.actual.push(current.kind.clone());
         }
     }
 
@@ -157,7 +168,6 @@ impl<L: Lang> ParserState<L> {
     pub fn enter(&mut self, name: L::Syntax) {
         self.stack.push(Node::Group(Group {
             kind: name,
-            errors: vec![],
             children: vec![],
         }));
     }
@@ -165,9 +175,10 @@ impl<L: Lang> ParserState<L> {
     pub fn exit(&mut self) {
         let node = self.stack.pop().expect("Node stack underflow");
         let current = self.stack.last_mut().expect("Node stack underflow");
-        match current {
-            Node::Group(Group { children, .. }) => children.push(node),
-            Node::Lexeme(_) => panic!("Cannot push child to lexeme"),
+        if let Node::Group(Group { children, .. }) = current {
+            children.push(node)
+        } else {
+            panic!("Expected a group")
         }
     }
 
@@ -182,20 +193,46 @@ impl<L: Lang> ParserState<L> {
         };
         if let Node::Group(group) = self.stack.last_mut().unwrap() {
             group.children.extend(disolved.children);
-            group.errors.extend(disolved.errors);
         } else {
             panic!("Expected a group")
         }
     }
 
-    pub fn error(&mut self, err: ParseError<L>) {
-        self.stack.last_mut().unwrap().push_err(err);
+    pub fn current_group(&self) -> &Group<L> {
+        if let Node::Group(g) = self.stack.last().unwrap() {
+            g
+        } else {
+            panic!("Stack item is not a group")
+        }
+    }
+    pub fn current_group_mut(&mut self) -> &mut Group<L> {
+        if let Node::Group(g) = self.stack.last_mut().unwrap() {
+            g
+        } else {
+            panic!("Stack item is not a group")
+        }
     }
 
     pub fn missing(&mut self, parser: &Parser<L>) {
-        self.error(ParseError {
-            expected: parser.expected(),
-            actual: vec![],
-        });
+        let expected = parser.expected();
+        if let Some(Node::Err(err)) = self.current_group().children.last() {
+            if err.expected == expected {
+                return;
+            }
+        }
+        self.current_group_mut()
+            .children
+            .push(Node::Err(ParseError {
+                expected,
+                actual: vec![],
+            }));
+    }
+
+    pub fn current_err(&mut self) -> Option<&mut ParseError<L>> {
+        if let Node::Err(err) = self.current_group_mut().children.last_mut()? {
+            Some(err)
+        } else {
+            None
+        }
     }
 }

@@ -4,6 +4,7 @@ use cli::command::Command;
 mod api;
 mod cli;
 mod dsl;
+#[cfg(test)]
 mod json;
 pub mod parser;
 
