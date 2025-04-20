@@ -1,2 +1,2 @@
 hello = "Thing";
-test = 
+test = "Hello" -> ["Another" | "Thing"]

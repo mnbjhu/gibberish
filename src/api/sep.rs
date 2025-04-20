@@ -32,7 +32,7 @@ impl<L: Lang> Sep<L> {
                 if item.is_err() {
                     warn!("Failed to parse item");
                     state.pop_delim();
-                    return item;
+                    return PRes::Ok;
                 }
             } else {
                 warn!("Failed to parse sep");

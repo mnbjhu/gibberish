@@ -28,7 +28,7 @@ impl<L: Lang> Fold<L> {
         loop {
             let next = self.next.do_parse(state, recover);
             if next.is_err() {
-                if matches!(next, PRes::Break(_)) {
+                if matches!(next, PRes::Break(_) | PRes::Eof) {
                     state.exit();
                     return PRes::Ok;
                 }

@@ -9,15 +9,17 @@ pub struct Choice<L: Lang> {
 
 impl<L: Lang> Choice<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        for option in &self.options {
-            let res = option.peak(state, recover);
+        let mut res = self.options[0].peak(state, recover);
+        if res.is_ok() {
+            return self.options[0].do_parse(state, recover);
+        }
+        for option in &self.options[1..] {
+            res = option.peak(state, recover);
             if res.is_ok() {
                 return option.do_parse(state, recover);
-            } else if matches!(res, PRes::Break(_) | PRes::Eof) {
-                return res;
             }
         }
-        PRes::Err
+        res
     }
 
     pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
