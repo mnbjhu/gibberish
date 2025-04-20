@@ -22,7 +22,6 @@ impl<L: Lang> Sep<L> {
             if sep.is_ok() {
                 let item = state.try_parse(&self.item, recover);
                 if item == PRes::Break(index) {
-                    state.pop_delim();
                     state.missing(&self.item);
                     continue;
                 } else if matches!(item, PRes::Break(_)) {
