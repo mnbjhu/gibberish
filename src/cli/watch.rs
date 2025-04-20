@@ -6,7 +6,7 @@ use std::{
     sync::mpsc,
 };
 
-use crate::json::parser::json_parser;
+use crate::dsl::parser::p_parser;
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -16,21 +16,13 @@ fn clear_screen() {
 }
 
 pub fn watch(path: &Path) -> NotifyResult<()> {
-    // 1) Path to watch from CLI
-    // 2) Instantiate your JSON parser (Rc-based is fine here)
-    let parser = json_parser();
-
-    // 3) Initial parse
+    let parser = p_parser();
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
     parser.parse(&text).debug_print();
-
-    // 4) Set up the channel and watcher
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
-
-    // 5) Event loop on main thread
     for res in rx {
         match res {
             Ok(event) => {

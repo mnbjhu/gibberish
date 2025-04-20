@@ -13,8 +13,8 @@ impl<L: Lang> Choice<L> {
             let res = option.peak(state, recover);
             if res.is_ok() {
                 return option.do_parse(state, recover);
-            } else if matches!(res, PRes::Break(_)) {
-                return res
+            } else if matches!(res, PRes::Break(_) | PRes::Eof) {
+                return res;
             }
         }
         PRes::Err
@@ -25,8 +25,8 @@ impl<L: Lang> Choice<L> {
             let res = p.peak(state, recover);
             if res.is_ok() {
                 return PRes::Ok;
-            } else if matches!(res, PRes::Break(_)) {
-                return res
+            } else if matches!(res, PRes::Break(_) | PRes::Eof) {
+                return res;
             }
         }
         PRes::Err

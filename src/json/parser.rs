@@ -1,4 +1,4 @@
-use crate::dsl::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
+use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
 
 use super::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax};
 

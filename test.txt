@@ -1,4 +1,2 @@
-[123 + {
-  "Hello": "Hello",
-  "Hello": 123
-}]
+hello = "Thing";
+test = 

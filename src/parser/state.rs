@@ -1,6 +1,6 @@
 use tracing::{info, warn};
 
-use crate::dsl::Parser;
+use crate::api::Parser;
 
 use super::{
     err::{Expected, ParseError},
@@ -128,6 +128,23 @@ impl<L: Lang> ParserState<L> {
                 }
                 PRes::Eof => {
                     self.bump_err(parser.expected());
+                    return PRes::Eof;
+                }
+                PRes::Break(_) => return res,
+                PRes::Ok => break,
+            }
+        }
+        PRes::Ok
+    }
+
+    pub fn maybe_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
+        loop {
+            let res = parser.do_parse(self, recover);
+            match res {
+                PRes::Err => {
+                    self.bump_err(parser.expected());
+                }
+                PRes::Eof => {
                     return PRes::Eof;
                 }
                 PRes::Break(_) => return res,
