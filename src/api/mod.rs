@@ -20,19 +20,19 @@ pub mod sep;
 pub mod seq;
 
 #[derive(Debug, Clone)]
-pub enum Parser<L: Lang> {
-    Just(Just<L>),
-    Choice(Choice<L>),
-    Seq(Seq<L>),
-    Sep(Sep<L>),
-    Delim(Delim<L>),
-    Rec(Recursive<L>),
-    Named(Named<L>),
-    Fold(Fold<L>),
+pub enum Parser<'src, L: Lang<'src>> {
+    Just(Just<'src, L>),
+    Choice(Choice<'src, L>),
+    Seq(Seq<'src, L>),
+    Sep(Sep<'src, L>),
+    Delim(Delim<'src, L>),
+    Rec(Recursive<'src, L>),
+    Named(Named<'src, L>),
+    Fold(Fold<'src, L>),
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn do_parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'src, L: Lang<'src>> Parser<'src, L> {
+    pub fn do_parse(&self, state: &mut ParserState<'src, L>, recover: bool) -> PRes {
         info!("Parsing: {}", self.name());
         let res = match self {
             Parser::Just(just) => just.parse(state),
@@ -48,7 +48,7 @@ impl<L: Lang> Parser<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         info!("Peaking: {}", self.name());
         let res = match self {
             Parser::Just(just) => just.peak(state, recover),
@@ -64,7 +64,7 @@ impl<L: Lang> Parser<L> {
         res
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&'src self) -> Vec<Expected<'src, L>> {
         info!("Getting expected for {}", self.name());
         match self {
             Parser::Just(just) => just.expected(),

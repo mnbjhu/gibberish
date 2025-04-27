@@ -10,15 +10,15 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct ParserState<L: Lang> {
+pub struct ParserState<'src, L: Lang<'src>> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
 }
 
-impl<L: Lang> ParserState<L> {
-    pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
+impl<'src, L: Lang<'src>> ParserState<'src, L> {
+    pub fn new(input: Vec<Lexeme<L>>) -> ParserState<'src, L> {
         ParserState {
             stack: vec![Node::Group(Group {
                 kind: L::root(),
@@ -74,7 +74,7 @@ impl<L: Lang> ParserState<L> {
     //     }
     // }
 
-    pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
+    pub fn bump_err(&mut self, expected: Vec<Expected<'src, L>>) {
         let current = self.current().cloned();
         if current.is_some() {
             self.offset += 1;

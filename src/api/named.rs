@@ -5,12 +5,12 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Named<L: Lang> {
-    inner: Box<Parser<L>>,
+pub struct Named<'src, L: Lang<'src>> {
+    inner: Box<Parser<'src, L>>,
     name: L::Syntax,
 }
 
-impl<L: Lang> Named<L> {
+impl<'src, L: Lang<'src>> Named<'src, L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let peak = self.peak(state, recover);
         if peak.is_err() {
@@ -31,8 +31,8 @@ impl<L: Lang> Named<L> {
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn named(self, name: L::Syntax) -> Parser<L> {
+impl<'src, L: Lang<'src>> Parser<'src, L> {
+    pub fn named(self, name: L::Syntax) -> Parser<'src, L> {
         Parser::Named(Named {
             inner: Box::new(self),
             name,
@@ -40,7 +40,7 @@ impl<L: Lang> Parser<L> {
     }
 }
 
-impl<L: Lang> Display for Named<L> {
+impl<'src, L: Lang<'src>> Display for Named<'src, L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Named({})", self.name)
     }

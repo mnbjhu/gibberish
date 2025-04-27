@@ -5,14 +5,14 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Delim<L: Lang> {
-    start: Box<Parser<L>>,
-    end: Box<Parser<L>>,
-    inner: Box<Parser<L>>,
+pub struct Delim<'src, L: Lang<'src>> {
+    start: Box<Parser<'src, L>>,
+    end: Box<Parser<'src, L>>,
+    inner: Box<Parser<'src, L>>,
 }
 
-impl<L: Lang> Delim<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'src, L: Lang<'src>> Delim<'src, L> {
+    pub fn parse(&self, state: &mut ParserState<'src, L>, recover: bool) -> PRes {
         let start = self.start.do_parse(state, recover);
         if start != PRes::Ok {
             warn!("Failed to parse delim");
@@ -38,17 +38,17 @@ impl<L: Lang> Delim<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         self.start.peak(state, recover)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&self) -> Vec<Expected<'src, L>> {
         self.start.expected()
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn delim_by(self, start: Parser<L>, end: Parser<L>) -> Parser<L> {
+impl<'src, L: Lang<'src>> Parser<'src, L> {
+    pub fn delim_by(self, start: Parser<'src, L>, end: Parser<'src, L>) -> Parser<'src, L> {
         Parser::Delim(Delim {
             start: Box::new(start),
             end: Box::new(end),

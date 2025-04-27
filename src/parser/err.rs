@@ -4,18 +4,18 @@ use std::fmt::{Display, Formatter};
 use super::lang::Lang;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParseError<L: Lang> {
-    pub expected: Vec<Expected<L>>,
+pub struct ParseError<'src, L: Lang<'src>> {
+    pub expected: Vec<Expected<'src, L>>,
     pub actual: Vec<L::Token>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Expected<L: Lang> {
+pub enum Expected<'src, L: Lang<'src>> {
     Token(L::Token),
     Label(L::Syntax),
 }
 
-impl<L: Lang> Display for Expected<L> {
+impl<'src, L: Lang<'src>> Display for Expected<'src, L> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Expected::Token(t) => write!(f, "{t}"),
@@ -24,7 +24,7 @@ impl<L: Lang> Display for Expected<L> {
     }
 }
 
-impl<L: Lang> Display for ParseError<L>
+impl<'src, L: Lang<'src>> Display for ParseError<'src, L>
 where
     L::Token: Display,
     L::Syntax: Display,

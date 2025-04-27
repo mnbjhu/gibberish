@@ -5,14 +5,14 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Fold<L: Lang> {
+pub struct Fold<'src, L: Lang<'src>> {
     name: L::Syntax,
-    first: Box<Parser<L>>,
-    next: Box<Parser<L>>,
+    first: Box<Parser<'src, L>>,
+    next: Box<Parser<'src, L>>,
 }
 
-impl<L: Lang> Fold<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'src, L: Lang<'src>> Fold<'src, L> {
+    pub fn parse(&self, state: &mut ParserState<'src, L>, recover: bool) -> PRes {
         state.enter(self.name.clone());
         let first = self.first.do_parse(state, recover);
         if first.is_err() {
@@ -39,17 +39,17 @@ impl<L: Lang> Fold<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         self.first.peak(state, recover)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&self) -> Vec<Expected<'src, L>> {
         self.first.expected()
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn fold(self, name: L::Syntax, next: Parser<L>) -> Parser<L> {
+impl<'src, L: Lang<'src>> Parser<'src, L> {
+    pub fn fold(self, name: L::Syntax, next: Parser<'src, L>) -> Parser<'src, L> {
         Parser::Fold(Fold {
             name,
             first: Box::new(self),
@@ -65,7 +65,7 @@ mod tests {
         json::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax},
     };
 
-    fn sum_parser() -> Parser<JsonLang> {
+    fn sum_parser<'src>() -> Parser<'src, JsonLang> {
         let number: Parser<JsonLang> = just(JsonToken::Int).named(JsonSyntax::Number);
         number
             .clone()

@@ -3,10 +3,10 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Seq<L: Lang>(Vec<Parser<L>>);
+pub struct Seq<'src, L: Lang<'src>>(Vec<Parser<'src, L>>);
 
-impl<L: Lang> Seq<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'src, L: Lang<'src>> Seq<'src, L> {
+    pub fn parse(&self, state: &mut ParserState<'src, L>, recover: bool) -> PRes {
         let start = self.peak(state, recover);
         if start.is_err() {
             return start;
@@ -25,14 +25,14 @@ impl<L: Lang> Seq<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         self.0
             .first()
             .expect("Seq should have at least one element")
             .peak(state, recover)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&self) -> Vec<Expected<'src, L>> {
         self.0
             .first()
             .expect("Seq should have at least one element")
@@ -40,6 +40,6 @@ impl<L: Lang> Seq<L> {
     }
 }
 
-pub fn seq<L: Lang>(parts: Vec<Parser<L>>) -> Parser<L> {
+pub fn seq<'src, L: Lang<'src>>(parts: Vec<Parser<'src, L>>) -> Parser<'src, L> {
     Parser::Seq(Seq(parts))
 }

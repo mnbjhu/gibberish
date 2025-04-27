@@ -5,27 +5,27 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub enum Recursive<L: Lang> {
-    Ptr(Rc<Parser<L>>),
-    Weak(Weak<Parser<L>>),
+pub enum Recursive<'src, L: Lang<'src>> {
+    Ptr(Rc<Parser<'src, L>>),
+    Weak(Weak<Parser<'src, L>>),
 }
 
-impl<L: Lang> Recursive<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'src, L: Lang<'src>> Recursive<'src, L> {
+    pub fn parse(&self, state: &mut ParserState<'src, L>, recover: bool) -> PRes {
         match self {
             Recursive::Ptr(parser) => parser.do_parse(state, recover),
             Recursive::Weak(weak) => weak.upgrade().unwrap().do_parse(state, recover),
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         match self {
             Recursive::Ptr(parser) => parser.peak(state, recover),
             Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover),
         }
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&'src self) -> Vec<Expected<'src, L>> {
         match self {
             Recursive::Ptr(parser) => parser.expected(),
             Recursive::Weak(weak) => weak.upgrade().unwrap().expected(),
@@ -33,7 +33,7 @@ impl<L: Lang> Recursive<L> {
     }
 }
 
-pub fn recursive<L: Lang>(builder: impl Fn(Parser<L>) -> Parser<L>) -> Parser<L> {
+pub fn recursive<'src, L: Lang<'src>>(builder: impl Fn(Parser<L>) -> Parser<L>) -> Parser<'src, L> {
     let res = Rc::new_cyclic(|p| builder(Parser::Rec(Recursive::Weak(p.clone()))));
     Parser::Rec(Recursive::Ptr(res))
 }

@@ -5,10 +5,10 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Just<L: Lang>(L::Token);
+pub struct Just<'src, L: Lang<'src>>(L::Token);
 
-impl<L: Lang> Just<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
+impl<'src, L: Lang<'src>> Just<'src, L> {
+    pub fn parse(&self, state: &mut ParserState<'src, L>) -> PRes {
         let Some(tok) = state.current() else {
             return PRes::Eof;
         };
@@ -23,7 +23,7 @@ impl<L: Lang> Just<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<'src, L>, recover: bool) -> PRes {
         let Some(tok) = state.current() else {
             return PRes::Eof;
         };
@@ -37,16 +37,16 @@ impl<L: Lang> Just<L> {
         PRes::Err
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
+    pub fn expected(&self) -> Vec<Expected<'src, L>> {
         vec![Expected::Token(self.0.clone())]
     }
 }
 
-pub fn just<L: Lang>(tok: L::Token) -> Parser<L> {
+pub fn just<'src, L: Lang<'src>>(tok: L::Token) -> Parser<'src, L> {
     Parser::Just(Just(tok))
 }
 
-impl<L: Lang> Display for Just<L> {
+impl<'src, L: Lang<'src>> Display for Just<'src, L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Just({})", self.0)
     }

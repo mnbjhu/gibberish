@@ -5,12 +5,12 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Sep<L: Lang> {
-    sep: Box<Parser<L>>,
-    item: Box<Parser<L>>,
+pub struct Sep<'src, L: Lang<'src>> {
+    sep: Box<Parser<'src, L>>,
+    item: Box<Parser<'src, L>>,
 }
 
-impl<L: Lang> Sep<L> {
+impl<'src, L: Lang<'src>> Sep<'src, L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let start = self.item.do_parse(state, recover);
         if start.is_err() {
@@ -52,8 +52,8 @@ impl<L: Lang> Sep<L> {
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn sep_by(self, sep: Parser<L>) -> Parser<L> {
+impl<'src, L: Lang<'src>> Parser<'src, L> {
+    pub fn sep_by(self, sep: Parser<'src, L>) -> Parser<'src, L> {
         Parser::Sep(Sep {
             item: Box::new(self),
             sep: Box::new(sep),
