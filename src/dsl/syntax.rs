@@ -13,6 +13,7 @@ pub enum PSyntax {
     Delim,
     Decl,
     Var,
+    TokenDecl,
 }
 
 impl Display for PSyntax {
@@ -29,6 +30,7 @@ impl Display for PSyntax {
             PSyntax::Delim => f.write_str("Delim"),
             PSyntax::Decl => f.write_str("Decl"),
             PSyntax::Var => f.write_str("Var"),
+            PSyntax::TokenDecl => f.write_str("TokenDecl"),
         }
     }
 }

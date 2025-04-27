@@ -1,5 +1,6 @@
+token test = "Hello";
 hello = "Thing";
 test = rec {
   ex:
-  test = ["Hello" | "other"]
-))]
+  test = ["Hello" | thing ]
+}

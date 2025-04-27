@@ -93,6 +93,36 @@ impl<L: Lang> Node<L> {
             Node::Err(_) => panic!("ErrGroup has no children"),
         }
     }
+
+    pub fn is_okay(&self) -> bool {
+        match self {
+            Node::Group(group) => group.is_okay(),
+            Node::Lexeme(_) => true,
+            Node::Err(_) => false,
+        }
+    }
+
+    // TODO: Think about empty groups/errors
+    pub fn start(&self) -> usize {
+        match self {
+            Node::Group(group) => group.start(),
+            Node::Lexeme(lexeme) => lexeme.span.start,
+            Node::Err(_) => todo!(),
+        }
+    }
+
+    // TODO: Think about empty groups/errors
+    pub fn end(&self) -> usize {
+        match self {
+            Node::Group(group) => group.end(),
+            Node::Lexeme(lexeme) => lexeme.span.end,
+            Node::Err(_) => todo!(),
+        }
+    }
+
+    pub fn span(&self) -> Range<usize> {
+        self.start()..self.end()
+    }
 }
 
 impl<L: Lang> Group<L> {
@@ -114,6 +144,32 @@ impl<L: Lang> Group<L> {
             _ => None,
         })
     }
+
+    pub fn is_okay(&self) -> bool {
+        self.children.iter().all(|it| it.is_okay())
+    }
+    
+    pub fn child_by_name(&self, name: &L::Syntax) -> Option<&Group<L>> {
+        self.children.iter().find_map(|it| match it {
+            Node::Group(group) => if &group.kind == name {
+                Some(group)
+            } else {
+                None
+            },
+            _ => None
+        })
+    }
+
+    pub fn start(&self) -> usize {
+        self.children.first().expect("Can't get start of empty group").start()
+    }
+    pub fn end(&self) -> usize {
+        self.children.last().expect("Can't get end of empty group").end()
+    }
+
+    pub fn span(&self) -> Range<usize>{
+        self.start()..self.end()
+    }
 }
 
 impl<L: Lang> ParseError<L> {
@@ -130,7 +186,7 @@ impl<L: Lang> ParseError<L> {
             for _ in 0..offset {
                 print!("  ");
             }
-            println!("  {}", Red.paint(token.to_string()));
+            println!("  {}", Red.paint(token.kind.to_string()));
         }
     }
 }

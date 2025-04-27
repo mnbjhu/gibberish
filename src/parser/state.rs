@@ -43,36 +43,6 @@ impl<L: Lang> ParserState<L> {
             .push_tok(current);
         self.offset += 1;
     }
-    //
-    // pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
-    //     let tok = self.current().cloned();
-    //     warn!(
-    //         "Bumping error {}",
-    //         tok.as_ref()
-    //             .map(|t| t.kind.to_string())
-    //             .unwrap_or("EOF".to_string())
-    //     );
-    //     if let Some(tok) = tok {
-    //         self.offset += 1;
-    //         if let Some(err) = &mut self.current_err {
-    //             err.actual.push(Some(tok.kind));
-    //         } else {
-    //             self.current_err = Some(ParseError {
-    //                 expected,
-    //                 actual: vec![Some(tok.kind)],
-    //             })
-    //         }
-    //     } else {
-    //         let err = ParseError {
-    //             expected,
-    //             actual: vec![None],
-    //         };
-    //         self.stack
-    //             .last_mut()
-    //             .expect("Tree has no root node")
-    //             .push_err(err);
-    //     }
-    // }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();
@@ -95,7 +65,7 @@ impl<L: Lang> ParserState<L> {
         };
 
         if let Some(current) = current {
-            err.actual.push(current.kind.clone());
+            err.actual.push(current.clone());
         }
     }
 

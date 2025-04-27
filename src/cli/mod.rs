@@ -1,4 +1,6 @@
+mod build;
+mod check;
 pub mod command;
-pub mod lex;
-pub mod parse;
-pub mod watch;
+mod lex;
+mod parse;
+mod watch;

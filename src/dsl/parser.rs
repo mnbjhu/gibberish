@@ -3,9 +3,17 @@ use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
 use super::{lang::PLang, lexer::PToken, syntax::PSyntax};
 
 pub fn p_parser() -> Parser<PLang> {
-    let string = just(PToken::String).named(PSyntax::String);
     recursive(|stmt| {
+        let token_decl = seq(vec![
+            just(PToken::Token),
+            just(PToken::Ident).named(PSyntax::Var),
+            just(PToken::Eq),
+            just(PToken::String).named(PSyntax::String),
+        ])
+        .named(PSyntax::TokenDecl);
         let expr = recursive(|ex| {
+            let string = just(PToken::String).named(PSyntax::String);
+            let var = just(PToken::Ident).named(PSyntax::Var);
             let choice_parser = ex
                 .clone()
                 .sep_by(just(PToken::Or))
@@ -34,7 +42,8 @@ pub fn p_parser() -> Parser<PLang> {
             let rec_parser = seq(vec![just(PToken::Rec), rec_body]).named(PSyntax::Rec);
 
             let atom = choice(vec![
-                string.clone(),
+                string,
+                var,
                 choice_parser,
                 sep_parser,
                 delim_parser,
@@ -46,12 +55,13 @@ pub fn p_parser() -> Parser<PLang> {
             atom.clone()
                 .fold(PSyntax::Seq, seq(vec![just(PToken::Then), atom]))
         });
-        seq(vec![
+        let var_decl = seq(vec![
             just(PToken::Ident).named(PSyntax::Var),
             just(PToken::Eq),
             expr,
         ])
-        .named(PSyntax::Decl)
+        .named(PSyntax::Decl);
+        choice(vec![token_decl, var_decl])
     })
     .sep_by(just(PToken::Semi))
 }
