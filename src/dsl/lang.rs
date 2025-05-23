@@ -26,7 +26,13 @@ impl Lang for PLang {
                     };
                     found.push(lexeme);
                 }
-                Err(e) => panic!("{e:?}"),
+                Err(_) => {
+                    let lexeme = Lexeme {
+                        span: lexer.span(),
+                        kind: PToken::Error,
+                    };
+                    found.push(lexeme);
+                }
             }
         }
         found

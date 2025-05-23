@@ -1,5 +1,2 @@
 hello = "Thing";
-test = rec {
-  ex:
-  test = ["Hello" | "other"]
-))]
+hello = rec { abc: "" }

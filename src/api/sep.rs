@@ -30,6 +30,10 @@ impl<L: Lang> Sep<L> {
                     return PRes::Ok;
                 }
                 if item.is_err() {
+                    if self.item.peak(state, recover) == PRes::Ok {
+                        state.missing(&self.item);
+                        continue;
+                    }
                     warn!("Failed to parse item");
                     state.pop_delim();
                     return PRes::Ok;

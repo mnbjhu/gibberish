@@ -173,6 +173,7 @@ dependencies = [
  "clap",
  "logos",
  "notify",
+ "regex-syntax",
  "tracing",
  "tracing-subscriber",
 ]
