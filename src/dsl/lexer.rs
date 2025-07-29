@@ -59,6 +59,7 @@ pub enum PToken {
 
     #[regex(r#"[a-zA-Z][a-zA-Z0-9_]+"#)]
     Ident,
+    Error,
 }
 
 impl Display for PToken {
@@ -83,6 +84,7 @@ impl Display for PToken {
             PToken::Semi => f.write_str("Semi"),
             PToken::Fold => f.write_str("Fold"),
             PToken::Named => f.write_str("Named"),
+            PToken::Error => f.write_str("ERR"),
         }
     }
 }

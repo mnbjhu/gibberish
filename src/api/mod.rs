@@ -14,6 +14,7 @@ pub mod choice;
 pub mod delim;
 pub mod fold;
 pub mod just;
+pub mod maybe;
 pub mod named;
 pub mod rec;
 pub mod sep;
