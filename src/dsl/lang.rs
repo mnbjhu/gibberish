@@ -1,16 +1,16 @@
+use std::mem;
+
 use logos::Logos;
+use rowan::{Language, SyntaxKind};
 
 use crate::parser::{lang::Lang, node::Lexeme};
 
-use super::{lexer::PToken, syntax::PSyntax};
+use super::lexer::PToken;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord, Copy)]
 pub struct PLang;
 
 impl Lang for PLang {
-    type Token = PToken;
-    type Syntax = PSyntax;
-
     fn lex(src: &str) -> Vec<Lexeme<Self>>
     where
         Self: Sized,
@@ -23,6 +23,7 @@ impl Lang for PLang {
                     let lexeme = Lexeme {
                         span: lexer.span(),
                         kind: next,
+                        text: lexer.slice().to_string(),
                     };
                     found.push(lexeme);
                 }
@@ -30,6 +31,7 @@ impl Lang for PLang {
                     let lexeme = Lexeme {
                         span: lexer.span(),
                         kind: PToken::Error,
+                        text: lexer.slice().to_string(),
                     };
                     found.push(lexeme);
                 }
@@ -37,8 +39,17 @@ impl Lang for PLang {
         }
         found
     }
+}
 
-    fn root() -> PSyntax {
-        PSyntax::Root
+impl Language for PLang {
+    type Kind = PToken;
+
+    fn kind_from_raw(raw: SyntaxKind) -> Self::Kind {
+        // SAFETY: raw.0 was produced by our From<SyntaxKind>
+        unsafe { mem::transmute(raw.0) }
+    }
+
+    fn kind_to_raw(kind: Self::Kind) -> SyntaxKind {
+        kind.into()
     }
 }

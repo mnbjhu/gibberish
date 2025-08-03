@@ -6,28 +6,28 @@ use super::lang::Lang;
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseError<L: Lang> {
     pub expected: Vec<Expected<L>>,
-    pub actual: Vec<L::Token>,
+    pub actual: Vec<L::Kind>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Expected<L: Lang> {
-    Token(L::Token),
-    Label(L::Syntax),
+    Token(L::Kind),
 }
 
-impl<L: Lang> Display for Expected<L> {
+impl<L: Lang> Display for Expected<L>
+where
+    L::Kind: Display,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Expected::Token(t) => write!(f, "{t}"),
-            Expected::Label(l) => write!(f, "{l}"),
         }
     }
 }
 
 impl<L: Lang> Display for ParseError<L>
 where
-    L::Token: Display,
-    L::Syntax: Display,
+    L::Kind: Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         assert_ne!(

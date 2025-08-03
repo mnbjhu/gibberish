@@ -1,10 +1,11 @@
 use std::fmt::Display;
 
-#[derive(logos::Logos, Debug, PartialEq, Eq, Clone)]
+#[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash, Copy, PartialOrd, Ord)]
+#[repr(u16)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum JsonToken {
     #[regex("\"[^\"]*\"")]
-    String,
+    String = 0,
     #[regex(r"[0-9]+")]
     Int,
     #[token(":")]
@@ -23,6 +24,13 @@ pub enum JsonToken {
     Plus,
     #[token("*")]
     Mul,
+
+    Field,
+    Array,
+    Object,
+    Root,
+    Key,
+    Add,
 }
 
 impl Display for JsonToken {
@@ -38,6 +46,12 @@ impl Display for JsonToken {
             JsonToken::RBrace => f.write_str("RBrace"),
             JsonToken::Plus => f.write_str("Plus"),
             JsonToken::Mul => f.write_str("Mul"),
+            JsonToken::Field => f.write_str("Field"),
+            JsonToken::Array => f.write_str("Array"),
+            JsonToken::Object => f.write_str("Object"),
+            JsonToken::Root => f.write_str("Root"),
+            JsonToken::Key => f.write_str("Key"),
+            JsonToken::Add => f.write_str("Add"),
         }
     }
 }

@@ -16,13 +16,13 @@ pub fn p_parser() -> Parser<PLang> {
                 .sep_by(just(PToken::Comma))
                 .delim_by(just(PToken::LParen), just(PToken::RParen));
 
-            let delim_parser = seq(vec![just(PToken::Delim), args.clone()]).named(PSyntax::Delim);
+            let delim_parser = seq(vec![just(PToken::DelimKw), args.clone()]).named(PSyntax::Delim);
 
-            let sep_parser = seq(vec![just(PToken::SepBy), args.clone()]).named(PSyntax::SepBy);
+            let sep_parser = seq(vec![just(PToken::Sep), args.clone()]).named(PSyntax::SepBy);
 
-            let fold_parser = seq(vec![just(PToken::Fold), args.clone()]).named(PSyntax::Fold);
+            let fold_parser = seq(vec![just(PToken::FoldKw), args.clone()]).named(PSyntax::Fold);
 
-            let named_parser = seq(vec![just(PToken::Named), args.clone()]).named(PSyntax::Named);
+            let named_parser = seq(vec![just(PToken::NamedKw), args.clone()]).named(PSyntax::Named);
 
             let rec_body = seq(vec![
                 just(PToken::Ident).named(PSyntax::Var),
@@ -31,7 +31,7 @@ pub fn p_parser() -> Parser<PLang> {
             ])
             .delim_by(just(PToken::LBrace), just(PToken::RBrace));
 
-            let rec_parser = seq(vec![just(PToken::Rec), rec_body]).named(PSyntax::Rec);
+            let rec_parser = seq(vec![just(PToken::RecKw), rec_body]).named(PSyntax::Rec);
 
             let atom = choice(vec![
                 string.clone(),

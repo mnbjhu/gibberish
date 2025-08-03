@@ -1,3 +1,4 @@
+use rowan::{GreenNode, GreenNodeBuilder};
 use tracing::info;
 
 use crate::api::Parser;
@@ -11,7 +12,8 @@ use super::{
 
 #[derive(Debug)]
 pub struct ParserState<L: Lang> {
-    stack: Vec<Node<L>>,
+    // stack: Vec<Node<L>>,
+    builder: GreenNodeBuilder<'static>,
     input: Vec<Lexeme<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
@@ -20,13 +22,14 @@ pub struct ParserState<L: Lang> {
 impl<L: Lang> ParserState<L> {
     pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
         ParserState {
-            stack: vec![Node::Group(Group {
-                kind: L::root(),
-                children: vec![],
-            })],
+            // stack: vec![Node::Group(Group {
+            //     kind: L::root(),
+            //     children: vec![],
+            // })],
             input,
             offset: 0,
             delim_stack: vec![],
+            builder: GreenNodeBuilder::new(),
         }
     }
 
@@ -37,10 +40,8 @@ impl<L: Lang> ParserState<L> {
     pub fn bump(&mut self) {
         let current = self.current().expect("Called bump at EOF").clone();
         info!("Bumping token {current:?}");
-        self.stack
-            .last_mut()
-            .expect("Tree has no root node")
-            .push_tok(current);
+        self.builder
+            .token(L::kind_to_raw(current.kind), &current.text);
         self.offset += 1;
     }
     //
@@ -165,26 +166,16 @@ impl<L: Lang> ParserState<L> {
         PRes::Ok
     }
 
-    pub fn enter(&mut self, name: L::Syntax) {
-        self.stack.push(Node::Group(Group {
-            kind: name,
-            children: vec![],
-        }));
+    pub fn enter(&mut self, name: L::Kind) {
+        self.builder.start_node(L::kind_to_raw(name));
     }
 
     pub fn exit(&mut self) {
-        let node = self.stack.pop().expect("Node stack underflow");
-        let current = self.stack.last_mut().expect("Node stack underflow");
-        if let Node::Group(Group { children, .. }) = current {
-            children.push(node)
-        } else {
-            panic!("Expected a group")
-        }
+        self.builder.finish_node();
     }
 
-    pub fn finish(mut self) -> Node<L> {
-        assert_eq!(self.stack.len(), 1);
-        self.stack.pop().unwrap()
+    pub fn finish(self) -> GreenNode {
+        self.builder.finish()
     }
 
     pub fn disolve_name(&mut self) {
