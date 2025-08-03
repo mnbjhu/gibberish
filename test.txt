@@ -1,2 +1,7 @@
 hello = "Thing";
-hello = rec { abc: "" }
+hello = rec { abc: 
+  hello = ["Hello" | "other" a];
+  hello = "Hello"
+};
+test = ["Hello" | "other";
+hello = "World"

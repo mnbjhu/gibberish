@@ -18,7 +18,7 @@ impl<L: Lang> Just<L> {
         } else if let Some(pos) = state.try_delim() {
             PRes::Break(pos)
         } else {
-            state.bump_err(self.expected());
+            // state.bump_err(self.expected());
             PRes::Err
         }
     }
