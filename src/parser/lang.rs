@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display};
+use std::hash::Hash;
 
 use crate::{api::Parser, parser::res::PRes};
 
@@ -8,7 +9,7 @@ use super::{
 };
 
 pub trait Lang: Clone + PartialEq + Eq + Debug {
-    type Token: Clone + PartialEq + Eq + Display + Debug;
+    type Token: Clone + PartialEq + Eq + Display + Debug + Hash;
     type Syntax: Clone + PartialEq + Eq + Display + Debug;
 
     fn lex(src: &str) -> Vec<Lexeme<Self>>

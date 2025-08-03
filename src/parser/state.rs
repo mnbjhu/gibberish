@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use tracing::info;
 
 use crate::api::Parser;
@@ -15,6 +17,7 @@ pub struct ParserState<L: Lang> {
     input: Vec<Lexeme<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
+    skipping: HashSet<L::Token>,
 }
 
 impl<L: Lang> ParserState<L> {
@@ -27,6 +30,7 @@ impl<L: Lang> ParserState<L> {
             input,
             offset: 0,
             delim_stack: vec![],
+            skipping: HashSet::new(),
         }
     }
 
@@ -43,36 +47,14 @@ impl<L: Lang> ParserState<L> {
             .push_tok(current);
         self.offset += 1;
     }
-    //
-    // pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
-    //     let tok = self.current().cloned();
-    //     warn!(
-    //         "Bumping error {}",
-    //         tok.as_ref()
-    //             .map(|t| t.kind.to_string())
-    //             .unwrap_or("EOF".to_string())
-    //     );
-    //     if let Some(tok) = tok {
-    //         self.offset += 1;
-    //         if let Some(err) = &mut self.current_err {
-    //             err.actual.push(Some(tok.kind));
-    //         } else {
-    //             self.current_err = Some(ParseError {
-    //                 expected,
-    //                 actual: vec![Some(tok.kind)],
-    //             })
-    //         }
-    //     } else {
-    //         let err = ParseError {
-    //             expected,
-    //             actual: vec![None],
-    //         };
-    //         self.stack
-    //             .last_mut()
-    //             .expect("Tree has no root node")
-    //             .push_err(err);
-    //     }
-    // }
+
+    pub fn skip(&mut self, token: L::Token) -> bool {
+        self.skipping.insert(token)
+    }
+
+    pub fn unskip(&mut self, token: L::Token) -> bool {
+        self.skipping.remove(&token)
+    }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();

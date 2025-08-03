@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(logos::Logos, Debug, PartialEq, Eq, Clone)]
+#[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum JsonToken {
     #[regex("\"[^\"]*\"")]
