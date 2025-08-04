@@ -1,4 +1,5 @@
 use rowan::{Checkpoint, GreenNode, GreenNodeBuilder};
+use std::collections::HashSet;
 use tracing::info;
 
 use crate::api::Parser;
@@ -19,6 +20,7 @@ pub struct ParserState<L: Lang> {
     delim_stack: Vec<Parser<L>>,
     errors: Vec<ParseError<L>>,
     current_err: Option<ParseError<L>>,
+    skipping: HashSet<L::Kind>,
 }
 
 impl<L: Lang> ParserState<L> {
@@ -30,6 +32,7 @@ impl<L: Lang> ParserState<L> {
             builder: GreenNodeBuilder::new(),
             errors: vec![],
             current_err: None,
+            skipping: HashSet::new(),
         }
     }
 
@@ -43,6 +46,14 @@ impl<L: Lang> ParserState<L> {
         self.builder
             .token(L::kind_to_raw(current.kind), &current.text);
         self.offset += 1;
+    }
+
+    pub fn skip(&mut self, token: L::Kind) -> bool {
+        self.skipping.insert(token)
+    }
+
+    pub fn unskip(&mut self, token: L::Kind) -> bool {
+        self.skipping.remove(&token)
     }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {

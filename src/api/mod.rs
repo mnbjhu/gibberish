@@ -6,6 +6,7 @@ use named::Named;
 use rec::Recursive;
 use sep::Sep;
 use seq::Seq;
+use skip::Skip;
 use tracing::info;
 
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
@@ -19,6 +20,8 @@ pub mod named;
 pub mod rec;
 pub mod sep;
 pub mod seq;
+pub mod significant;
+pub mod skip;
 
 #[derive(Debug, Clone)]
 pub enum Parser<L: Lang> {
@@ -30,6 +33,7 @@ pub enum Parser<L: Lang> {
     Rec(Recursive<L>),
     Named(Named<L>),
     Fold(Fold<L>),
+    Skip(Skip<L>),
 }
 
 impl<L: Lang> Parser<L> {
@@ -44,6 +48,7 @@ impl<L: Lang> Parser<L> {
             Parser::Rec(recursive) => recursive.parse(state, recover),
             Parser::Named(named) => named.parse(state, recover),
             Parser::Fold(fold) => fold.parse(state, recover),
+            Parser::Skip(skip) => skip.parse(state, recover),
         };
         info!("Done parsing: {};{res:?}", self.name());
         res
@@ -60,6 +65,7 @@ impl<L: Lang> Parser<L> {
             Parser::Rec(recursive) => recursive.peak(state, recover),
             Parser::Named(named) => named.peak(state, recover),
             Parser::Fold(fold) => fold.peak(state, recover),
+            Parser::Skip(skip) => skip.peak(state, recover),
         };
         info!("Done peaking: {};{res:?}", self.name());
         res
@@ -76,6 +82,7 @@ impl<L: Lang> Parser<L> {
             Parser::Rec(recursive) => recursive.expected(),
             Parser::Named(named) => named.expected(),
             Parser::Fold(fold) => fold.expected(),
+            Parser::Skip(skip) => skip.expected(),
         }
     }
 
@@ -89,6 +96,7 @@ impl<L: Lang> Parser<L> {
             Parser::Rec(_) => "Rec".to_string(),
             Parser::Named(named) => named.to_string(),
             Parser::Fold(_) => "Fold".to_string(),
+            Parser::Skip(_) => "Skip".to_string(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-#[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash, Copy, PartialOrd, Ord)]
 #[repr(u16)]
+#[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash, Copy, PartialOrd, Ord)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum JsonToken {
     #[regex("\"[^\"]*\"")]
