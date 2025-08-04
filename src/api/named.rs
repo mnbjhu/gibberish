@@ -7,7 +7,7 @@ use super::Parser;
 #[derive(Debug, Clone)]
 pub struct Named<L: Lang> {
     inner: Box<Parser<L>>,
-    name: L::Syntax,
+    name: L::Kind,
 }
 
 impl<L: Lang> Named<L> {
@@ -27,12 +27,12 @@ impl<L: Lang> Named<L> {
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {
-        vec![Expected::Label(self.name.clone())]
+        vec![Expected::Token(self.name.clone())]
     }
 }
 
 impl<L: Lang> Parser<L> {
-    pub fn named(self, name: L::Syntax) -> Parser<L> {
+    pub fn named(self, name: L::Kind) -> Parser<L> {
         Parser::Named(Named {
             inner: Box::new(self),
             name,
@@ -42,6 +42,6 @@ impl<L: Lang> Parser<L> {
 
 impl<L: Lang> Display for Named<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Named({})", self.name)
+        write!(f, "Named({:?})", self.name)
     }
 }

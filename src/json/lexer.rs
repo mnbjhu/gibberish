@@ -25,6 +25,7 @@ pub enum JsonToken {
     #[token("*")]
     Mul,
 
+    Number,
     Field,
     Array,
     Object,
@@ -52,6 +53,7 @@ impl Display for JsonToken {
             JsonToken::Root => f.write_str("Root"),
             JsonToken::Key => f.write_str("Key"),
             JsonToken::Add => f.write_str("Add"),
+            JsonToken::Number => f.write_str("Number"),
         }
     }
 }

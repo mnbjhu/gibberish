@@ -1,2 +1,1 @@
-hello = "Thing";
-hello = rec { abc: "" }
+hello = "Thing"

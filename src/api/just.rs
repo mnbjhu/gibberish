@@ -5,7 +5,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 use super::Parser;
 
 #[derive(Debug, Clone)]
-pub struct Just<L: Lang>(L::Token);
+pub struct Just<L: Lang>(L::Kind);
 
 impl<L: Lang> Just<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
@@ -42,12 +42,12 @@ impl<L: Lang> Just<L> {
     }
 }
 
-pub fn just<L: Lang>(tok: L::Token) -> Parser<L> {
+pub fn just<L: Lang>(tok: L::Kind) -> Parser<L> {
     Parser::Just(Just(tok))
 }
 
 impl<L: Lang> Display for Just<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Just({})", self.0)
+        write!(f, "Just({:?})", self.0)
     }
 }

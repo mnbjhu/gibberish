@@ -19,7 +19,8 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
     let parser = p_parser();
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    parser.parse(&text).debug_print(errors, tokens);
+    let res = parser.parse(&text);
+    println!("{res:?}");
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -31,7 +32,8 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 }
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
-                parser.parse(&text).debug_print(errors, tokens);
+                let res = parser.parse(&text);
+                println!("{res:?}");
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }

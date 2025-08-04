@@ -4,30 +4,30 @@ use super::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax};
 
 fn json_parser() -> Parser<JsonLang> {
     recursive(|e| {
-        let string = just(JsonToken::String).named(JsonSyntax::String);
-        let int = just(JsonToken::Int).named(JsonSyntax::Number);
+        let string = just(JsonToken::String).named(JsonToken::String);
+        let int = just(JsonToken::Int).named(JsonToken::Number);
 
         let arr = e
             .clone()
             .sep_by(just(JsonToken::Comma))
             .delim_by(just(JsonToken::LBracket), just(JsonToken::RBracket))
-            .named(JsonSyntax::Array);
+            .named(JsonToken::Array);
 
         let obj_field = seq(vec![
-            just(JsonToken::String).named(JsonSyntax::Key),
+            just(JsonToken::String).named(JsonToken::Key),
             just(JsonToken::Colon),
             e,
         ])
-        .named(JsonSyntax::Field);
+        .named(JsonToken::Field);
 
         let obj = obj_field
             .sep_by(just(JsonToken::Comma))
             .delim_by(just(JsonToken::LBrace), just(JsonToken::RBrace))
-            .named(JsonSyntax::Object);
+            .named(JsonToken::Object);
         let atom = choice(vec![obj, arr, string, int]);
 
         atom.clone()
-            .fold(JsonSyntax::Add, seq(vec![just(JsonToken::Plus), atom]))
+            .fold(JsonToken::Add, seq(vec![just(JsonToken::Plus), atom]))
     })
 }
 

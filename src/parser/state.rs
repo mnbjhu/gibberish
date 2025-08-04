@@ -1,4 +1,4 @@
-use rowan::{GreenNode, GreenNodeBuilder};
+use rowan::{Checkpoint, GreenNode, GreenNodeBuilder};
 use tracing::info;
 
 use crate::api::Parser;
@@ -6,7 +6,7 @@ use crate::api::Parser;
 use super::{
     err::{Expected, ParseError},
     lang::Lang,
-    node::{Group, Lexeme, Node},
+    node::Lexeme,
     res::PRes,
 };
 
@@ -17,19 +17,19 @@ pub struct ParserState<L: Lang> {
     input: Vec<Lexeme<L>>,
     offset: usize,
     delim_stack: Vec<Parser<L>>,
+    errors: Vec<ParseError<L>>,
+    current_err: Option<ParseError<L>>,
 }
 
 impl<L: Lang> ParserState<L> {
     pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
         ParserState {
-            // stack: vec![Node::Group(Group {
-            //     kind: L::root(),
-            //     children: vec![],
-            // })],
             input,
             offset: 0,
             delim_stack: vec![],
             builder: GreenNodeBuilder::new(),
+            errors: vec![],
+            current_err: None,
         }
     }
 
@@ -44,60 +44,19 @@ impl<L: Lang> ParserState<L> {
             .token(L::kind_to_raw(current.kind), &current.text);
         self.offset += 1;
     }
-    //
-    // pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
-    //     let tok = self.current().cloned();
-    //     warn!(
-    //         "Bumping error {}",
-    //         tok.as_ref()
-    //             .map(|t| t.kind.to_string())
-    //             .unwrap_or("EOF".to_string())
-    //     );
-    //     if let Some(tok) = tok {
-    //         self.offset += 1;
-    //         if let Some(err) = &mut self.current_err {
-    //             err.actual.push(Some(tok.kind));
-    //         } else {
-    //             self.current_err = Some(ParseError {
-    //                 expected,
-    //                 actual: vec![Some(tok.kind)],
-    //             })
-    //         }
-    //     } else {
-    //         let err = ParseError {
-    //             expected,
-    //             actual: vec![None],
-    //         };
-    //         self.stack
-    //             .last_mut()
-    //             .expect("Tree has no root node")
-    //             .push_err(err);
-    //     }
-    // }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();
-        if current.is_some() {
-            self.offset += 1;
-        }
-        let err = if let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() {
-            err
+        if let Some(err) = &mut self.current_err {
+            err.actual.push(current.unwrap().clone().kind);
         } else {
-            self.current_group_mut()
-                .children
-                .push(Node::Err(ParseError {
-                    expected,
-                    actual: vec![],
-                }));
-            let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() else {
-                unreachable!()
+            let err = ParseError {
+                expected,
+                actual: vec![current.unwrap().clone().kind],
             };
-            err
+            self.current_err = Some(err)
         };
-
-        if let Some(current) = current {
-            err.actual.push(current.kind.clone());
-        }
+        self.bump();
     }
 
     pub fn try_delim(&self) -> Option<usize> {
@@ -166,6 +125,11 @@ impl<L: Lang> ParserState<L> {
         PRes::Ok
     }
 
+    pub fn finish_err(&mut self) {
+        let err = self.current_err.take().unwrap();
+        self.errors.push(err);
+    }
+
     pub fn enter(&mut self, name: L::Kind) {
         self.builder.start_node(L::kind_to_raw(name));
     }
@@ -178,52 +142,22 @@ impl<L: Lang> ParserState<L> {
         self.builder.finish()
     }
 
-    pub fn disolve_name(&mut self) {
-        let Node::Group(disolved) = self.stack.pop().unwrap() else {
-            panic!("Expected a group")
-        };
-        if let Node::Group(group) = self.stack.last_mut().unwrap() {
-            group.children.extend(disolved.children);
-        } else {
-            panic!("Expected a group")
-        }
+    pub fn checkpoint(&mut self) -> Checkpoint {
+        self.builder.checkpoint()
     }
 
-    pub fn current_group(&self) -> &Group<L> {
-        if let Node::Group(g) = self.stack.last().unwrap() {
-            g
-        } else {
-            panic!("Stack item is not a group")
-        }
-    }
-    pub fn current_group_mut(&mut self) -> &mut Group<L> {
-        if let Node::Group(g) = self.stack.last_mut().unwrap() {
-            g
-        } else {
-            panic!("Stack item is not a group")
-        }
+    pub fn start_node_at(&mut self, checkpoint: Checkpoint, kind: L::Kind) {
+        self.builder.start_node_at(checkpoint, L::kind_to_raw(kind));
     }
 
     pub fn missing(&mut self, parser: &Parser<L>) {
         let expected = parser.expected();
-        if let Some(Node::Err(err)) = self.current_group().children.last() {
-            if err.expected == expected {
-                return;
-            }
+        if self.current_err.is_some() {
+            self.finish_err()
         }
-        self.current_group_mut()
-            .children
-            .push(Node::Err(ParseError {
-                expected,
-                actual: vec![],
-            }));
-    }
-
-    pub fn current_err(&mut self) -> Option<&mut ParseError<L>> {
-        if let Node::Err(err) = self.current_group_mut().children.last_mut()? {
-            Some(err)
-        } else {
-            None
-        }
+        self.errors.push(ParseError {
+            expected,
+            actual: vec![],
+        });
     }
 }

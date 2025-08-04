@@ -20,5 +20,5 @@ pub fn parse(path: &Path, errors: bool, tokens: bool) {
 
     let text = fs::read_to_string(path).unwrap();
     let res = p_parser().parse(&text);
-    res.debug_print(errors, tokens);
+    println!("{:?}", res);
 }
