@@ -14,12 +14,20 @@ pub struct Sep<L: Lang> {
 
 impl<L: Lang> Sep<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        let leading = self.leading.parse(&self.sep, state, recover);
-        if leading != PRes::Ok {
-            return leading;
+        let mut parsed_leading = false;
+        if !matches!(self.leading, Requirement::No) {
+            let leading = self.leading.parse(&self.sep, state, recover);
+            if leading != PRes::Ok {
+                if matches!(self.leading, Requirement::Yes) {
+                    return leading;
+                }
+            } else {
+                parsed_leading = true;
+            }
         }
         let start = self.item.do_parse(state, recover);
-        if start.is_err() {
+        // TODO: Think about parsed leading and err case
+        if start.is_err() && !parsed_leading {
             return start;
         }
         let index = state.push_delim(self.sep.as_ref().clone());
@@ -33,11 +41,10 @@ impl<L: Lang> Sep<L> {
                     }
                     continue;
                 } else if matches!(item, PRes::Break(_)) {
-                    state.pop_delim();
                     if self.trailing == Requirement::No {
                         state.missing(&self.item);
                     }
-                    return PRes::Ok;
+                    break;
                 }
                 if item.is_err() {
                     if self.item.peak(state, recover) == PRes::Ok {
@@ -47,8 +54,7 @@ impl<L: Lang> Sep<L> {
                         continue;
                     }
                     warn!("Failed to parse item");
-                    state.pop_delim();
-                    return PRes::Ok;
+                    break;
                 }
             } else {
                 if self.trailing == Requirement::Yes {

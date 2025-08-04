@@ -33,7 +33,10 @@ fn json_parser() -> Parser<JsonLang> {
 
 // #[cfg(test)]
 // mod tests {
-//     use crate::json::{parser::json_parser, syntax::JsonSyntax};
+//     use crate::{
+//         json::{parser::json_parser, syntax::JsonSyntax},
+//         parser::node::{Group, Node},
+//     };
 //
 //     #[test]
 //     fn test_parse_string() {
@@ -109,7 +112,7 @@ fn json_parser() -> Parser<JsonLang> {
 //     }
 //
 //     #[test]
-//     fn test_err() {
+//     fn test_sum_in_arr_with_err() {
 //         let input = r#"[123 +]"#;
 //         let root = json_parser().parse(input);
 //         assert_eq!(root.name(), JsonSyntax::Root);
@@ -127,6 +130,47 @@ fn json_parser() -> Parser<JsonLang> {
 //         assert_eq!(sum.errors().count(), 1);
 //
 //         let num = sum.green_children().next().unwrap();
+//         assert_eq!(num.errors().count(), 0);
+//         assert_eq!(num.name(), JsonSyntax::Number);
+//         assert_eq!(num.green_children().count(), 0, "Expected no children");
+//     }
+//
+//     #[test]
+//     fn test_missing_expression() {
+//         let input = r#"[123,]"#;
+//         let root = json_parser().parse(input);
+//         assert_eq!(root.name(), JsonSyntax::Root);
+//         assert_eq!(root.green_children().count(), 1, "Expected a single child");
+//
+//         let arr = root.green_children().next().unwrap();
+//         assert_eq!(arr.name(), JsonSyntax::Array);
+//         assert_eq!(arr.green_children().count(), 1, "Expected a single child");
+//
+//         assert_eq!(arr.errors().count(), 1);
+//
+//         let num = arr.green_children().next().unwrap();
+//         assert_eq!(num.errors().count(), 0);
+//         assert_eq!(num.name(), JsonSyntax::Number);
+//         assert_eq!(num.green_children().count(), 0, "Expected no children");
+//     }
+//
+//     #[test]
+//     fn test_invalid_sep() {
+//         let input = r#"[123 "abc"]"#;
+//         let root = json_parser().parse(input);
+//         assert_eq!(root.name(), JsonSyntax::Root);
+//         assert_eq!(root.green_children().count(), 1, "Expected a single child");
+//
+//         let arr = root.green_children().next().unwrap();
+//         assert_eq!(arr.name(), JsonSyntax::Array);
+//         assert_eq!(arr.green_children().count(), 1, "Expected a single child");
+//         assert_eq!(arr.errors().count(), 1);
+//
+//         assert_eq!(arr.errors().count(), 1);
+//         let error = arr.errors().next().unwrap();
+//         assert_eq!(error.actual.len(), 1);
+//
+//         let num = arr.green_children().next().unwrap();
 //         assert_eq!(num.errors().count(), 0);
 //         assert_eq!(num.name(), JsonSyntax::Number);
 //         assert_eq!(num.green_children().count(), 0, "Expected no children");
