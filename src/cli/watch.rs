@@ -1,4 +1,5 @@
 use notify::{Event, RecursiveMode, Result as NotifyResult, Watcher as _, recommended_watcher};
+use rowan::{SyntaxNode, cursor::SyntaxElement};
 use std::{
     fs,
     io::{Write, stdout},
@@ -6,7 +7,7 @@ use std::{
     sync::mpsc,
 };
 
-use crate::dsl::parser::p_parser;
+use crate::dsl::{lang::PLang, parser::p_parser};
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -19,8 +20,9 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
     let parser = p_parser();
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    let res = parser.parse(&text);
-    println!("{res:?}");
+    let res = p_parser().parse(&text);
+    let node: SyntaxNode<PLang> = SyntaxNode::new_root(res);
+    crate::cli::parse::print(0, SyntaxElement::Node(node.into()));
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -33,7 +35,8 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
                 let res = parser.parse(&text);
-                println!("{res:?}");
+                let node: SyntaxNode<PLang> = SyntaxNode::new_root(res);
+                crate::cli::parse::print(0, SyntaxElement::Node(node.into()));
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }

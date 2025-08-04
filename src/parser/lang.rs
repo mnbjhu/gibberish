@@ -10,14 +10,18 @@ pub trait Lang: Clone + PartialEq + Eq + Debug + Language {
     fn lex(src: &str) -> Vec<Lexeme<Self>>
     where
         Self: Sized;
+
+    fn root() -> Self::Kind;
 }
 
 impl<L: Lang> Parser<L> {
     pub fn parse(&self, src: &str) -> GreenNode {
         let tokens = L::lex(src);
         let mut state = ParserState::new(tokens);
+        state.enter(L::root());
         let res = state.try_parse(self, false);
         assert!(matches!(res, PRes::Ok | PRes::Eof));
+        state.exit();
         state.finish()
     }
 }

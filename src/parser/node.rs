@@ -1,10 +1,6 @@
 use std::ops::Range;
 
-use super::{
-    err::{Expected, ParseError},
-    lang::Lang,
-};
-use ansi_term::Colour::{Blue, Green, Red};
+use super::lang::Lang;
 
 pub type Span = Range<usize>;
 

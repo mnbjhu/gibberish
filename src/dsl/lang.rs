@@ -39,6 +39,10 @@ impl Lang for PLang {
         }
         found
     }
+
+    fn root() -> Self::Kind {
+        PToken::Root
+    }
 }
 
 impl Language for PLang {

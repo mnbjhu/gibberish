@@ -30,6 +30,10 @@ impl Lang for JsonLang {
         }
         found
     }
+
+    fn root() -> Self::Kind {
+        JsonToken::Root
+    }
 }
 
 impl Language for JsonLang {
