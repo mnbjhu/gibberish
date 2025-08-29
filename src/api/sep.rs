@@ -2,11 +2,11 @@ use tracing::warn;
 
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
-use super::{Parser, maybe::Requirement};
+use super::{Parser, just::just, maybe::Requirement};
 
 #[derive(Debug, Clone)]
 pub struct Sep<L: Lang> {
-    sep: Box<Parser<L>>,
+    sep: L::Kind,
     item: Box<Parser<L>>,
     leading: Requirement,
     trailing: Requirement,
@@ -16,7 +16,7 @@ impl<L: Lang> Sep<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let mut parsed_leading = false;
         if !matches!(self.leading, Requirement::No) {
-            let leading = self.leading.parse(&self.sep, state, recover);
+            let leading = self.leading.parse(&just(self.sep), state, recover);
             if leading != PRes::Ok {
                 if matches!(self.leading, Requirement::Yes) {
                     return leading;
@@ -30,9 +30,9 @@ impl<L: Lang> Sep<L> {
         if start.is_err() && !parsed_leading {
             return start;
         }
-        let index = state.push_delim(self.sep.as_ref().clone());
+        let index = state.push_delim(self.sep);
         loop {
-            let sep = state.maybe_parse(&self.sep, recover);
+            let sep = state.maybe_parse(&just(self.sep), recover);
             if sep.is_ok() {
                 let item = state.try_parse(&self.item, recover);
                 if item == PRes::Break(index) {
@@ -47,7 +47,7 @@ impl<L: Lang> Sep<L> {
                     break;
                 }
                 if item.is_err() {
-                    if self.item.peak(state, recover) == PRes::Ok {
+                    if self.item.do_parse(state, recover) == PRes::Ok {
                         if self.trailing == Requirement::No {
                             state.missing(&self.item);
                         }
@@ -58,7 +58,7 @@ impl<L: Lang> Sep<L> {
                 }
             } else {
                 if self.trailing == Requirement::Yes {
-                    state.missing(&self.sep);
+                    state.missing(&just(self.sep));
                 }
                 warn!("Failed to parse sep");
                 break;
@@ -68,20 +68,12 @@ impl<L: Lang> Sep<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        let leading = self.leading.peak(&self.sep, state, recover);
-        if leading != PRes::Ok {
-            return leading;
-        }
-        self.item.peak(state, recover)
-    }
-
     pub fn expected(&self) -> Vec<Expected<L>> {
         match self.leading {
-            Requirement::Yes => self.sep.expected(),
+            Requirement::Yes => vec![Expected::Token(self.sep)],
             Requirement::No => self.item.expected(),
             Requirement::Maybe => {
-                let mut res = self.sep.expected();
+                let mut res = vec![Expected::Token(self.sep)];
                 res.extend(self.item.expected());
                 res
             }
@@ -90,10 +82,10 @@ impl<L: Lang> Sep<L> {
 }
 
 impl<L: Lang> Parser<L> {
-    pub fn sep_by(self, sep: Parser<L>) -> Parser<L> {
+    pub fn sep_by(self, sep: L::Kind) -> Parser<L> {
         Parser::Sep(Sep {
             item: Box::new(self),
-            sep: Box::new(sep),
+            sep,
             leading: Requirement::No,
             trailing: Requirement::No,
         })
@@ -101,13 +93,13 @@ impl<L: Lang> Parser<L> {
 
     pub fn sep_by_extra(
         self,
-        sep: Parser<L>,
+        sep: L::Kind,
         leading: Requirement,
         trailing: Requirement,
     ) -> Parser<L> {
         Parser::Sep(Sep {
             item: Box::new(self),
-            sep: Box::new(sep),
+            sep,
             leading,
             trailing,
         })

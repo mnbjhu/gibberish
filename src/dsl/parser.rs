@@ -8,13 +8,13 @@ pub fn p_parser() -> Parser<PLang> {
         let expr = recursive(|ex| {
             let choice_parser = ex
                 .clone()
-                .sep_by(just(PToken::Or))
-                .delim_by(just(PToken::LBracket), just(PToken::RBracket))
+                .sep_by(PToken::Or)
+                .delim_by(PToken::LBracket, PToken::RBracket)
                 .named(PToken::Choice);
 
             let args = ex
-                .sep_by(just(PToken::Comma))
-                .delim_by(just(PToken::LParen), just(PToken::RParen));
+                .sep_by(PToken::Comma)
+                .delim_by(PToken::LParen, PToken::RParen);
 
             let delim_parser = seq(vec![just(PToken::DelimKw), args.clone()]).named(PToken::Delim);
 
@@ -27,9 +27,9 @@ pub fn p_parser() -> Parser<PLang> {
             let rec_body = seq(vec![
                 just(PToken::Ident).named(PToken::Var),
                 just(PToken::Colon),
-                stmt.clone().sep_by(just(PToken::Semi)),
+                stmt.clone().sep_by(PToken::Semi),
             ])
-            .delim_by(just(PToken::LBrace), just(PToken::RBrace));
+            .delim_by(PToken::LBrace, PToken::RBrace);
 
             let rec_parser = seq(vec![just(PToken::RecKw), rec_body]).named(PToken::Rec);
 
@@ -53,5 +53,5 @@ pub fn p_parser() -> Parser<PLang> {
         ])
         .named(PToken::Decl)
     })
-    .sep_by(just(PToken::Semi))
+    .sep_by(PToken::Semi)
 }

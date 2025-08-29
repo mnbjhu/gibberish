@@ -18,13 +18,6 @@ impl<L: Lang> Recursive<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        match self {
-            Recursive::Ptr(parser) => parser.peak(state, recover),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover),
-        }
-    }
-
     pub fn expected(&self) -> Vec<Expected<L>> {
         match self {
             Recursive::Ptr(parser) => parser.expected(),

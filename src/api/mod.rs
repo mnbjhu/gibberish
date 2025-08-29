@@ -54,23 +54,6 @@ impl<L: Lang> Parser<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        info!("Peaking: {}", self.name());
-        let res = match self {
-            Parser::Just(just) => just.peak(state, recover),
-            Parser::Choice(choice) => choice.peak(state, recover),
-            Parser::Seq(seq) => seq.peak(state, recover),
-            Parser::Sep(sep) => sep.peak(state, recover),
-            Parser::Delim(delim) => delim.peak(state, recover),
-            Parser::Rec(recursive) => recursive.peak(state, recover),
-            Parser::Named(named) => named.peak(state, recover),
-            Parser::Fold(fold) => fold.peak(state, recover),
-            Parser::Skip(skip) => skip.peak(state, recover),
-        };
-        info!("Done peaking: {};{res:?}", self.name());
-        res
-    }
-
     pub fn expected(&self) -> Vec<Expected<L>> {
         info!("Getting expected for {}", self.name());
         match self {

@@ -20,9 +20,13 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
     let parser = p_parser();
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    let res = p_parser().parse(&text);
+    let (res, errors) = p_parser().parse(&text);
     let node: SyntaxNode<PLang> = SyntaxNode::new_root(res);
     crate::cli::parse::print(0, SyntaxElement::Node(node.into()));
+    println!("--------");
+    for err in errors {
+        println!("{err:?}");
+    }
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -34,9 +38,13 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 }
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
-                let res = parser.parse(&text);
+                let (res, errors) = parser.parse(&text);
                 let node: SyntaxNode<PLang> = SyntaxNode::new_root(res);
                 crate::cli::parse::print(0, SyntaxElement::Node(node.into()));
+                println!("--------");
+                for err in errors {
+                    println!("{err:?}");
+                }
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }

@@ -18,22 +18,20 @@ impl<L: Lang> Fold<L> {
         if first.is_err() {
             return first;
         }
-        if self.next.peak(state, recover).is_err() {
-            return PRes::Ok;
-        }
-        state.start_node_at(checkpoint, self.name);
+        let mut started = false;
         loop {
             let next = self.next.do_parse(state, recover);
             if next.is_err() {
                 break;
+            } else if !started {
+                state.start_node_at(checkpoint, self.name);
+                started = true
             }
         }
-        state.exit();
+        if started {
+            state.exit();
+        }
         PRes::Ok
-    }
-
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        self.first.peak(state, recover)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

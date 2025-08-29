@@ -17,7 +17,7 @@ pub struct ParserState<L: Lang> {
     builder: GreenNodeBuilder<'static>,
     input: Vec<Lexeme<L>>,
     offset: usize,
-    delim_stack: Vec<Parser<L>>,
+    delim_stack: Vec<L::Kind>,
     errors: Vec<ParseError<L>>,
     current_err: Option<ParseError<L>>,
     skipping: HashSet<L::Kind>,
@@ -57,32 +57,29 @@ impl<L: Lang> ParserState<L> {
     }
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
-        let current = self.current().cloned();
+        let Some(current) = self.current().cloned() else {
+            return;
+        };
         if let Some(err) = &mut self.current_err {
-            err.actual.push(current.unwrap().clone().kind);
+            err.actual.push(current.kind);
         } else {
             let err = ParseError {
                 expected,
-                actual: vec![current.unwrap().clone().kind],
+                actual: vec![current.kind],
             };
             self.current_err = Some(err)
         };
         self.bump();
     }
 
-    pub fn try_delim(&self) -> Option<usize> {
+    pub fn try_delim(&mut self) -> Option<usize> {
+        let current = self.current()?;
         let res = self
             .delim_stack
             .iter()
             .enumerate()
             .rev()
-            .find_map(|(n, it)| {
-                if it.peak(self, true) == PRes::Ok {
-                    Some(n)
-                } else {
-                    None
-                }
-            });
+            .find_map(|(n, it)| if it == &current.kind { Some(n) } else { None });
         if let Some(index) = res {
             info!("Hit delim: {index}");
         }
@@ -90,11 +87,12 @@ impl<L: Lang> ParserState<L> {
     }
 
     #[must_use]
-    pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
+    pub fn push_delim(&mut self, delim: L::Kind) -> usize {
         let index = self.delim_stack.len();
         self.delim_stack.push(delim);
         index
     }
+
     pub fn pop_delim(&mut self) {
         self.delim_stack
             .pop()
@@ -149,8 +147,8 @@ impl<L: Lang> ParserState<L> {
         self.builder.finish_node();
     }
 
-    pub fn finish(self) -> GreenNode {
-        self.builder.finish()
+    pub fn finish(self) -> (GreenNode, Vec<ParseError<L>>) {
+        (self.builder.finish(), self.errors)
     }
 
     pub fn checkpoint(&mut self) -> Checkpoint {

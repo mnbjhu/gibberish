@@ -1,6 +1,6 @@
 use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
 
-use super::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax};
+use super::{lang::JsonLang, lexer::JsonToken};
 
 fn json_parser() -> Parser<JsonLang> {
     recursive(|e| {
@@ -9,8 +9,8 @@ fn json_parser() -> Parser<JsonLang> {
 
         let arr = e
             .clone()
-            .sep_by(just(JsonToken::Comma))
-            .delim_by(just(JsonToken::LBracket), just(JsonToken::RBracket))
+            .sep_by(JsonToken::Comma)
+            .delim_by(JsonToken::LBracket, JsonToken::RBracket)
             .named(JsonToken::Array);
 
         let obj_field = seq(vec![
@@ -21,8 +21,8 @@ fn json_parser() -> Parser<JsonLang> {
         .named(JsonToken::Field);
 
         let obj = obj_field
-            .sep_by(just(JsonToken::Comma))
-            .delim_by(just(JsonToken::LBrace), just(JsonToken::RBrace))
+            .sep_by(JsonToken::Comma)
+            .delim_by(JsonToken::LBrace, JsonToken::RBrace)
             .named(JsonToken::Object);
         let atom = choice(vec![obj, arr, string, int]);
 

@@ -2,55 +2,51 @@ use tracing::warn;
 
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
-use super::Parser;
+use super::{Parser, just::just};
 
 #[derive(Debug, Clone)]
 pub struct Delim<L: Lang> {
-    start: Box<Parser<L>>,
-    end: Box<Parser<L>>,
+    start: L::Kind,
+    end: L::Kind,
     inner: Box<Parser<L>>,
 }
 
 impl<L: Lang> Delim<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        let start = self.start.do_parse(state, recover);
+        let start = just(self.start).do_parse(state, recover);
         if start != PRes::Ok {
             warn!("Failed to parse delim");
             return start;
         };
-        let index = state.push_delim(Parser::clone(&self.end));
+        let index = state.push_delim(self.end);
         let inner = state.try_parse(&self.inner, recover);
         if inner == PRes::Break(index) {
             state.missing(&self.inner);
-            self.end.do_parse(state, recover);
+            just(self.end).do_parse(state, recover);
             return PRes::Ok;
         }
         if inner != PRes::Ok {
             state.pop_delim();
             return PRes::Ok;
         }
-        let end = state.try_parse(&self.end, recover);
+        let end = state.try_parse(&just(self.end), recover);
         if end != PRes::Ok {
-            state.missing(&self.end);
+            state.missing(&just(self.end));
         }
         state.pop_delim();
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        self.start.peak(state, recover)
-    }
-
     pub fn expected(&self) -> Vec<Expected<L>> {
-        self.start.expected()
+        vec![Expected::Token(self.start)]
     }
 }
 
 impl<L: Lang> Parser<L> {
-    pub fn delim_by(self, start: Parser<L>, end: Parser<L>) -> Parser<L> {
+    pub fn delim_by(self, start: L::Kind, end: L::Kind) -> Parser<L> {
         Parser::Delim(Delim {
-            start: Box::new(start),
-            end: Box::new(end),
+            start,
+            end,
             inner: Box::new(self),
         })
     }
