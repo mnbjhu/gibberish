@@ -1,9 +1,13 @@
 use std::fmt::Display;
 
 #[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
-pub enum PToken {
-    #[regex(r"[ \t\n\f]+")]
+pub enum GToken {
+    #[regex("[ \\t]*[\\n][ \\t\\n]+")]
+    Newline,
+
+    #[regex("[ \\t]+")]
     Whitespace,
+
     #[regex("\"[^\"]*\"")]
     String,
 
@@ -46,47 +50,108 @@ pub enum PToken {
     #[token("named")]
     Named,
 
-    #[token("fold")]
-    Fold,
+    #[token("fn")]
+    Fn,
 
-    #[token("delim")]
-    Delim,
+    #[token("struct")]
+    Struct,
 
-    #[token("rec")]
-    Rec,
+    #[token("enum")]
+    Enum,
+
+    #[token("impl")]
+    Impl,
+
+    #[token("trait")]
+    Trait,
+
+    #[token("for")]
+    For,
+
+    #[token("let")]
+    Let,
+
+    #[token("if")]
+    If,
+
+    #[token("else")]
+    Else,
+
+    #[token("return")]
+    Return,
+
+    #[token("true")]
+    True,
+
+    #[token("false")]
+    False,
+
+    #[token("match")]
+    Match,
+
+    #[token("use")]
+    Use,
+
+    #[token("while")]
+    While,
+
+    #[token("in")]
+    In,
+
+    #[token("break")]
+    Break,
+
+    #[token("continue")]
+    Continue,
 
     #[token(";")]
     Semi,
 
-    #[regex(r#"[a-zA-Z][a-zA-Z0-9_]+"#)]
+    #[regex(r#"[a-zA-Z][a-zA-Z0-9_]+"#, priority = 0)]
     Ident,
     Error,
 }
 
-impl Display for PToken {
+impl Display for GToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PToken::String => f.write_str("String"),
-            PToken::Colon => f.write_str("Colon"),
-            PToken::Comma => f.write_str("Comma"),
-            PToken::LBracket => f.write_str("LBracket"),
-            PToken::RBracket => f.write_str("RBracket"),
-            PToken::LParen => f.write_str("LParen"),
-            PToken::RParen => f.write_str("RParen"),
-            PToken::LBrace => f.write_str("LBrace"),
-            PToken::RBrace => f.write_str("RBrace"),
-            PToken::Or => f.write_str("Or"),
-            PToken::Eq => f.write_str("Eq"),
-            PToken::Then => f.write_str("Then"),
-            PToken::SepBy => f.write_str("SepBy"),
-            PToken::Delim => f.write_str("Delim"),
-            PToken::Rec => f.write_str("Rec"),
-            PToken::Ident => f.write_str("Ident"),
-            PToken::Semi => f.write_str("Semi"),
-            PToken::Fold => f.write_str("Fold"),
-            PToken::Named => f.write_str("Named"),
-            PToken::Whitespace => f.write_str("Whitespace"),
-            PToken::Error => f.write_str("ERR"),
+            GToken::String => f.write_str("String"),
+            GToken::Colon => f.write_str("Colon"),
+            GToken::Comma => f.write_str("Comma"),
+            GToken::LBracket => f.write_str("LBracket"),
+            GToken::RBracket => f.write_str("RBracket"),
+            GToken::LParen => f.write_str("LParen"),
+            GToken::RParen => f.write_str("RParen"),
+            GToken::LBrace => f.write_str("LBrace"),
+            GToken::RBrace => f.write_str("RBrace"),
+            GToken::Or => f.write_str("Or"),
+            GToken::Eq => f.write_str("Eq"),
+            GToken::Then => f.write_str("Then"),
+            GToken::SepBy => f.write_str("SepBy"),
+            GToken::Ident => f.write_str("Ident"),
+            GToken::Semi => f.write_str("Semi"),
+            GToken::Named => f.write_str("Named"),
+            GToken::Whitespace => f.write_str("Whitespace"),
+            GToken::Fn => f.write_str("Fn"),
+            GToken::Struct => f.write_str("Struct"),
+            GToken::Enum => f.write_str("Enum"),
+            GToken::Impl => f.write_str("Impl"),
+            GToken::Trait => f.write_str("Trait"),
+            GToken::For => f.write_str("For"),
+            GToken::Let => f.write_str("Let"),
+            GToken::If => f.write_str("If"),
+            GToken::Else => f.write_str("Else"),
+            GToken::Return => f.write_str("Return"),
+            GToken::True => f.write_str("True"),
+            GToken::False => f.write_str("False"),
+            GToken::Match => f.write_str("Match"),
+            GToken::Use => f.write_str("Use"),
+            GToken::While => f.write_str("While"),
+            GToken::In => f.write_str("In"),
+            GToken::Break => f.write_str("Break"),
+            GToken::Continue => f.write_str("Continue"),
+            GToken::Newline => f.write_str("Newline"),
+            GToken::Error => f.write_str("ERR"),
         }
     }
 }

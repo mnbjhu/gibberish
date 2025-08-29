@@ -1,58 +1,57 @@
 use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
 
-use super::{lang::PLang, lexer::PToken, syntax::PSyntax};
+use super::{lang::GLang, lexer::GToken, syntax::GSyntax};
 
-pub fn p_parser() -> Parser<PLang> {
-    let string = just(PToken::String).named(PSyntax::String);
-    recursive(|stmt| {
-        let expr = recursive(|ex| {
-            let choice_parser = ex
-                .clone()
-                .sep_by(just(PToken::Or))
-                .delim_by(just(PToken::LBracket), just(PToken::RBracket))
-                .named(PSyntax::Choice);
-
-            let args = ex
-                .sep_by(just(PToken::Comma))
-                .delim_by(just(PToken::LParen), just(PToken::RParen));
-
-            let delim_parser = seq(vec![just(PToken::Delim), args.clone()]).named(PSyntax::Delim);
-
-            let sep_parser = seq(vec![just(PToken::SepBy), args.clone()]).named(PSyntax::SepBy);
-
-            let fold_parser = seq(vec![just(PToken::Fold), args.clone()]).named(PSyntax::Fold);
-
-            let named_parser = seq(vec![just(PToken::Named), args.clone()]).named(PSyntax::Named);
-
-            let rec_body = seq(vec![
-                just(PToken::Ident).named(PSyntax::Var),
-                just(PToken::Colon),
-                stmt.clone().sep_by(just(PToken::Semi)),
-            ])
-            .delim_by(just(PToken::LBrace), just(PToken::RBrace));
-
-            let rec_parser = seq(vec![just(PToken::Rec), rec_body]).named(PSyntax::Rec);
-
-            let atom = choice(vec![
-                string.clone(),
-                choice_parser,
-                sep_parser,
-                delim_parser,
-                fold_parser,
-                named_parser,
-                rec_parser,
-            ]);
-
-            atom.clone()
-                .fold(PSyntax::Seq, seq(vec![just(PToken::Then), atom]))
-        });
-        seq(vec![
-            just(PToken::Ident).named(PSyntax::Var),
-            just(PToken::Eq),
-            expr,
-        ])
-        .named(PSyntax::Decl)
-    })
-    .sep_by(just(PToken::Semi))
-    .skip(PToken::Whitespace)
+pub fn g_parser() -> Parser<GLang> {
+    decl_parser()
+        .skip(GToken::Newline)
+        .sep_by(just(GToken::Newline))
+        .skip(GToken::Whitespace)
 }
+
+pub fn decl_parser() -> Parser<GLang> {
+    choice(vec![struct_parser()])
+}
+
+pub fn struct_parser() -> Parser<GLang> {
+    seq(vec![
+        just(GToken::Struct),
+        just(GToken::Ident).named(GSyntax::TypeName),
+        struct_body_parser(),
+    ])
+}
+
+pub fn struct_body_parser() -> Parser<GLang> {
+    let field = seq(vec![
+        just(GToken::Ident).named(GSyntax::FieldName),
+        just(GToken::Colon),
+        type_parser(),
+    ]);
+    let fields = field
+        .sep_by(just(GToken::Comma))
+        .delim_by(just(GToken::LBrace), just(GToken::RBrace))
+        .named(GSyntax::Fields);
+
+    let tuple = type_parser()
+        .sep_by(just(GToken::Comma))
+        .delim_by(just(GToken::LParen), just(GToken::RParen))
+        .named(GSyntax::TupleFields);
+
+    choice(vec![fields, tuple]).or_not()
+}
+
+pub fn type_parser() -> Parser<GLang> {
+    recursive(|ty| {
+        seq(vec![
+            just(GToken::Ident).named(GSyntax::TypeName),
+            ty.sep_by(just(GToken::Comma))
+                .delim_by(just(GToken::LBracket), just(GToken::RBracket))
+                .named(GSyntax::TypeArgs)
+                .or_not(),
+        ])
+        .named(GSyntax::Type)
+    })
+}
+
+// pub fn stmt_parser() -> Parser<GLang> {}
+// pub fn expr_parser(stmt: Parser<GLang>) -> Parser<GLang> {}

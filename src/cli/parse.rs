@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use crate::dsl::parser::p_parser;
+use crate::dsl::parser::g_parser;
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
     let log = OpenOptions::new()
@@ -19,6 +19,6 @@ pub fn parse(path: &Path, errors: bool, tokens: bool) {
         .init();
 
     let text = fs::read_to_string(path).unwrap();
-    let res = p_parser().parse(&text);
+    let res = g_parser().parse(&text);
     res.debug_print(errors, tokens);
 }

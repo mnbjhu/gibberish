@@ -1,34 +1,40 @@
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum PSyntax {
+pub enum GSyntax {
     Root,
     String,
-    Seq,
-    Choice,
-    SepBy,
-    Fold,
-    Rec,
-    Named,
-    Delim,
+    Number,
+    Struct,
+    Enum,
+    Function,
+    Fields,
+    FieldName,
+    TupleFields,
+    Type,
+    TypeName,
     Decl,
     Var,
+    TypeArgs,
 }
 
-impl Display for PSyntax {
+impl Display for GSyntax {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PSyntax::Root => f.write_str("Root"),
-            PSyntax::String => f.write_str("String"),
-            PSyntax::Seq => f.write_str("Seq"),
-            PSyntax::Choice => f.write_str("Choice"),
-            PSyntax::SepBy => f.write_str("SepBy"),
-            PSyntax::Fold => f.write_str("Fold"),
-            PSyntax::Rec => f.write_str("Rec"),
-            PSyntax::Named => f.write_str("Named"),
-            PSyntax::Delim => f.write_str("Delim"),
-            PSyntax::Decl => f.write_str("Decl"),
-            PSyntax::Var => f.write_str("Var"),
+            GSyntax::Root => f.write_str("Root"),
+            GSyntax::String => f.write_str("String"),
+            GSyntax::Decl => f.write_str("Decl"),
+            GSyntax::Var => f.write_str("Var"),
+            GSyntax::Number => f.write_str("Number"),
+            GSyntax::Struct => f.write_str("Struct"),
+            GSyntax::Enum => f.write_str("Enum"),
+            GSyntax::Function => f.write_str("Function"),
+            GSyntax::Fields => f.write_str("Fields"),
+            GSyntax::Type => f.write_str("Type"),
+            GSyntax::TypeName => f.write_str("TypeName"),
+            GSyntax::TupleFields => f.write_str("TupleFields"),
+            GSyntax::FieldName => f.write_str("FieldName"),
+            GSyntax::TypeArgs => f.write_str("TypeArgs"),
         }
     }
 }

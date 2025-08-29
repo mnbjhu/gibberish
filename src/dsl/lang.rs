@@ -2,20 +2,20 @@ use logos::Logos;
 
 use crate::parser::{lang::Lang, node::Lexeme};
 
-use super::{lexer::PToken, syntax::PSyntax};
+use super::{lexer::GToken, syntax::GSyntax};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PLang;
+pub struct GLang;
 
-impl Lang for PLang {
-    type Token = PToken;
-    type Syntax = PSyntax;
+impl Lang for GLang {
+    type Token = GToken;
+    type Syntax = GSyntax;
 
     fn lex(src: &str) -> Vec<Lexeme<Self>>
     where
         Self: Sized,
     {
-        let mut lexer = PToken::lexer(src);
+        let mut lexer = GToken::lexer(src);
         let mut found = vec![];
         while let Some(next) = lexer.next() {
             match next {
@@ -29,7 +29,7 @@ impl Lang for PLang {
                 Err(_) => {
                     let lexeme = Lexeme {
                         span: lexer.span(),
-                        kind: PToken::Error,
+                        kind: GToken::Error,
                     };
                     found.push(lexeme);
                 }
@@ -38,7 +38,7 @@ impl Lang for PLang {
         found
     }
 
-    fn root() -> PSyntax {
-        PSyntax::Root
+    fn root() -> GSyntax {
+        GSyntax::Root
     }
 }

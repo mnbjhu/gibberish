@@ -6,7 +6,7 @@ use std::{
     sync::mpsc,
 };
 
-use crate::dsl::parser::p_parser;
+use crate::dsl::parser::g_parser;
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -16,7 +16,7 @@ fn clear_screen() {
 }
 
 pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
-    let parser = p_parser();
+    let parser = g_parser();
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
     parser.parse(&text).debug_print(errors, tokens);
