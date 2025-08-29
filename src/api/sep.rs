@@ -47,7 +47,7 @@ impl<L: Lang> Sep<L> {
                     break;
                 }
                 if item.is_err() {
-                    if self.item.peak(state, recover) == PRes::Ok {
+                    if self.item.peak(state, recover, state.after_skip()) == PRes::Ok {
                         if self.trailing == Requirement::No {
                             state.missing(&self.item);
                         }
@@ -68,12 +68,12 @@ impl<L: Lang> Sep<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        let leading = self.leading.peak(&self.sep, state, recover);
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        let leading = self.leading.peak(&self.sep, state, recover, offset);
         if leading != PRes::Ok {
             return leading;
         }
-        self.item.peak(state, recover)
+        self.item.peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

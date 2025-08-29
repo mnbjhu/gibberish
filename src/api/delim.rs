@@ -37,8 +37,8 @@ impl<L: Lang> Delim<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        self.start.peak(state, recover)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        self.start.peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

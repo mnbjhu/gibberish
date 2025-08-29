@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 #[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
-#[logos(skip r"[ \t\n\f]+")]
 pub enum PToken {
+    #[regex(r"[ \t\n\f]+")]
+    Whitespace,
     #[regex("\"[^\"]*\"")]
     String,
 
@@ -84,6 +85,7 @@ impl Display for PToken {
             PToken::Semi => f.write_str("Semi"),
             PToken::Fold => f.write_str("Fold"),
             PToken::Named => f.write_str("Named"),
+            PToken::Whitespace => f.write_str("Whitespace"),
             PToken::Error => f.write_str("ERR"),
         }
     }

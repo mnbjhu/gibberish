@@ -18,10 +18,10 @@ impl<L: Lang> Recursive<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
         match self {
-            Recursive::Ptr(parser) => parser.peak(state, recover),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover),
+            Recursive::Ptr(parser) => parser.peak(state, recover, offset),
+            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover, offset),
         }
     }
 

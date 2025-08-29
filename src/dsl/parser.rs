@@ -54,4 +54,5 @@ pub fn p_parser() -> Parser<PLang> {
         .named(PSyntax::Decl)
     })
     .sep_by(just(PToken::Semi))
+    .skip(PToken::Whitespace)
 }

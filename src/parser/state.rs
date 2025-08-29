@@ -38,6 +38,10 @@ impl<L: Lang> ParserState<L> {
         self.input.get(self.offset)
     }
 
+    pub fn at_offset(&self, offset: usize) -> Option<&Lexeme<L>> {
+        self.input.get(self.offset + offset)
+    }
+
     pub fn bump(&mut self) {
         let current = self.current().expect("Called bump at EOF").clone();
         info!("Bumping token {current:?}");
@@ -46,6 +50,21 @@ impl<L: Lang> ParserState<L> {
             .expect("Tree has no root node")
             .push_tok(current);
         self.offset += 1;
+        self.bump_skipped();
+    }
+
+    pub fn bump_skipped(&mut self) {
+        while let Some(current) = self.current().cloned() {
+            if self.skipping.contains(&current.kind) {
+                self.stack
+                    .last_mut()
+                    .expect("Tree has no root node")
+                    .push_tok(current);
+                self.offset += 1;
+            } else {
+                break;
+            }
+        }
     }
 
     pub fn skip(&mut self, token: L::Token) -> bool {
@@ -88,7 +107,7 @@ impl<L: Lang> ParserState<L> {
             .enumerate()
             .rev()
             .find_map(|(n, it)| {
-                if it.peak(self, true) == PRes::Ok {
+                if it.peak(self, true, self.after_skip()) == PRes::Ok {
                     Some(n)
                 } else {
                     None
@@ -216,5 +235,17 @@ impl<L: Lang> ParserState<L> {
         } else {
             None
         }
+    }
+
+    pub fn after_skip(&self) -> usize {
+        let mut res = 0;
+        while let Some(current) = self.at_offset(res) {
+            if self.skipping.contains(&current.kind) {
+                res += 1;
+            } else {
+                break;
+            }
+        }
+        res
     }
 }

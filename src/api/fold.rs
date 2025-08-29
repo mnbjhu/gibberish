@@ -20,7 +20,7 @@ impl<L: Lang> Fold<L> {
             state.disolve_name();
             return first;
         }
-        if self.next.peak(state, recover).is_err() {
+        if self.next.peak(state, recover, state.after_skip()).is_err() {
             warn!("Disolving name");
             state.disolve_name();
             return PRes::Ok;
@@ -39,8 +39,8 @@ impl<L: Lang> Fold<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        self.first.peak(state, recover)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        self.first.peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

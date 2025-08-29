@@ -9,12 +9,12 @@ pub struct Choice<L: Lang> {
 
 impl<L: Lang> Choice<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        let mut res = self.options[0].peak(state, recover);
+        let mut res = self.options[0].peak(state, recover, state.after_skip());
         if res.is_ok() {
             return self.options[0].do_parse(state, recover);
         }
         for option in &self.options[1..] {
-            res = option.peak(state, recover);
+            res = option.peak(state, recover, state.after_skip());
             if res.is_ok() {
                 return option.do_parse(state, recover);
             }
@@ -22,9 +22,9 @@ impl<L: Lang> Choice<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
         for p in &self.options {
-            let res = p.peak(state, recover);
+            let res = p.peak(state, recover, offset);
             if res.is_ok() {
                 return PRes::Ok;
             } else if matches!(res, PRes::Break(_) | PRes::Eof) {

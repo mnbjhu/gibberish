@@ -12,7 +12,7 @@ pub struct Named<L: Lang> {
 
 impl<L: Lang> Named<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        let peak = self.peak(state, recover);
+        let peak = self.peak(state, recover, state.after_skip());
         if peak.is_err() {
             return peak;
         };
@@ -22,8 +22,8 @@ impl<L: Lang> Named<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        self.inner.peak(state, recover)
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        self.inner.peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

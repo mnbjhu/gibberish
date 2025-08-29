@@ -20,7 +20,7 @@ impl Requirement {
             Requirement::Yes => parser.do_parse(state, recover),
             Requirement::No => PRes::Ok,
             Requirement::Maybe => {
-                if parser.peak(state, recover) == PRes::Ok {
+                if parser.peak(state, recover, state.after_skip()) == PRes::Ok {
                     parser.do_parse(state, recover)
                 } else {
                     PRes::Ok
@@ -29,12 +29,18 @@ impl Requirement {
         }
     }
 
-    pub fn peak<L: Lang>(&self, parser: &Parser<L>, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak<L: Lang>(
+        &self,
+        parser: &Parser<L>,
+        state: &ParserState<L>,
+        recover: bool,
+        offset: usize,
+    ) -> PRes {
         match self {
-            Requirement::Yes => parser.peak(state, recover),
+            Requirement::Yes => parser.peak(state, recover, offset),
             Requirement::No => PRes::Ok,
             Requirement::Maybe => {
-                let yes = parser.peak(state, recover);
+                let yes = parser.peak(state, recover, offset);
                 if yes != PRes::Err { yes } else { PRes::Ok }
             }
         }

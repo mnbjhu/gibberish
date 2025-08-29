@@ -7,7 +7,7 @@ pub struct Seq<L: Lang>(Vec<Parser<L>>);
 
 impl<L: Lang> Seq<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        let start = self.peak(state, recover);
+        let start = self.peak(state, recover, state.after_skip());
         if start.is_err() {
             return start;
         }
@@ -25,11 +25,11 @@ impl<L: Lang> Seq<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
         self.0
             .first()
             .expect("Seq should have at least one element")
-            .peak(state, recover)
+            .peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {

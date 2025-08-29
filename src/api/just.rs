@@ -23,8 +23,8 @@ impl<L: Lang> Just<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
-        let Some(tok) = state.current() else {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        let Some(tok) = state.at_offset(offset) else {
             return PRes::Eof;
         };
         if tok.kind == self.0 {

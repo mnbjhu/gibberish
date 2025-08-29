@@ -18,9 +18,13 @@ impl<L: Lang> Skip<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {}
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        self.inner.peak(state, recover, offset)
+    }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {}
+    pub fn expected(&self) -> Vec<Expected<L>> {
+        self.inner.expected()
+    }
 }
 
 impl<L: Lang> Parser<L> {

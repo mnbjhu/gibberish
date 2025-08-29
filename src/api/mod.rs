@@ -54,18 +54,18 @@ impl<L: Lang> Parser<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
         info!("Peaking: {}", self.name());
         let res = match self {
-            Parser::Just(just) => just.peak(state, recover),
-            Parser::Choice(choice) => choice.peak(state, recover),
-            Parser::Seq(seq) => seq.peak(state, recover),
-            Parser::Sep(sep) => sep.peak(state, recover),
-            Parser::Delim(delim) => delim.peak(state, recover),
-            Parser::Rec(recursive) => recursive.peak(state, recover),
-            Parser::Named(named) => named.peak(state, recover),
-            Parser::Fold(fold) => fold.peak(state, recover),
-            Parser::Skip(skip) => skip.peak(state, recover),
+            Parser::Just(just) => just.peak(state, recover, offset),
+            Parser::Choice(choice) => choice.peak(state, recover, offset),
+            Parser::Seq(seq) => seq.peak(state, recover, offset),
+            Parser::Sep(sep) => sep.peak(state, recover, offset),
+            Parser::Delim(delim) => delim.peak(state, recover, offset),
+            Parser::Rec(recursive) => recursive.peak(state, recover, offset),
+            Parser::Named(named) => named.peak(state, recover, offset),
+            Parser::Fold(fold) => fold.peak(state, recover, offset),
+            Parser::Skip(skip) => skip.peak(state, recover, offset),
         };
         info!("Done peaking: {};{res:?}", self.name());
         res
