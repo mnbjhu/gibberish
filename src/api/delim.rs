@@ -18,22 +18,24 @@ impl<L: Lang> Delim<L> {
             warn!("Failed to parse delim");
             return start;
         };
-        let index = state.push_delim(Parser::clone(&self.end));
-        let inner = state.try_parse(&self.inner, recover);
-        if inner == PRes::Break(index) {
+        let _ = state.push_delim(Parser::clone(&self.end));
+        let (inner, bumped) = state.try_parse(&self.inner, recover);
+        if inner != PRes::Ok && !bumped {
             state.missing(&self.inner);
-            self.end.do_parse(state, recover);
-            return PRes::Ok;
-        }
-        if inner != PRes::Ok {
-            state.pop_delim();
-            return PRes::Ok;
-        }
-        let end = state.try_parse(&self.end, recover);
-        if end != PRes::Ok {
-            state.missing(&self.end);
         }
         state.pop_delim();
+        // if inner == PRes::Break(index) {
+        //     if !bumped {
+        //         state.missing(&self.inner);
+        //     }
+        //     state.pop_delim();
+        //     self.end.do_parse(state, recover);
+        //     return PRes::Ok;
+        // }
+        let (end, bumped) = state.try_parse(&self.end, recover);
+        if end != PRes::Ok && !bumped {
+            state.missing(&self.end);
+        }
         PRes::Ok
     }
 

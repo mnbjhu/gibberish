@@ -29,10 +29,8 @@ impl<L: Lang> Just<L> {
         };
         if tok.kind == self.0 {
             return PRes::Ok;
-        } else if !recover {
-            if let Some(pos) = state.try_delim() {
-                return PRes::Break(pos);
-            }
+        } else if recover && let Some(pos) = state.try_delim() {
+            return PRes::Break(pos);
         }
         PRes::Err
     }

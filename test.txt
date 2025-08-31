@@ -1,4 +1,2 @@
-struct Test {
-  hello: Test
+struct Test { 
 }
-

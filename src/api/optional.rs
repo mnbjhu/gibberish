@@ -9,7 +9,7 @@ pub struct Optional<L: Lang>(Box<Parser<L>>);
 impl<L: Lang> Optional<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let res = self.0.peak(state, recover, state.after_skip());
-        if res == PRes::Err {
+        if res != PRes::Ok {
             return PRes::Ok;
         }
         self.0.do_parse(state, recover);

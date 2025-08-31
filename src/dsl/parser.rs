@@ -1,11 +1,16 @@
-use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
+use crate::api::{
+    Parser, choice::choice, just::just, maybe::Requirement, rec::recursive, seq::seq,
+};
 
 use super::{lang::GLang, lexer::GToken, syntax::GSyntax};
 
 pub fn g_parser() -> Parser<GLang> {
     decl_parser()
-        .skip(GToken::Newline)
-        .sep_by(just(GToken::Newline))
+        .sep_by_extra(
+            just(GToken::Newline),
+            Requirement::Maybe,
+            Requirement::Maybe,
+        )
         .skip(GToken::Whitespace)
 }
 
@@ -26,14 +31,18 @@ pub fn struct_body_parser() -> Parser<GLang> {
         just(GToken::Ident).named(GSyntax::FieldName),
         just(GToken::Colon),
         type_parser(),
-    ]);
+    ])
+    .named(GSyntax::Field);
     let fields = field
-        .sep_by(just(GToken::Comma))
+        .sep_by_extra(just(GToken::Comma), Requirement::No, Requirement::Maybe)
+        .or_not()
+        .skip(GToken::Newline)
         .delim_by(just(GToken::LBrace), just(GToken::RBrace))
         .named(GSyntax::Fields);
 
     let tuple = type_parser()
         .sep_by(just(GToken::Comma))
+        .skip(GToken::Newline)
         .delim_by(just(GToken::LParen), just(GToken::RParen))
         .named(GSyntax::TupleFields);
 

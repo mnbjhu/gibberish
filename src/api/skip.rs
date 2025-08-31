@@ -11,6 +11,7 @@ pub struct Skip<L: Lang> {
 impl<L: Lang> Skip<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let added = state.skip(self.token.clone());
+        state.bump_skipped();
         let res = self.inner.do_parse(state, recover);
         if added {
             state.unskip(self.token.clone());

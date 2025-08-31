@@ -107,7 +107,7 @@ impl<L: Lang> ParserState<L> {
             .enumerate()
             .rev()
             .find_map(|(n, it)| {
-                if it.peak(self, true, self.after_skip()) == PRes::Ok {
+                if it.peak(self, false, self.after_skip()) == PRes::Ok {
                     Some(n)
                 } else {
                     None
@@ -122,31 +122,35 @@ impl<L: Lang> ParserState<L> {
     #[must_use]
     pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
         let index = self.delim_stack.len();
+        info!("Added delim to stack {delim:?}");
         self.delim_stack.push(delim);
         index
     }
     pub fn pop_delim(&mut self) {
-        self.delim_stack
+        let removed = self
+            .delim_stack
             .pop()
             .expect("Attempted to pop delim but stack was empty");
+        info!("Removed delim from stack {removed:?}");
     }
 
-    pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
+    pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> (PRes, bool) {
+        let mut bumped = false;
         loop {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
+                    bumped = true;
                     self.bump_err(parser.expected());
                 }
                 PRes::Eof => {
-                    self.bump_err(parser.expected());
-                    return PRes::Eof;
+                    return (PRes::Eof, bumped);
                 }
-                PRes::Break(_) => return res,
+                PRes::Break(_) => return (res, bumped),
                 PRes::Ok => break,
             }
         }
-        PRes::Ok
+        (PRes::Ok, bumped)
     }
 
     pub fn maybe_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {

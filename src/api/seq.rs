@@ -12,10 +12,12 @@ impl<L: Lang> Seq<L> {
             return start;
         }
         for p in &self.0 {
-            let res = state.try_parse(p, recover);
+            let (res, bumped) = state.try_parse(p, recover);
             match res {
                 PRes::Break(_) => {
-                    state.missing(p);
+                    if !bumped {
+                        state.missing(p);
+                    }
                     return PRes::Ok;
                 }
                 PRes::Ok => continue,

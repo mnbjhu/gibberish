@@ -15,10 +15,12 @@ pub struct Sep<L: Lang> {
 impl<L: Lang> Sep<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
         let mut parsed_leading = false;
+        let index = state.push_delim(self.sep.as_ref().clone());
         if !matches!(self.leading, Requirement::No) {
             let leading = self.leading.parse(&self.sep, state, recover);
             if leading != PRes::Ok {
                 if matches!(self.leading, Requirement::Yes) {
+                    state.pop_delim();
                     return leading;
                 }
             } else {
@@ -28,26 +30,26 @@ impl<L: Lang> Sep<L> {
         let start = self.item.do_parse(state, recover);
         // TODO: Think about parsed leading and err case
         if start.is_err() && !parsed_leading {
+            state.pop_delim();
             return start;
         }
-        let index = state.push_delim(self.sep.as_ref().clone());
         loop {
             let sep = state.maybe_parse(&self.sep, recover);
             if sep.is_ok() {
-                let item = state.try_parse(&self.item, recover);
+                let item = state.maybe_parse(&self.item, recover);
                 if item == PRes::Break(index) {
                     if self.trailing == Requirement::No {
                         state.missing(&self.item);
                     }
                     continue;
-                } else if matches!(item, PRes::Break(_)) {
+                } else if matches!(item, PRes::Break(_) | PRes::Eof) {
                     if self.trailing == Requirement::No {
                         state.missing(&self.item);
                     }
                     break;
                 }
                 if item.is_err() {
-                    if self.item.peak(state, recover, state.after_skip()) == PRes::Ok {
+                    if self.sep.do_parse(state, recover) == PRes::Ok {
                         if self.trailing == Requirement::No {
                             state.missing(&self.item);
                         }

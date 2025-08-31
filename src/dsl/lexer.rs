@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 #[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
 pub enum GToken {
-    #[regex("[ \\t]*[\\n][ \\t\\n]+")]
+    #[regex("[ \\t]*[\\n][ \\t\\n]*")]
     Newline,
 
     #[regex("[ \\t]+")]

@@ -23,7 +23,7 @@ impl<L: Lang> Parser<L> {
     pub fn parse(&self, src: &str) -> Node<L> {
         let tokens = L::lex(src);
         let mut state = ParserState::new(tokens);
-        let res = state.try_parse(self, false);
+        let (res, _) = state.try_parse(self, true);
         assert!(matches!(res, PRes::Ok | PRes::Eof));
         state.finish()
     }
