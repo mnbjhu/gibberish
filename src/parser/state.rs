@@ -98,6 +98,7 @@ impl<L: Lang> ParserState<L> {
         if let Some(current) = current {
             err.actual.push(current.kind.clone());
         }
+        self.bump_skipped();
     }
 
     pub fn try_delim(&self) -> Option<usize> {

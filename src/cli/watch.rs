@@ -6,7 +6,7 @@ use std::{
     sync::mpsc,
 };
 
-use crate::dsl::parser::g_parser;
+use crate::giblang::parser::g_parser;
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {

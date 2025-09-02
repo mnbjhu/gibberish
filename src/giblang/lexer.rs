@@ -2,14 +2,23 @@ use std::fmt::Display;
 
 #[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
 pub enum GToken {
-    #[regex("[ \\t]*[\\n][ \\t\\n]*")]
+    #[regex(r#"[ \t\n]*;[ \t\n]*"#)]
+    Semi,
+
+    #[regex(r#"[ \t]*[\n][ \t\n]*"#)]
     Newline,
 
-    #[regex("[ \\t]+")]
+    #[regex(r#"[ \t]+"#)]
     Whitespace,
 
-    #[regex("\"[^\"]*\"")]
+    #[regex(r#""[^"]*""#)]
     String,
+
+    #[regex(r#"\d*\.\d+"#)]
+    Float,
+
+    #[regex(r#"\d+"#)]
+    Int,
 
     #[token(":")]
     Colon,
@@ -35,8 +44,11 @@ pub enum GToken {
     #[token("}")]
     RBrace,
 
-    #[token("|")]
+    #[token("||")]
     Or,
+
+    #[token("|")]
+    Bar,
 
     #[token("=")]
     Eq,
@@ -104,10 +116,7 @@ pub enum GToken {
     #[token("continue")]
     Continue,
 
-    #[token(";")]
-    Semi,
-
-    #[regex(r#"[a-zA-Z][a-zA-Z0-9_]+"#, priority = 0)]
+    #[regex(r#"[a-zA-Z][a-zA-Z0-9_]*"#, priority = 0)]
     Ident,
     Error,
 }
@@ -124,7 +133,7 @@ impl Display for GToken {
             GToken::RParen => f.write_str("RParen"),
             GToken::LBrace => f.write_str("LBrace"),
             GToken::RBrace => f.write_str("RBrace"),
-            GToken::Or => f.write_str("Or"),
+            GToken::Bar => f.write_str("Bar"),
             GToken::Eq => f.write_str("Eq"),
             GToken::Then => f.write_str("Then"),
             GToken::SepBy => f.write_str("SepBy"),
@@ -152,6 +161,9 @@ impl Display for GToken {
             GToken::Continue => f.write_str("Continue"),
             GToken::Newline => f.write_str("Newline"),
             GToken::Error => f.write_str("ERR"),
+            GToken::Float => f.write_str("Float"),
+            GToken::Int => f.write_str("Int"),
+            GToken::Or => f.write_str("Or"),
         }
     }
 }

@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use crate::dsl::parser::g_parser;
+use crate::giblang::parser::g_parser;
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
     let log = OpenOptions::new()

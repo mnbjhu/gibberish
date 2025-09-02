@@ -3,7 +3,7 @@ use cli::command::Command;
 
 mod api;
 mod cli;
-mod dsl;
+mod giblang;
 #[cfg(test)]
 mod json;
 pub mod lexer;
