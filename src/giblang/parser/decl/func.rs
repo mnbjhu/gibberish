@@ -26,15 +26,25 @@ pub fn func_parser() -> Parser<GLang> {
         func_arg
             .sep_by(just(GToken::Comma))
             .or_not()
-            .skip(GToken::Newline)
             .delim_by(just(GToken::LParen), just(GToken::RParen))
             .named(GSyntax::Params),
-        stmt_parser()
-            .sep_by_extra(just(GToken::Semi), Requirement::No, Requirement::Maybe)
-            .or_not()
-            .skip(GToken::Newline)
-            .delim_by(just(GToken::LBrace), just(GToken::RBrace))
-            .named(GSyntax::CodeBlock),
+        block_parser(),
     ])
     .named(GSyntax::Function)
+}
+
+pub fn block_parser() -> Parser<GLang> {
+    seq(vec![
+        just(GToken::Newline).or_not(),
+        stmt_parser()
+            .sep_by_extra(
+                just(GToken::Semi).recover_with(just(GToken::Newline)),
+                Requirement::No,
+                Requirement::Maybe,
+            )
+            .or_not(),
+        just(GToken::Newline).or_not(),
+    ])
+    .delim_by(just(GToken::LBrace), just(GToken::RBrace))
+    .named(GSyntax::CodeBlock)
 }

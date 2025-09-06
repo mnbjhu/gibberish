@@ -33,37 +33,34 @@ impl<L: Lang> Sep<L> {
             state.pop_delim();
             return start;
         }
+        let mut parsing_item = false;
         loop {
-            let sep = state.maybe_parse(&self.sep, recover);
-            if sep.is_ok() {
-                let item = state.maybe_parse(&self.item, recover);
-                if item == PRes::Break(index) {
-                    if self.trailing == Requirement::No {
+            let parser = if parsing_item { &self.item } else { &self.sep };
+            let res = parser.do_parse(state, recover);
+            match res {
+                PRes::Ok => {
+                    parsing_item = !parsing_item;
+                }
+                PRes::Err => {
+                    state.bump_err(parser.expected());
+                }
+                PRes::Break(i) if i == index => {
+                    if parsing_item {
+                        state.missing(&self.item);
+                        parsing_item = false;
+                    } else {
+                        state.bump_err(parser.expected());
+                    }
+                }
+                PRes::Break(_) | PRes::Eof => {
+                    if self.trailing == Requirement::Yes && !parsing_item {
                         state.missing(&self.item);
                     }
-                    continue;
-                } else if matches!(item, PRes::Break(_) | PRes::Eof) {
-                    if self.trailing == Requirement::No {
-                        state.missing(&self.item);
+                    if self.trailing == Requirement::No && parsing_item {
+                        state.missing(&self.sep);
                     }
                     break;
                 }
-                if item.is_err() {
-                    if self.sep.do_parse(state, recover) == PRes::Ok {
-                        if self.trailing == Requirement::No {
-                            state.missing(&self.item);
-                        }
-                        continue;
-                    }
-                    warn!("Failed to parse item");
-                    break;
-                }
-            } else {
-                if self.trailing == Requirement::Yes {
-                    state.missing(&self.sep);
-                }
-                warn!("Failed to parse sep");
-                break;
             }
         }
         state.pop_delim();

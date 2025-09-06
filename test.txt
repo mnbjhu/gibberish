@@ -1,17 +1,4 @@
-struct Test { 
-}
-
-enum Result {
-  Ok,
-  Error
-}
-
 fn test[T: Int[Abc]]() {
   "Hello, World";
-  123
-}
-
-enum Result {
-  Ok,
-  Error
+  123;
 }
