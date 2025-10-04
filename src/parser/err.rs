@@ -1,12 +1,15 @@
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
+use crate::parser::node::Lexeme;
+
 use super::lang::Lang;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseError<L: Lang> {
+    pub start: usize,
     pub expected: Vec<Expected<L>>,
-    pub actual: Vec<L::Token>,
+    pub actual: Vec<Lexeme<L>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -38,7 +41,7 @@ where
         let actual = self
             .actual
             .iter()
-            .map(|it| it.to_string())
+            .map(|it| it.kind.to_string())
             .collect::<Vec<_>>()
             .join(",");
 

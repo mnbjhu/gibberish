@@ -1,4 +1,4 @@
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
@@ -16,12 +16,12 @@ impl<L: Lang> Fold<L> {
         state.enter(self.name.clone());
         let first = self.first.do_parse(state, recover);
         if first.is_err() {
-            warn!("Disolving name");
+            debug!("Disolving name");
             state.disolve_name();
             return first;
         }
         if self.next.peak(state, recover, state.after_skip()).is_err() {
-            warn!("Disolving name");
+            debug!("Disolving name");
             state.disolve_name();
             return PRes::Ok;
         }

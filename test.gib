@@ -1,0 +1,4 @@
+fn test() {
+  hello;
+  let (some, thing) = "Hello";
+}

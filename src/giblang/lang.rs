@@ -23,6 +23,7 @@ impl Lang for GLang {
                     let lexeme = Lexeme {
                         span: lexer.span(),
                         kind: next,
+                        text: lexer.slice().to_string(),
                     };
                     found.push(lexeme);
                 }
@@ -30,6 +31,7 @@ impl Lang for GLang {
                     let lexeme = Lexeme {
                         span: lexer.span(),
                         kind: GToken::Error,
+                        text: lexer.slice().to_string(),
                     };
                     found.push(lexeme);
                 }

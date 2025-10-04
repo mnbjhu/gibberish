@@ -42,3 +42,14 @@ impl<L: Lang> Choice<L> {
 pub fn choice<L: Lang>(options: Vec<Parser<L>>) -> Parser<L> {
     Parser::Choice(Choice { options })
 }
+
+impl<L: Lang> Parser<L> {
+    pub fn or(self, other: Parser<L>) -> Parser<L> {
+        if let Parser::Choice(mut options) = self {
+            options.options.push(other);
+            Parser::Choice(options)
+        } else {
+            choice(vec![self, other])
+        }
+    }
+}

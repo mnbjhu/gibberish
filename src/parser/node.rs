@@ -1,9 +1,9 @@
-use std::ops::Range;
-
-use super::{
-    err::{Expected, ParseError},
-    lang::Lang,
+use std::{
+    fmt::{Debug, Display, write},
+    ops::Range,
 };
+
+use super::{err::ParseError, lang::Lang};
 use ansi_term::Colour::{Blue, Green, Red};
 
 pub type Span = Range<usize>;
@@ -12,18 +12,13 @@ pub type Span = Range<usize>;
 pub struct Lexeme<L: Lang> {
     pub span: Span,
     pub kind: L::Token,
+    pub text: String,
 }
 
 #[derive(Debug)]
 pub struct Group<L: Lang> {
     pub kind: L::Syntax,
     pub children: Vec<Node<L>>,
-}
-
-#[derive(Debug)]
-pub struct ErrGroup<L: Lang> {
-    pub err: Vec<Expected<L>>,
-    pub children: Vec<L::Token>,
 }
 
 #[derive(Debug)]
@@ -70,6 +65,13 @@ impl<L: Lang> Node<L> {
         }
     }
 
+    pub fn as_group(&self) -> &Group<L> {
+        let Node::Group(group) = self else {
+            panic!("Expected a group");
+        };
+        group
+    }
+
     pub fn debug_print(&self, errors: bool, tokens: bool) {
         self.debug_at(0, errors, tokens);
     }
@@ -108,10 +110,19 @@ impl<L: Lang> Group<L> {
         })
     }
 
-    pub fn errors(&self) -> impl Iterator<Item = &ParseError<L>> {
-        self.children.iter().filter_map(|it| match it {
-            Node::Err(e) => Some(e),
-            _ => None,
+    pub fn green_node_by_name(&self, name: L::Syntax) -> Option<&Group<L>> {
+        self.green_children().find(|it| it.kind == name)
+    }
+
+    pub fn lexeme_by_kind(&self, name: L::Token) -> Option<&Lexeme<L>> {
+        self.children.iter().find_map(|it| {
+            if let Node::Lexeme(l) = it
+                && l.kind == name
+            {
+                Some(l)
+            } else {
+                None
+            }
         })
     }
 }
@@ -130,7 +141,148 @@ impl<L: Lang> ParseError<L> {
             for _ in 0..offset {
                 print!("  ");
             }
-            println!("  {}", Red.paint(token.to_string()));
+            println!("  {}", Red.paint(token.kind.to_string()));
         }
+    }
+}
+
+impl<L: Lang> Node<L> {
+    /// Iterate over all `Lexeme`s inside this node (DFS, left-to-right).
+    pub fn lexemes(&self) -> LexemeIter<'_, L> {
+        LexemeIter { stack: vec![self] }
+    }
+
+    pub fn errors(&self) -> ErrorIter<'_, L> {
+        ErrorIter {
+            stack: vec![self],
+            offset: 0,
+        }
+    }
+
+    pub fn start_offset(&self) -> usize {
+        match self {
+            Node::Group(group) => group.start_offset(),
+            Node::Lexeme(lexeme) => lexeme.span.start,
+            Node::Err(parse_error) => parse_error.start,
+        }
+    }
+
+    pub fn end_offset(&self) -> usize {
+        match self {
+            Node::Group(group) => group.end_offset(),
+            Node::Lexeme(lexeme) => lexeme.span.end,
+            Node::Err(parse_error) => parse_error
+                .actual
+                .last()
+                .map(|it| it.span.end)
+                .unwrap_or(parse_error.start),
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        self.start_offset()..self.end_offset()
+    }
+
+    pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Node::Group(group) => group.fmt(f),
+            Node::Lexeme(lexeme) => write!(f, "{}", &lexeme.text),
+            Node::Err(parse_error) => {
+                for lexeme in &parse_error.actual {
+                    write!(f, "{}", &lexeme.text)?
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<L: Lang> Group<L> {
+    pub fn errors(&self) -> ErrorIter<'_, L> {
+        let mut stack = vec![];
+        for child in self.children.iter().rev() {
+            stack.push(child);
+        }
+        ErrorIter { stack, offset: 0 }
+    }
+
+    pub fn start_offset(&self) -> usize {
+        if let Some(first) = self.children.first() {
+            first.start_offset()
+        } else {
+            0
+        }
+    }
+
+    pub fn end_offset(&self) -> usize {
+        if let Some(first) = self.children.last() {
+            first.end_offset()
+        } else {
+            0
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        self.start_offset()..self.end_offset()
+    }
+
+    pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for child in &self.children {
+            child.fmt(f)?
+        }
+        Ok(())
+    }
+}
+
+pub struct LexemeIter<'a, L: Lang> {
+    stack: Vec<&'a Node<L>>,
+}
+
+impl<'a, L: Lang> Iterator for LexemeIter<'a, L> {
+    type Item = &'a Lexeme<L>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.stack.pop() {
+            match node {
+                Node::Lexeme(l) => return Some(l),
+                Node::Group(g) => {
+                    // push children in reverse so we visit in original order
+                    for child in g.children.iter().rev() {
+                        self.stack.push(child);
+                    }
+                }
+                Node::Err(_) => {
+                    // ParseError contents are not part of the tree proper; skip.
+                }
+            }
+        }
+        None
+    }
+}
+
+pub struct ErrorIter<'a, L: Lang> {
+    stack: Vec<&'a Node<L>>,
+    offset: usize,
+}
+
+impl<'a, L: Lang> Iterator for ErrorIter<'a, L> {
+    type Item = (usize, &'a ParseError<L>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node) = self.stack.pop() {
+            match node {
+                Node::Lexeme(l) => {
+                    self.offset = l.span.end;
+                }
+                Node::Group(g) => {
+                    // push children in reverse so we visit in original order
+                    for child in g.children.iter().rev() {
+                        self.stack.push(child);
+                    }
+                }
+                Node::Err(e) => return Some((self.offset, e)),
+            }
+        }
+        None
     }
 }

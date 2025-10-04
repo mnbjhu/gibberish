@@ -45,3 +45,14 @@ impl<L: Lang> Seq<L> {
 pub fn seq<L: Lang>(parts: Vec<Parser<L>>) -> Parser<L> {
     Parser::Seq(Seq(parts))
 }
+
+impl<L: Lang> Parser<L> {
+    pub fn then(self, other: Parser<L>) -> Parser<L> {
+        if let Parser::Seq(mut seq) = self {
+            seq.0.push(other);
+            Parser::Seq(seq)
+        } else {
+            seq(vec![self, other])
+        }
+    }
+}

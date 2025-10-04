@@ -27,6 +27,20 @@ pub enum GSyntax {
     Param,
     Params,
     CodeBlock,
+    Sum,
+    Product,
+    Value,
+    Assignment,
+    If,
+    Condition,
+    Then,
+    Equality,
+    Pattern,
+    TuplePattern,
+    StructPattern,
+    TupleStructPattern,
+    QualifiedName,
+    Tuple,
 }
 
 impl Display for GSyntax {
@@ -57,6 +71,20 @@ impl Display for GSyntax {
             GSyntax::Param => f.write_str("Param"),
             GSyntax::Params => f.write_str("Params"),
             GSyntax::CodeBlock => f.write_str("CodeBlock"),
+            GSyntax::Sum => f.write_str("Sum"),
+            GSyntax::Product => f.write_str("Product"),
+            GSyntax::Value => f.write_str("Value"),
+            GSyntax::Assignment => f.write_str("Assignment"),
+            GSyntax::If => f.write_str("If"),
+            GSyntax::Condition => f.write_str("Condition"),
+            GSyntax::Then => f.write_str("Then"),
+            GSyntax::Equality => f.write_str("Equality"),
+            GSyntax::TuplePattern => f.write_str("TuplePattern"),
+            GSyntax::StructPattern => f.write_str("StructPattern"),
+            GSyntax::TupleStructPattern => f.write_str("TupleStructPattern"),
+            GSyntax::QualifiedName => f.write_str("QualifiedName"),
+            GSyntax::Pattern => f.write_str("Pattern"),
+            GSyntax::Tuple => f.write_str("Tuple"),
         }
     }
 }

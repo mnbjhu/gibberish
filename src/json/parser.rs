@@ -167,7 +167,7 @@ mod tests {
         assert_eq!(arr.errors().count(), 1);
 
         assert_eq!(arr.errors().count(), 1);
-        let error = arr.errors().next().unwrap();
+        let (_, error) = arr.errors().next().unwrap();
         assert_eq!(error.actual.len(), 1);
 
         let num = arr.green_children().next().unwrap();

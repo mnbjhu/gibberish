@@ -20,6 +20,9 @@ pub enum GToken {
     #[regex(r#"\d+"#)]
     Int,
 
+    #[token("::")]
+    DoubleColon,
+
     #[token(":")]
     Colon,
 
@@ -50,8 +53,23 @@ pub enum GToken {
     #[token("|")]
     Bar,
 
+    #[token("==")]
+    DoubleEq,
+
     #[token("=")]
     Eq,
+
+    #[token("+")]
+    Plus,
+
+    #[token("*")]
+    Times,
+
+    #[token("/")]
+    Div,
+
+    #[token("-")]
+    Sub,
 
     #[token("->")]
     Then,
@@ -164,6 +182,12 @@ impl Display for GToken {
             GToken::Float => f.write_str("Float"),
             GToken::Int => f.write_str("Int"),
             GToken::Or => f.write_str("Or"),
+            GToken::Plus => f.write_str("Plus"),
+            GToken::Times => f.write_str("Times"),
+            GToken::Div => f.write_str("Div"),
+            GToken::Sub => f.write_str("Sub"),
+            GToken::DoubleEq => f.write_str("DoubleEq"),
+            GToken::DoubleColon => f.write_str("DoubleColon"),
         }
     }
 }

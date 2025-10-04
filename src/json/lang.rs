@@ -23,6 +23,7 @@ impl Lang for JsonLang {
                     let lexeme = Lexeme {
                         span: lexer.span(),
                         kind: next,
+                        text: lexer.slice().to_string(),
                     };
                     found.push(lexeme);
                 }

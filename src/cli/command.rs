@@ -1,5 +1,9 @@
 use std::path::PathBuf;
 
+// use crate::cli::lsp::lsp;
+
+use crate::cli::lsp;
+
 use super::{lex::lex, parse::parse, watch::watch};
 
 #[derive(clap::Parser)]
@@ -16,7 +20,7 @@ pub enum Command {
         hide_tokens: bool,
     },
 
-    /// Parses a file
+    /// Show the generate LST for a file as it changes
     Watch {
         path: PathBuf,
         #[clap(short('e'), long)]
@@ -24,10 +28,13 @@ pub enum Command {
         #[clap(short('t'), long)]
         hide_tokens: bool,
     },
+
+    /// Start the language server
+    Lsp,
 }
 
 impl Command {
-    pub fn run(&self) {
+    pub async fn run(&self) {
         match self {
             Command::Lex { path } => lex(path),
             Command::Parse {
@@ -40,6 +47,7 @@ impl Command {
                 hide_errors,
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
+            Command::Lsp => lsp::main_loop().await,
         }
     }
 }

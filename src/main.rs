@@ -6,8 +6,10 @@ mod cli;
 mod giblang;
 #[cfg(test)]
 mod json;
+mod lsp;
 pub mod parser;
 
-fn main() {
-    Command::parse().run();
+#[tokio::main]
+async fn main() {
+    Command::parse().run().await;
 }

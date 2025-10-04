@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use tracing::info;
+use tracing::debug;
 
 use crate::api::Parser;
 
@@ -44,7 +44,7 @@ impl<L: Lang> ParserState<L> {
 
     pub fn bump(&mut self) {
         let current = self.current().expect("Called bump at EOF").clone();
-        info!("Bumping token {current:?}");
+        debug!("Bumping token {current:?}");
         self.stack
             .last_mut()
             .expect("Tree has no root node")
@@ -77,26 +77,28 @@ impl<L: Lang> ParserState<L> {
 
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();
+        let start = self.offset;
         if current.is_some() {
             self.offset += 1;
         }
-        let err = if let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() {
+        let err = if let Some(Node::Err(err)) = self.current_group_mut().children.last_mut() {
             err
         } else {
             self.current_group_mut()
                 .children
                 .push(Node::Err(ParseError {
+                    start,
                     expected,
                     actual: vec![],
                 }));
             let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() else {
-                unreachable!()
+                panic!()
             };
             err
         };
 
         if let Some(current) = current {
-            err.actual.push(current.kind.clone());
+            err.actual.push(current.clone());
         }
         self.bump_skipped();
     }
@@ -115,7 +117,7 @@ impl<L: Lang> ParserState<L> {
                 }
             });
         if let Some(index) = res {
-            info!("Hit delim: {index}");
+            debug!("Hit delim: {index}");
         }
         res
     }
@@ -123,7 +125,7 @@ impl<L: Lang> ParserState<L> {
     #[must_use]
     pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
         let index = self.delim_stack.len();
-        info!("Added delim to stack {delim:?}");
+        debug!("Added delim to stack {delim:?}");
         self.delim_stack.push(delim);
         index
     }
@@ -132,7 +134,7 @@ impl<L: Lang> ParserState<L> {
             .delim_stack
             .pop()
             .expect("Attempted to pop delim but stack was empty");
-        info!("Removed delim from stack {removed:?}");
+        debug!("Removed delim from stack {removed:?}");
     }
 
     pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> (PRes, bool) {
@@ -221,14 +223,16 @@ impl<L: Lang> ParserState<L> {
 
     pub fn missing(&mut self, parser: &Parser<L>) {
         let expected = parser.expected();
-        if let Some(Node::Err(err)) = self.current_group().children.last() {
-            if err.expected == expected {
-                return;
-            }
+        if let Some(Node::Err(err)) = self.current_group().children.last()
+            && err.expected == expected
+        {
+            return;
         }
+        let start = self.offset;
         self.current_group_mut()
             .children
             .push(Node::Err(ParseError {
+                start,
                 expected,
                 actual: vec![],
             }));
