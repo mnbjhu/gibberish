@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use tracing::debug;
 
-use crate::api::Parser;
+use crate::api::{
+    Parser,
+    ptr::{ParserCache, ParserIndex},
+};
 
 use super::{
     err::{Expected, ParseError},
@@ -12,16 +15,17 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct ParserState<L: Lang> {
+pub struct ParserState<'a, L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
     offset: usize,
-    delim_stack: Vec<Parser<L>>,
+    delim_stack: Vec<ParserIndex<L>>,
     skipping: HashSet<L::Token>,
+    pub cache: &'a ParserCache<L>,
 }
 
-impl<L: Lang> ParserState<L> {
-    pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
+impl<'a, L: Lang> ParserState<'a, L> {
+    pub fn new(input: Vec<Lexeme<L>>, cache: &'a ParserCache<L>) -> ParserState<'a, L> {
         ParserState {
             stack: vec![Node::Group(Group {
                 kind: L::root(),
@@ -31,6 +35,7 @@ impl<L: Lang> ParserState<L> {
             offset: 0,
             delim_stack: vec![],
             skipping: HashSet::new(),
+            cache,
         }
     }
 
@@ -110,7 +115,7 @@ impl<L: Lang> ParserState<L> {
             .enumerate()
             .rev()
             .find_map(|(n, it)| {
-                if it.peak(self, false, self.after_skip()) == PRes::Ok {
+                if it.get_ref(self.cache).peak(self, false, self.after_skip()) == PRes::Ok {
                     Some(n)
                 } else {
                     None
@@ -123,7 +128,7 @@ impl<L: Lang> ParserState<L> {
     }
 
     #[must_use]
-    pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
+    pub fn push_delim(&mut self, delim: ParserIndex<L>) -> usize {
         let index = self.delim_stack.len();
         debug!("Added delim to stack {delim:?}");
         self.delim_stack.push(delim);
@@ -137,14 +142,14 @@ impl<L: Lang> ParserState<L> {
         debug!("Removed delim from stack {removed:?}");
     }
 
-    pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> (PRes, bool) {
+    pub fn try_parse(&mut self, parser: &'a Parser<L>, recover: bool) -> (PRes, bool) {
         let mut bumped = false;
         loop {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
                     bumped = true;
-                    self.bump_err(parser.expected());
+                    self.bump_err(parser.expected(self));
                 }
                 PRes::Eof => {
                     return (PRes::Eof, bumped);
@@ -156,12 +161,12 @@ impl<L: Lang> ParserState<L> {
         (PRes::Ok, bumped)
     }
 
-    pub fn maybe_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
+    pub fn maybe_parse(&mut self, parser: &'a Parser<L>, recover: bool) -> PRes {
         loop {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
-                    self.bump_err(parser.expected());
+                    self.bump_err(parser.expected(self));
                 }
                 PRes::Eof => {
                     return PRes::Eof;
@@ -221,8 +226,8 @@ impl<L: Lang> ParserState<L> {
         }
     }
 
-    pub fn missing(&mut self, parser: &Parser<L>) {
-        let expected = parser.expected();
+    pub fn missing(&mut self, parser: &'a Parser<L>) {
+        let expected = parser.expected(self);
         if let Some(Node::Err(err)) = self.current_group().children.last()
             && err.expected == expected
         {
@@ -256,5 +261,9 @@ impl<L: Lang> ParserState<L> {
             }
         }
         res
+    }
+
+    pub fn recover_index(&self) -> usize {
+        self.delim_stack.len() - 1
     }
 }

@@ -2,15 +2,15 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FoldOnce<L: Lang> {
     name: L::Syntax,
     first: Box<Parser<L>>,
     next: Box<Parser<L>>,
 }
 
-impl<L: Lang> FoldOnce<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'a, L: Lang> FoldOnce<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         state.enter(self.name.clone());
         let first = self.first.do_parse(state, recover);
         if first.is_err() {
@@ -27,12 +27,12 @@ impl<L: Lang> FoldOnce<L> {
         PRes::Ok
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
         self.first.peak(state, recover, offset)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
-        self.first.expected()
+    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+        self.first.expected(state)
     }
 }
 

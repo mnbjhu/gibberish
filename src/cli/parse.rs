@@ -1,24 +1,27 @@
 use std::{
-    fs::{self, OpenOptions},
+    fs::{self},
     path::Path,
 };
 
-use crate::giblang::parser::g_parser;
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt as _, util::SubscriberInitExt as _};
+
+use crate::api::ptr::ParserCache;
+
+use crate::json::parser::json_parser;
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
-    let log = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("out.log")
+    let fmt_layer = fmt::layer().with_target(false);
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
 
-    tracing_subscriber::fmt()
-        .with_writer(log)
-        .with_ansi(false)
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(fmt_layer)
         .init();
 
     let text = fs::read_to_string(path).unwrap();
-    let res = g_parser().parse(&text);
+    let mut cache = ParserCache::new();
+    let res = json_parser(&mut cache).parse(&text, &cache);
     res.debug_print(errors, tokens);
 }

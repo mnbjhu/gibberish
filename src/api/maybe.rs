@@ -2,18 +2,18 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Requirement {
     Yes,
     No,
     Maybe,
 }
 
-impl Requirement {
+impl<'a> Requirement {
     pub fn parse<L: Lang>(
         &self,
-        parser: &Parser<L>,
-        state: &mut ParserState<L>,
+        parser: &'a Parser<L>,
+        state: &mut ParserState<'a, L>,
         recover: bool,
     ) -> PRes {
         match self {
@@ -46,9 +46,13 @@ impl Requirement {
         }
     }
 
-    pub fn expected<L: Lang>(&self, parser: &Parser<L>) -> Vec<Expected<L>> {
+    pub fn expected<L: Lang>(
+        &self,
+        parser: &Parser<L>,
+        state: &ParserState<'a, L>,
+    ) -> Vec<Expected<L>> {
         match self {
-            Requirement::Yes | Requirement::Maybe => parser.expected(),
+            Requirement::Yes | Requirement::Maybe => parser.expected(state),
             Requirement::No => vec![],
         }
     }

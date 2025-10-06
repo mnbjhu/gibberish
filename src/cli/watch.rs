@@ -6,7 +6,7 @@ use std::{
     sync::mpsc,
 };
 
-use crate::giblang::parser::g_parser;
+use crate::{api::ptr::ParserCache, json::parser::json_parser};
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -16,10 +16,11 @@ fn clear_screen() {
 }
 
 pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
-    let parser = g_parser();
+    let mut cache = ParserCache::new();
+    let parser = json_parser(&mut cache);
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    parser.parse(&text).debug_print(errors, tokens);
+    parser.parse(&text, &cache).debug_print(errors, tokens);
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -31,7 +32,7 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 }
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
-                parser.parse(&text).debug_print(errors, tokens);
+                parser.parse(&text, &cache).debug_print(errors, tokens);
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }

@@ -1,39 +1,41 @@
 use std::rc::{Rc, Weak};
 
-use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
+use crate::{
+    api::ptr::{ParserCache, ParserIndex},
+    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
+};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
-pub enum Recursive<L: Lang> {
-    Ptr(Rc<Parser<L>>),
-    Weak(Weak<Parser<L>>),
-}
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+pub struct Recursive<L: Lang>(pub ParserIndex<L>);
 
-impl<L: Lang> Recursive<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
-        match self {
-            Recursive::Ptr(parser) => parser.do_parse(state, recover),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().do_parse(state, recover),
-        }
+impl<'a, L: Lang> Recursive<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
+        self.0.get_ref(state.cache).do_parse(state, recover)
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
-        match self {
-            Recursive::Ptr(parser) => parser.peak(state, recover, offset),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().peak(state, recover, offset),
-        }
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
+        self.0.get_ref(state.cache).peak(state, recover, offset)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
-        match self {
-            Recursive::Ptr(parser) => parser.expected(),
-            Recursive::Weak(weak) => weak.upgrade().unwrap().expected(),
-        }
+    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+        self.0.get_ref(state.cache).expected(state)
     }
 }
 
-pub fn recursive<L: Lang>(builder: impl Fn(Parser<L>) -> Parser<L>) -> Parser<L> {
-    let res = Rc::new_cyclic(|p| builder(Parser::Rec(Recursive::Weak(p.clone()))));
-    Parser::Rec(Recursive::Ptr(res))
+pub fn recursive<L: Lang>(
+    mut builder: impl FnMut(ParserIndex<L>, &mut ParserCache<L>) -> ParserIndex<L>,
+    cache: &mut ParserCache<L>,
+) -> ParserIndex<L> {
+    let index = ParserIndex::from(cache.parsers.len());
+    cache
+        .parsers
+        .push(Parser::Rec(Recursive(ParserIndex::from(0))));
+    let res = builder(index, cache);
+    let Some(Parser::Rec(p)) = cache.parsers.get_mut(index.index) else {
+        panic!()
+    };
+    p.0.index = res.index;
+    index
 }

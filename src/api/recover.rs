@@ -3,14 +3,14 @@ use crate::{
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Recover<L: Lang> {
     try_: Box<Parser<L>>,
     otherwise: Box<Parser<L>>,
 }
 
-impl<L: Lang> Recover<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'a, L: Lang> Recover<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         let res = self.try_.do_parse(state, recover);
         if res != PRes::Ok {
             state.missing(&self.try_);
@@ -20,7 +20,7 @@ impl<L: Lang> Recover<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
         let res = self.try_.peak(state, recover, offset);
         if res != PRes::Ok {
             self.otherwise.peak(state, recover, offset)
@@ -29,8 +29,8 @@ impl<L: Lang> Recover<L> {
         }
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
-        self.try_.expected()
+    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+        self.try_.expected(state)
     }
 }
 

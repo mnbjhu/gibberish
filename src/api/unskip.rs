@@ -2,14 +2,14 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct UnSkip<L: Lang> {
     token: L::Token,
     inner: Box<Parser<L>>,
 }
 
-impl<L: Lang> UnSkip<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'a, L: Lang> UnSkip<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         let removed = state.unskip(self.token.clone());
         let res = self.inner.do_parse(state, recover);
         if removed {
@@ -19,12 +19,12 @@ impl<L: Lang> UnSkip<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
         self.inner.peak(state, recover, offset)
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
-        self.inner.expected()
+    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+        self.inner.expected(state)
     }
 }
 

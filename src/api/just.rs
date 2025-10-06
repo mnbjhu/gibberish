@@ -1,13 +1,16 @@
 use std::fmt::Display;
 
-use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
+use crate::{
+    api::ptr::{ParserCache, ParserIndex},
+    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
+};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Just<L: Lang>(L::Token);
 
-impl<L: Lang> Just<L> {
+impl<'a, L: Lang> Just<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
         let Some(tok) = state.current() else {
             return PRes::Eof;
@@ -40,8 +43,9 @@ impl<L: Lang> Just<L> {
     }
 }
 
-pub fn just<L: Lang>(tok: L::Token) -> Parser<L> {
-    Parser::Just(Just(tok))
+pub fn just<L: Lang>(tok: L::Token, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+    let p = Parser::Just(Just(tok));
+    p.cache(cache)
 }
 
 impl<L: Lang> Display for Just<L> {

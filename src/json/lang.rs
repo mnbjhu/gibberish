@@ -4,7 +4,7 @@ use crate::parser::{lang::Lang, node::Lexeme};
 
 use super::{lexer::JsonToken, syntax::JsonSyntax};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct JsonLang;
 
 impl Lang for JsonLang {

@@ -3,11 +3,11 @@ use crate::{
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Optional<L: Lang>(Box<Parser<L>>);
 
-impl<L: Lang> Optional<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'a, L: Lang> Optional<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         let res = self.0.peak(state, recover, state.after_skip());
         if res != PRes::Ok {
             return PRes::Ok;
@@ -16,7 +16,7 @@ impl<L: Lang> Optional<L> {
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
         let res = self.0.peak(state, recover, offset);
         if res == PRes::Err {
             return PRes::Ok;
@@ -24,8 +24,8 @@ impl<L: Lang> Optional<L> {
         res
     }
 
-    pub fn expected(&self) -> Vec<Expected<L>> {
-        self.0.expected()
+    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+        self.0.expected(state)
     }
 }
 

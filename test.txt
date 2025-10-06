@@ -1,4 +1,8 @@
-fn test[T: Int[Abc]]() {
-  "Hello, World";
-  123;
+{
+  "hello": [
+    123,
+    "abc",
+    "xyz" asdasd
+  ],
+  "other": [123, 123]
 }

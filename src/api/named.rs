@@ -1,29 +1,32 @@
 use std::fmt::Display;
 
-use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
+use crate::{
+    api::ptr::{ParserCache, ParserIndex},
+    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
+};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Named<L: Lang> {
-    inner: Box<Parser<L>>,
+    inner: ParserIndex<L>,
     name: L::Syntax,
 }
 
-impl<L: Lang> Named<L> {
-    pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {
+impl<'a, L: Lang> Named<L> {
+    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         let peak = self.peak(state, recover, state.after_skip());
         if peak.is_err() {
             return peak;
         };
         state.enter(self.name.clone());
-        let res = self.inner.do_parse(state, recover);
+        let res = self.inner.get_ref(state.cache).do_parse(state, recover);
         state.exit();
         res
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
-        self.inner.peak(state, recover, offset)
+    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
+        self.inner.get_ref(state.cache).peak(state, recover, offset)
     }
 
     pub fn expected(&self) -> Vec<Expected<L>> {
@@ -31,12 +34,9 @@ impl<L: Lang> Named<L> {
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn named(self, name: L::Syntax) -> Parser<L> {
-        Parser::Named(Named {
-            inner: Box::new(self),
-            name,
-        })
+impl<L: Lang> ParserIndex<L> {
+    pub fn named(self, name: L::Syntax, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+        Parser::Named(Named { inner: self, name }).cache(cache)
     }
 }
 

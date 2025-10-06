@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
-use crate::cli::lsp;
-
 use super::{lex::lex, parse::parse, watch::watch};
 
 #[derive(clap::Parser)]
@@ -28,9 +26,6 @@ pub enum Command {
         #[clap(short('t'), long)]
         hide_tokens: bool,
     },
-
-    /// Start the language server
-    Lsp,
 }
 
 impl Command {
@@ -47,7 +42,6 @@ impl Command {
                 hide_errors,
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
-            Command::Lsp => lsp::main_loop().await,
         }
     }
 }

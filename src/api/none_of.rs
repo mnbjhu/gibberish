@@ -2,7 +2,7 @@ use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
 
 use super::Parser;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NoneOf<L: Lang>(Vec<L::Token>);
 
 impl<L: Lang> NoneOf<L> {
