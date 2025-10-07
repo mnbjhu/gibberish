@@ -264,6 +264,6 @@ impl<'a, L: Lang> ParserState<'a, L> {
     }
 
     pub fn recover_index(&self) -> usize {
-        self.delim_stack.len() - 1
+        self.delim_stack.len()
     }
 }

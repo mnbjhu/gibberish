@@ -3,6 +3,7 @@ use cli::command::Command;
 
 mod api;
 mod cli;
+mod dsl;
 mod json;
 mod parser;
 

@@ -1,8 +1,3 @@
-{
-  "hello": [
-    123,
-    "abc",
-    "xyz" asdasd
-  ],
-  "other": [123, 123]
-}
+x = name + other | one_more;
+x = hello(test, name + other)
+

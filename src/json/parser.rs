@@ -58,6 +58,7 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
 mod tests {
     use crate::{
         api::ptr::ParserCache,
+        dsl::lang::DslLang,
         json::{lang::JsonLang, parser::json_parser, syntax::JsonSyntax},
         parser::node::{Group, Node},
     };
@@ -65,7 +66,7 @@ mod tests {
     #[test]
     fn test_parse_string() {
         let input = r#""Test""#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         if let Node::Group(Group { kind, children, .. }) = root {
             assert_eq!(kind, JsonSyntax::Root);
@@ -81,7 +82,7 @@ mod tests {
     #[test]
     fn test_parse_array() {
         let input = r#"["Test"]"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
@@ -96,7 +97,7 @@ mod tests {
     #[test]
     fn test_parse_array_2() {
         let input = r#"[123, 456]"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
@@ -117,7 +118,7 @@ mod tests {
     #[test]
     fn test_parse_obj() {
         let input = r#"{"thing": 123}"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
@@ -142,7 +143,7 @@ mod tests {
     #[test]
     fn test_sum_in_arr_with_err() {
         let input = r#"[123 +]"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -166,7 +167,7 @@ mod tests {
     #[test]
     fn test_missing_expression() {
         let input = r#"[123,]"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
@@ -186,7 +187,7 @@ mod tests {
     #[test]
     fn test_invalid_sep() {
         let input = r#"[123 "abc"]"#;
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");

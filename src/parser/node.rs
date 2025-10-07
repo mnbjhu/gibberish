@@ -36,7 +36,7 @@ impl<L: Lang> Node<L> {
         children.push(Node::Lexeme(lexeme))
     }
 
-    fn debug_at(&self, offset: usize, errors: bool, tokens: bool) {
+    fn debug_at(&self, offset: usize, errors: bool, tokens: bool, lang: &L) {
         fn print_offset(n: usize) {
             for _ in 0..n {
                 print!("  ");
@@ -45,21 +45,21 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(Group { kind, children }) => {
                 print_offset(offset);
-                println!("{}", Green.paint(kind.to_string()));
+                println!("{}", Green.paint(lang.syntax_name(kind)));
                 for child in children {
-                    child.debug_at(offset + 1, errors, tokens);
+                    child.debug_at(offset + 1, errors, tokens, lang);
                 }
             }
             Node::Lexeme(lexeme) => {
                 if tokens {
                     print_offset(offset);
-                    println!("{}", Blue.paint(lexeme.kind.to_string()))
+                    println!("{}", Blue.paint(lang.token_name(&lexeme.kind)))
                 }
             }
             Node::Err(err_group) => {
                 if errors {
                     print_offset(offset);
-                    err_group.debug_at(offset)
+                    err_group.debug_at(offset, lang)
                 }
             }
         }
@@ -72,8 +72,8 @@ impl<L: Lang> Node<L> {
         group
     }
 
-    pub fn debug_print(&self, errors: bool, tokens: bool) {
-        self.debug_at(0, errors, tokens);
+    pub fn debug_print(&self, errors: bool, tokens: bool, lang: &L) {
+        self.debug_at(0, errors, tokens, lang);
     }
 
     pub fn name(&self) -> L::Syntax {
@@ -128,12 +128,12 @@ impl<L: Lang> Group<L> {
 }
 
 impl<L: Lang> ParseError<L> {
-    fn debug_at(&self, offset: usize) {
+    fn debug_at(&self, offset: usize, lang: &L) {
         // NOTE: Only works when called by outer 'debug_at'
         let expected = self
             .expected
             .iter()
-            .map(|it| it.to_string())
+            .map(|it| it.debug_name(lang))
             .collect::<Vec<_>>()
             .join(",");
         println!("Expected: {expected}");
@@ -141,7 +141,7 @@ impl<L: Lang> ParseError<L> {
             for _ in 0..offset {
                 print!("  ");
             }
-            println!("  {}", Red.paint(token.kind.to_string()));
+            println!("  {}", Red.paint(lang.token_name(&token.kind)));
         }
     }
 }

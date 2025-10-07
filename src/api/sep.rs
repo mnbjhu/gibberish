@@ -11,6 +11,7 @@ pub struct Sep<L: Lang> {
     item: ParserIndex<L>,
     leading: Requirement,
     trailing: Requirement,
+    at_least: usize,
 }
 
 impl<'a, L: Lang> Sep<L> {
@@ -35,6 +36,9 @@ impl<'a, L: Lang> Sep<L> {
         // TODO: Think about parsed leading and err case
         if start.is_err() && !parsed_leading {
             state.pop_delim();
+            if self.at_least == 0 {
+                return PRes::Ok;
+            }
             return start;
         }
         let mut parsing_item = false;
@@ -109,6 +113,7 @@ impl<L: Lang> ParserIndex<L> {
             sep,
             leading: Requirement::No,
             trailing: Requirement::No,
+            at_least: 0,
         })
         .cache(cache)
     }
@@ -124,6 +129,7 @@ impl<L: Lang> ParserIndex<L> {
             sep,
             leading,
             trailing,
+            at_least: 0,
         })
     }
 }

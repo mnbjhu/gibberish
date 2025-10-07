@@ -67,3 +67,49 @@ where
         }
     }
 }
+
+impl<L: Lang> Expected<L> {
+    pub fn debug_name(&self, lang: &L) -> String {
+        match self {
+            Expected::Token(t) => lang.token_name(t),
+            Expected::Label(l) => lang.syntax_name(l),
+        }
+    }
+}
+
+impl<L: Lang> ParseError<L> {
+    fn fmt(&self, lang: &L) -> String {
+        assert_ne!(
+            0,
+            self.expected.len(),
+            "No value expected in error, maybe EOF"
+        );
+        let actual = self
+            .actual
+            .iter()
+            .map(|it| lang.token_name(&it.kind))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        if self.expected.len() == 1 {
+            let expected = self.expected.first().unwrap();
+            if self.actual.is_empty() {
+                format!("Missing {expected}")
+            } else {
+                format!("Expected {expected} but found {actual}")
+            }
+        } else {
+            let expected = self
+                .expected
+                .iter()
+                .map(|it| it.debug_name(lang))
+                .collect::<Vec<_>>()
+                .join(", ");
+            if self.actual.is_empty() {
+                format!("Missing one of {expected}")
+            } else {
+                format!("Expected one of {expected} but found {actual}")
+            }
+        }
+    }
+}

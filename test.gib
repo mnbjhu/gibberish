@@ -1,4 +1,8 @@
-fn test() {
-  hello;
-  let (some, thing) = "Hello";
-}
+NUM = "[0-9]+";
+WHITESPACE = "\s";
+IDENT = "[_a-zA-Z]+";
+COLON = ":"
+
+name = IDENT;
+value = NUM | IDENT;
+field = name + COLON + value;

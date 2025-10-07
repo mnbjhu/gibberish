@@ -7,8 +7,13 @@ use crate::{
 
 use super::Parser;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Just<L: Lang>(L::Token);
+impl<L: Lang> std::fmt::Debug for Just<L> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Just").field(&self.0).finish()
+    }
+}
 
 impl<'a, L: Lang> Just<L> {
     pub fn parse(&self, state: &mut ParserState<L>) -> PRes {

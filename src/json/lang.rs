@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use logos::Logos;
 
 use crate::parser::{lang::Lang, node::Lexeme};
@@ -11,10 +13,7 @@ impl Lang for JsonLang {
     type Token = JsonToken;
     type Syntax = JsonSyntax;
 
-    fn lex(src: &str) -> Vec<Lexeme<Self>>
-    where
-        Self: Sized,
-    {
+    fn lex(&self, src: &str) -> Vec<Lexeme<Self>> {
         let mut lexer = JsonToken::lexer(src);
         let mut found = vec![];
         while let Some(next) = lexer.next() {
@@ -35,5 +34,11 @@ impl Lang for JsonLang {
 
     fn root() -> JsonSyntax {
         JsonSyntax::Root
+    }
+}
+
+impl Display for JsonLang {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "JsonLang")
     }
 }

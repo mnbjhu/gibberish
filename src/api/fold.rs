@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_add_op() {
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let res = sum_parser(&mut cache).parse("123 + 456", &cache);
         assert_eq!(res.name(), JsonSyntax::Root);
         assert_eq!(res.green_children().count(), 1);
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_disolve() {
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let res = sum_parser(&mut cache).parse("123", &cache);
         assert_eq!(res.name(), JsonSyntax::Root);
         assert_eq!(res.green_children().count(), 1);
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_error_recover() {
-        let mut cache = ParserCache::new();
+        let mut cache = ParserCache::new(JsonLang);
         let res = sum_parser(&mut cache).parse("123 +", &cache);
         assert_eq!(res.name(), JsonSyntax::Root);
         assert_eq!(res.green_children().count(), 1);

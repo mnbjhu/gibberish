@@ -2,7 +2,7 @@ use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
     api::Parser,
-    parser::{lang::Lang, node::Node, state::ParserState},
+    parser::{lang::Lang, node::Node},
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
@@ -21,15 +21,17 @@ impl<L: Lang> ParserIndex<L> {
 }
 
 pub struct ParserCache<L: Lang> {
+    pub lang: L,
     pub parsers: Vec<Parser<L>>,
     pub cached: HashMap<Parser<L>, ParserIndex<L>>,
 }
 
 impl<L: Lang> ParserCache<L> {
-    pub fn new() -> Self {
+    pub fn new(lang: L) -> Self {
         Self {
             parsers: vec![],
             cached: HashMap::new(),
+            lang,
         }
     }
 }
