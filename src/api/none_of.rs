@@ -20,13 +20,15 @@ impl<L: Lang> NoneOf<L> {
         }
     }
 
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+    pub fn peak(&self, state: &ParserState<L>, recover: bool, _offset: usize) -> PRes {
         let Some(tok) = state.current() else {
             return PRes::Eof;
         };
         if !self.0.contains(&tok.kind) {
             PRes::Ok
-        } else if let Some(pos) = state.try_delim() {
+        } else if let Some(pos) = state.try_delim()
+            && recover
+        {
             PRes::Break(pos)
         } else {
             // state.bump_err(self.expected());

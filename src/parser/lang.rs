@@ -15,7 +15,7 @@ pub trait Lang: Clone + PartialEq + Eq + Display + Debug + Hash + Copy {
 
     fn lex(&self, src: &str) -> Vec<Lexeme<Self>>;
 
-    fn root() -> Self::Syntax;
+    fn root(&self) -> Self::Syntax;
 
     fn token_name(&self, token: &Self::Token) -> String {
         format!("{token}")

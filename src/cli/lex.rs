@@ -1,17 +1,16 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{fs, path::Path};
 
 use crate::{
     api::ptr::ParserCache,
     dsl::{
         ast::RootAst,
-        lang::DslLang,
+        dsl_parser,
         lexer::{RuntimeLang, build_lexer},
+        lst::{lang::DslLang, token::DslToken},
     },
     parser::lang::Lang,
 };
 use logos::Logos as _;
-
-use crate::dsl::lang::{DslToken, dsl_parser};
 
 pub fn lex(path: &Path) {
     let text = fs::read_to_string(path).unwrap();

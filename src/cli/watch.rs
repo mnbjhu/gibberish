@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     api::ptr::ParserCache,
-    dsl::lang::{DslLang, dsl_parser},
+    dsl::{dsl_parser, lst::lang::DslLang},
 };
 
 /// ANSI-clear + move cursor to top-left

@@ -1,23 +1,29 @@
 use crate::{
-    api::Parser,
+    api::{
+        Parser,
+        ptr::{ParserCache, ParserIndex},
+    },
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Optional<L: Lang>(Box<Parser<L>>);
+pub struct Optional<L: Lang>(ParserIndex<L>);
 
 impl<'a, L: Lang> Optional<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
-        let res = self.0.peak(state, recover, state.after_skip());
+        let res = self
+            .0
+            .get_ref(state.cache)
+            .peak(state, recover, state.after_skip());
         if res != PRes::Ok {
             return PRes::Ok;
         }
-        self.0.do_parse(state, recover);
+        self.0.get_ref(state.cache).do_parse(state, recover);
         res
     }
 
     pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
-        let res = self.0.peak(state, recover, offset);
+        let res = self.0.get_ref(state.cache).peak(state, recover, offset);
         if res == PRes::Err {
             return PRes::Ok;
         }
@@ -25,12 +31,12 @@ impl<'a, L: Lang> Optional<L> {
     }
 
     pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.0.expected(state)
+        self.0.get_ref(state.cache).expected(state)
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn or_not(self) -> Parser<L> {
-        Parser::Optional(Optional(Box::new(self)))
+impl<L: Lang> ParserIndex<L> {
+    pub fn or_not(self, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+        Parser::Optional(Optional(self)).cache(cache)
     }
 }

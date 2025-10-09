@@ -1,3 +1,2 @@
-x = name + other | one_more;
-x = hello(test, name + other)
-
+name: hello;
+age: 123

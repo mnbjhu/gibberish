@@ -15,7 +15,6 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
             let int = just(JsonToken::Int, cache).named(JsonSyntax::Number, cache);
 
             let arr = e
-                .clone()
                 .sep_by(just(JsonToken::Comma, cache), cache)
                 .delim_by(
                     just(JsonToken::LBracket, cache),
@@ -44,7 +43,7 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
                 .named(JsonSyntax::Object, cache);
             let atom = choice(vec![obj, arr, string, int], cache);
 
-            atom.clone().fold(
+            atom.fold(
                 JsonSyntax::Add,
                 seq(vec![just(JsonToken::Plus, cache), atom], cache),
                 cache,
@@ -58,7 +57,6 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
 mod tests {
     use crate::{
         api::ptr::ParserCache,
-        dsl::lang::DslLang,
         json::{lang::JsonLang, parser::json_parser, syntax::JsonSyntax},
         parser::node::{Group, Node},
     };
@@ -199,7 +197,7 @@ mod tests {
 
         assert_eq!(arr.errors().count(), 1);
         let (_, error) = arr.errors().next().unwrap();
-        assert_eq!(error.actual.len(), 1);
+        assert_eq!(error.actual().len(), 1);
 
         let num = arr.green_children().next().unwrap();
         assert_eq!(num.errors().count(), 0);

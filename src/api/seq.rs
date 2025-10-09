@@ -30,6 +30,7 @@ impl<'a, L: Lang> Seq<L> {
                     if !bumped {
                         state.missing(p.get_ref(state.cache));
                     }
+
                     return PRes::Ok;
                 }
                 PRes::Break(index) => {
@@ -40,6 +41,10 @@ impl<'a, L: Lang> Seq<L> {
                     state.missing(self.0[i].get_ref(state.cache));
                     parsing_index = i + 1;
                 }
+                PRes::Eof => {
+                    state.missing(p.get_ref(state.cache));
+                    return PRes::Ok;
+                }
                 PRes::Ok => {
                     parsing_index += 1;
                     if parsing_index == self.0.len() {
@@ -48,7 +53,7 @@ impl<'a, L: Lang> Seq<L> {
                         state.pop_delim();
                     }
                 }
-                PRes::Eof | PRes::Err => return PRes::Ok,
+                PRes::Err => return PRes::Ok,
             }
         }
 

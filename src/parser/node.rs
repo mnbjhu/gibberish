@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Display, write},
-    ops::Range,
-};
+use std::{fmt::Debug, ops::Range};
 
 use super::{err::ParseError, lang::Lang};
 use ansi_term::Colour::{Blue, Green, Red};
@@ -131,13 +128,13 @@ impl<L: Lang> ParseError<L> {
     fn debug_at(&self, offset: usize, lang: &L) {
         // NOTE: Only works when called by outer 'debug_at'
         let expected = self
-            .expected
+            .expected()
             .iter()
             .map(|it| it.debug_name(lang))
             .collect::<Vec<_>>()
             .join(",");
         println!("Expected: {expected}");
-        for token in &self.actual {
+        for token in self.actual() {
             for _ in 0..offset {
                 print!("  ");
             }
@@ -163,7 +160,7 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(group) => group.start_offset(),
             Node::Lexeme(lexeme) => lexeme.span.start,
-            Node::Err(parse_error) => parse_error.start,
+            Node::Err(parse_error) => parse_error.start(),
         }
     }
 
@@ -172,10 +169,10 @@ impl<L: Lang> Node<L> {
             Node::Group(group) => group.end_offset(),
             Node::Lexeme(lexeme) => lexeme.span.end,
             Node::Err(parse_error) => parse_error
-                .actual
+                .actual()
                 .last()
                 .map(|it| it.span.end)
-                .unwrap_or(parse_error.start),
+                .unwrap_or(parse_error.start()),
         }
     }
 
@@ -188,7 +185,7 @@ impl<L: Lang> Node<L> {
             Node::Group(group) => group.fmt(f),
             Node::Lexeme(lexeme) => write!(f, "{}", &lexeme.text),
             Node::Err(parse_error) => {
-                for lexeme in &parse_error.actual {
+                for lexeme in parse_error.actual() {
                     write!(f, "{}", &lexeme.text)?
                 }
                 Ok(())

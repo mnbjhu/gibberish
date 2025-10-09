@@ -1,5 +1,3 @@
-use std::rc::{Rc, Weak};
-
 use crate::{
     api::ptr::{ParserCache, ParserIndex},
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},

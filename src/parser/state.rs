@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use ariadne::Span;
 use tracing::debug;
 
 use crate::api::{
@@ -28,7 +29,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
     pub fn new(input: Vec<Lexeme<L>>, cache: &'a ParserCache<L>) -> ParserState<'a, L> {
         ParserState {
             stack: vec![Node::Group(Group {
-                kind: L::root(),
+                kind: cache.lang.root(),
                 children: vec![],
             })],
             input,
@@ -80,18 +81,24 @@ impl<'a, L: Lang> ParserState<'a, L> {
         self.skipping.remove(&token)
     }
 
+    pub fn eof_offset(&self) -> usize {
+        self.input.last().map(|it| it.span.end()).unwrap_or(0)
+    }
+
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();
-        let start = self.offset;
-        if current.is_some() {
+        let start = if let Some(current) = &current {
             self.offset += 1;
-        }
+            current.span.end
+        } else {
+            self.eof_offset()
+        };
         let err = if let Some(Node::Err(err)) = self.current_group_mut().children.last_mut() {
             err
         } else {
             self.current_group_mut()
                 .children
-                .push(Node::Err(ParseError {
+                .push(Node::Err(ParseError::Unexpected {
                     start,
                     expected,
                     actual: vec![],
@@ -103,7 +110,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
         };
 
         if let Some(current) = current {
-            err.actual.push(current.clone());
+            err.actual_mut().push(current.clone());
         }
         self.bump_skipped();
     }
@@ -226,17 +233,47 @@ impl<'a, L: Lang> ParserState<'a, L> {
         }
     }
 
-    pub fn missing(&mut self, parser: &'a Parser<L>) {
+    pub fn missing_delim(&mut self, parser: &'a Parser<L>, start_delim: Lexeme<L>) {
+        let current = self.current();
         let expected = parser.expected(self);
         if let Some(Node::Err(err)) = self.current_group().children.last()
-            && err.expected == expected
+            && err.expected() == &expected
         {
             return;
         }
-        let start = self.offset;
+        let start = if let Some(current) = &current {
+            current.span.end
+        } else {
+            self.eof_offset()
+        };
+        let before = self.current().cloned();
         self.current_group_mut()
             .children
-            .push(Node::Err(ParseError {
+            .push(Node::Err(ParseError::MissingError {
+                start,
+                expected,
+                actual: vec![],
+                before,
+                start_delim,
+            }));
+    }
+
+    pub fn missing(&mut self, parser: &'a Parser<L>) {
+        let expected = parser.expected(self);
+        if let Some(Node::Err(err)) = self.current_group().children.last()
+            && err.expected() == &expected
+        {
+            return;
+        }
+        let current = self.current();
+        let start = if let Some(current) = &current {
+            current.span.end
+        } else {
+            self.eof_offset()
+        };
+        self.current_group_mut()
+            .children
+            .push(Node::Err(ParseError::Unexpected {
                 start,
                 expected,
                 actual: vec![],
@@ -261,6 +298,17 @@ impl<'a, L: Lang> ParserState<'a, L> {
             }
         }
         res
+    }
+
+    pub fn after_white_space(&self, mut offset: usize) -> usize {
+        while let Some(current) = self.at_offset(offset) {
+            if self.skipping.contains(&current.kind) {
+                offset += 1;
+            } else {
+                break;
+            }
+        }
+        offset
     }
 
     pub fn recover_index(&self) -> usize {

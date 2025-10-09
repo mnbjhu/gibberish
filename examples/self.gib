@@ -1,0 +1,31 @@
+token = k"token"
+keyword = k"keyword"
+parser = k"parser"
+whitespace = "[ \t\n\f]+"; 
+string = "\"[^\"]*\"";
+int = "[0-9]+";
+colon = ":";
+comma = ",";
+bar = "|";
+dot = "\.";
+l_bracket = "[";
+r_bracket = "]";
+l_paren = "(";
+r_paren = ")";
+l_brace = "{";
+r_brace = "}";
+plus = "+";
+eq = "=";
+ident = "[_a-zA-Z][_a-zA-Z0-9]*";
+semi = ";";
+
+
+_expr;
+named = ident;
+
+kw_def = keyword + ident;
+token_def = token + ident + eq + string;
+parser_def = parser + ident + eq + _expr;
+_stmt = kw_def | token_def | parser_def;
+root = stmt.sep_by(semi)
+

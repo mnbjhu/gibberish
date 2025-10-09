@@ -32,15 +32,16 @@ impl<'a, L: Lang> Choice<L> {
     }
 
     pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
+        let mut res = PRes::Ok;
         for p in &self.options {
-            let res = p.get_ref(state.cache).peak(state, recover, offset);
+            res = p.get_ref(state.cache).peak(state, recover, offset);
             if res.is_ok() {
                 return PRes::Ok;
-            } else if matches!(res, PRes::Break(_) | PRes::Eof) {
+            } else if matches!(res, PRes::Eof) {
                 return res;
             }
         }
-        PRes::Err
+        res
     }
 
     pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {

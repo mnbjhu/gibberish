@@ -32,7 +32,7 @@ impl Lang for JsonLang {
         found
     }
 
-    fn root() -> JsonSyntax {
+    fn root(&self) -> JsonSyntax {
         JsonSyntax::Root
     }
 }

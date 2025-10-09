@@ -1,44 +1,9 @@
 use std::iter::empty;
 
 use crate::{
-    dsl::lang::{DslLang, DslSyntax as S, DslToken as T},
+    dsl::lst::{lang::DslLang, syntax::DslSyntax as S, token::DslToken as T},
     parser::node::{Group, Lexeme},
 };
-
-#[derive(Clone, Copy)]
-pub struct RootAst<'a>(pub &'a Group<DslLang>);
-
-impl<'a> RootAst<'a> {
-    pub fn iter(&self) -> impl Iterator<Item = AssignmentAst<'a>> {
-        self.0.green_children().map(AssignmentAst)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct AssignmentAst<'a>(pub &'a Group<DslLang>);
-
-impl<'a> AssignmentAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<DslLang> {
-        self.0.lexeme_by_kind(T::Ident).unwrap()
-    }
-
-    pub fn expr(&self) -> AssignableAst<'a> {
-        if let Some(l) = self.0.lexeme_by_kind(T::String) {
-            AssignableAst::Token(l)
-        } else if let Some(g) = self.0.green_children().next() {
-            AssignableAst::Expr(g.into())
-        } else {
-            AssignableAst::Missing
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum AssignableAst<'a> {
-    Missing,
-    Token(&'a Lexeme<DslLang>),
-    Expr(ExprAst<'a>),
-}
 
 #[derive(Clone, Copy)]
 pub enum ExprAst<'a> {
@@ -55,7 +20,7 @@ impl<'a> From<&'a Group<DslLang>> for ExprAst<'a> {
             S::Seq => ExprAst::Seq(SeqAst(value)),
             S::Choice => ExprAst::Choice(ChoiceAst(value)),
             S::Call => ExprAst::Call(CallAst(value)),
-            _ => panic!(),
+            kind => panic!("Unexpected kind for expr: {kind}"),
         }
     }
 }
@@ -82,6 +47,25 @@ impl<'a> ChoiceAst<'a> {
 pub struct CallAst<'a>(pub &'a Group<DslLang>);
 
 impl<'a> CallAst<'a> {
+    pub fn target(&self) -> ExprAst<'a> {
+        self.0.green_children().next().unwrap().into()
+    }
+
+    pub fn arms(&self) -> impl Iterator<Item = CallArmAst<'a>> {
+        self.0.green_children().filter_map(|it| {
+            if it.kind == S::CallArm {
+                Some(CallArmAst(it))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct CallArmAst<'a>(pub &'a Group<DslLang>);
+
+impl<'a> CallArmAst<'a> {
     pub fn name(&self) -> &'a Lexeme<DslLang> {
         self.0
             .green_node_by_name(S::Name)
@@ -89,6 +73,7 @@ impl<'a> CallAst<'a> {
             .lexeme_by_kind(T::Ident)
             .unwrap()
     }
+
     pub fn args(&self) -> impl Iterator<Item = ExprAst<'a>> {
         let ret: Box<dyn Iterator<Item = ExprAst<'a>>> =
             if let Some(args) = self.0.green_node_by_name(S::Args) {
@@ -96,6 +81,6 @@ impl<'a> CallAst<'a> {
             } else {
                 Box::new(empty())
             };
-        self.0.green_children().map(ExprAst::from)
+        ret
     }
 }

@@ -6,10 +6,56 @@ use crate::parser::node::Lexeme;
 use super::lang::Lang;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParseError<L: Lang> {
-    pub start: usize,
-    pub expected: Vec<Expected<L>>,
-    pub actual: Vec<Lexeme<L>>,
+pub enum ParseError<L: Lang> {
+    MissingError {
+        start: usize,
+        start_delim: Lexeme<L>,
+        before: Option<Lexeme<L>>,
+        expected: Vec<Expected<L>>,
+        actual: Vec<Lexeme<L>>,
+    },
+    Unexpected {
+        start: usize,
+        expected: Vec<Expected<L>>,
+        actual: Vec<Lexeme<L>>,
+    },
+}
+
+impl<L: Lang> ParseError<L> {
+    pub fn start(&self) -> usize {
+        match self {
+            ParseError::MissingError { start, .. } => *start,
+            ParseError::Unexpected { start, .. } => *start,
+        }
+    }
+
+    pub fn expected(&self) -> &Vec<Expected<L>> {
+        match self {
+            ParseError::MissingError { expected, .. } => expected,
+            ParseError::Unexpected { expected, .. } => expected,
+        }
+    }
+
+    pub fn expected_mut(&mut self) -> &mut Vec<Expected<L>> {
+        match self {
+            ParseError::MissingError { expected, .. } => expected,
+            ParseError::Unexpected { expected, .. } => expected,
+        }
+    }
+
+    pub fn actual(&self) -> &Vec<Lexeme<L>> {
+        match self {
+            ParseError::MissingError { actual, .. } => actual,
+            ParseError::Unexpected { actual, .. } => actual,
+        }
+    }
+
+    pub fn actual_mut(&mut self) -> &mut Vec<Lexeme<L>> {
+        match self {
+            ParseError::MissingError { actual, .. } => actual,
+            ParseError::Unexpected { actual, .. } => actual,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -35,31 +81,31 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         assert_ne!(
             0,
-            self.expected.len(),
+            self.expected().len(),
             "No value expected in error, maybe EOF"
         );
         let actual = self
-            .actual
+            .actual()
             .iter()
             .map(|it| it.kind.to_string())
             .collect::<Vec<_>>()
             .join(",");
 
-        if self.expected.len() == 1 {
-            let expected = self.expected.first().unwrap();
-            if self.actual.is_empty() {
+        if self.expected().len() == 1 {
+            let expected = self.expected().first().unwrap();
+            if self.actual().is_empty() {
                 write!(f, "Missing {expected}")
             } else {
                 write!(f, "Expected {expected} but found {actual}")
             }
         } else {
             let expected = self
-                .expected
+                .expected()
                 .iter()
                 .map(|it| it.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-            if self.actual.is_empty() {
+            if self.actual().is_empty() {
                 write!(f, "Missing one of {expected}")
             } else {
                 write!(f, "Expected one of {expected} but found {actual}")
@@ -78,34 +124,35 @@ impl<L: Lang> Expected<L> {
 }
 
 impl<L: Lang> ParseError<L> {
+    #[allow(dead_code)]
     fn fmt(&self, lang: &L) -> String {
         assert_ne!(
             0,
-            self.expected.len(),
+            self.expected().len(),
             "No value expected in error, maybe EOF"
         );
         let actual = self
-            .actual
+            .actual()
             .iter()
             .map(|it| lang.token_name(&it.kind))
             .collect::<Vec<_>>()
             .join(",");
 
-        if self.expected.len() == 1 {
-            let expected = self.expected.first().unwrap();
-            if self.actual.is_empty() {
+        if self.expected().len() == 1 {
+            let expected = self.expected().first().unwrap();
+            if self.actual().is_empty() {
                 format!("Missing {expected}")
             } else {
                 format!("Expected {expected} but found {actual}")
             }
         } else {
             let expected = self
-                .expected
+                .expected()
                 .iter()
                 .map(|it| it.debug_name(lang))
                 .collect::<Vec<_>>()
                 .join(", ");
-            if self.actual.is_empty() {
+            if self.actual().is_empty() {
                 format!("Missing one of {expected}")
             } else {
                 format!("Expected one of {expected} but found {actual}")

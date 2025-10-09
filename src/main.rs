@@ -5,7 +5,9 @@ mod api;
 mod cli;
 mod dsl;
 mod json;
+// mod lsp;
 mod parser;
+mod report;
 
 #[tokio::main]
 async fn main() {

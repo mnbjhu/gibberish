@@ -5,7 +5,6 @@ use futures::{FutureExt as _, future::BoxFuture};
 
 use crate::{
     cli::lsp::ServerState,
-    giblang::{lang::GLang, parser::g_parser},
     lsp::span_to_range_str,
     parser::node::{Group, Node},
 };

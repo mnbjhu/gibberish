@@ -1,8 +1,11 @@
 NUM = "[0-9]+";
 WHITESPACE = "\s";
 IDENT = "[_a-zA-Z]+";
-COLON = ":"
+COLON = ":";
+COMMA = ",";
+SEMI = ";";
 
-name = IDENT;
-value = NUM | IDENT;
-field = name + COLON + value;
+expr = IDENT | NUM
+key = IDENT
+field = key + COLON + expr;
+root = field.skip(WHITESPACE).sep_by(SEMI)

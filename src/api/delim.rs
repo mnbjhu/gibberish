@@ -16,6 +16,9 @@ pub struct Delim<L: Lang> {
 
 impl<'a, L: Lang> Delim<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
+        let Some(current) = state.current().cloned() else {
+            return PRes::Eof;
+        };
         let start = self.start.get_ref(state.cache).do_parse(state, recover);
         if start != PRes::Ok {
             warn!("Failed to parse delim");
@@ -27,17 +30,9 @@ impl<'a, L: Lang> Delim<L> {
             state.missing(self.inner.get_ref(state.cache));
         }
         state.pop_delim();
-        // if inner == PRes::Break(index) {
-        //     if !bumped {
-        //         state.missing(&self.inner);
-        //     }
-        //     state.pop_delim();
-        //     self.end.do_parse(state, recover);
-        //     return PRes::Ok;
-        // }
         let (end, bumped) = state.try_parse(self.end.get_ref(state.cache), recover);
         if end != PRes::Ok && !bumped {
-            state.missing(self.end.get_ref(state.cache));
+            state.missing_delim(self.end.get_ref(state.cache), current);
         }
         PRes::Ok
     }

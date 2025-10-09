@@ -1,14 +1,13 @@
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-    ops::Index,
-};
+use std::fmt::{Debug, Display};
 
 use regex::Regex;
 
 use crate::{
     api::ptr::ParserIndex,
-    dsl::ast::{AssignableAst, RootAst},
+    dsl::ast::{
+        RootAst,
+        stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
+    },
     parser::{lang::Lang, node::Lexeme},
 };
 
@@ -19,27 +18,36 @@ pub struct RuntimeLexer {
 
 pub fn build_lexer<'a>(ast: RootAst<'a>) -> RuntimeLexer {
     let mut lexer = RuntimeLexer::default();
-    ast.iter()
-        .filter_map(|it| {
-            if let AssignableAst::Token(t) = it.expr() {
-                let mut r = t
-                    .text
-                    .strip_prefix("\"")
-                    .unwrap()
-                    .strip_suffix("\"")
-                    .unwrap()
-                    .to_string();
-                r.insert(0, '^');
-                Some((&it.name().text, r))
-            } else {
-                None
-            }
-        })
-        .for_each(|(name, text)| {
-            let r = Regex::new(&text);
-            lexer.tokens.push((name.to_string(), r.unwrap()));
-        });
+    for stmt in ast.iter() {
+        match stmt {
+            StmtAst::Token(token_def_ast) => token_def_ast.build(&mut lexer),
+            StmtAst::Keyword(keyword_def_ast) => keyword_def_ast.build(&mut lexer),
+            StmtAst::Parser(_) => {}
+            StmtAst::Fold(_) => {}
+        }
+    }
     lexer
+}
+
+impl<'a> TokenDefAst<'a> {
+    fn build(&self, lexer: &mut RuntimeLexer) {
+        let mut text = self.value().unwrap().text.clone();
+        text.remove(0);
+        text.pop();
+        text.insert(0, '^');
+        lexer
+            .tokens
+            .push((self.name().text.clone(), Regex::new(&text).unwrap()));
+    }
+}
+
+impl<'a> KeywordDefAst<'a> {
+    fn build(&self, lexer: &mut RuntimeLexer) {
+        let regex = format!("^({})[^_a-zA-Z]", self.name().text);
+        lexer
+            .tokens
+            .push((self.name().text.clone(), Regex::new(&regex).unwrap()));
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -92,7 +100,13 @@ impl<'a> Lang for RuntimeLang<'a> {
             }
             for (index, (_, parser)) in self.lexer.tokens.iter().enumerate() {
                 if let Some(captures) = parser.captures(text) {
-                    let whole = captures[0].to_string();
+                    let whole = captures
+                        .iter()
+                        .last()
+                        .unwrap()
+                        .unwrap()
+                        .as_str()
+                        .to_string();
                     let len = whole.len();
                     res.push(Lexeme {
                         span: offset..(offset + len),
@@ -128,12 +142,17 @@ impl<'a> Lang for RuntimeLang<'a> {
         }
     }
 
-    fn root() -> Self::Syntax {
-        0
+    fn root(&self) -> Self::Syntax {
+        self.vars.len().saturating_sub(1) as u32
     }
 
     fn token_name(&self, token: &Self::Token) -> String {
-        self.lexer.tokens.get(*token as usize).unwrap().0.clone()
+        self.lexer
+            .tokens
+            .get(*token as usize)
+            .map(|it| it.0.as_str())
+            .unwrap_or("ERR")
+            .to_string()
     }
 
     fn syntax_name(&self, syntax: &Self::Syntax) -> String {

@@ -9,8 +9,8 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Named<L: Lang> {
-    inner: ParserIndex<L>,
-    name: L::Syntax,
+    pub inner: ParserIndex<L>,
+    pub name: L::Syntax,
 }
 
 impl<'a, L: Lang> Named<L> {
