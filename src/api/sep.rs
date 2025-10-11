@@ -17,8 +17,8 @@ pub struct Sep<L: Lang> {
 impl<'a, L: Lang> Sep<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
         let mut parsed_leading = false;
-        let item_index = state.push_delim(self.item);
-        let sep_index = state.push_delim(self.sep);
+        let item_index = state.push_delim(self.item.clone());
+        let sep_index = state.push_delim(self.sep.clone());
         if !matches!(self.leading, Requirement::No) {
             let leading = self
                 .leading

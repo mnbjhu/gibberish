@@ -54,7 +54,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
         self.stack
             .last_mut()
             .expect("Tree has no root node")
-            .push_tok(current);
+            .push_tok(current.clone());
         self.offset += 1;
         self.bump_skipped();
     }

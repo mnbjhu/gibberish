@@ -11,7 +11,7 @@ use crate::{
     parser::{lang::Lang, node::Lexeme},
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RuntimeLexer {
     pub tokens: Vec<(String, Regex)>,
 }
@@ -50,39 +50,39 @@ impl<'a> KeywordDefAst<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct RuntimeLang<'a> {
-    pub lexer: &'a RuntimeLexer,
-    pub vars: &'a [(String, ParserIndex<RuntimeLang<'a>>)],
+#[derive(Clone)]
+pub struct RuntimeLang {
+    pub lexer: RuntimeLexer,
+    pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
 }
 
-impl Debug for RuntimeLang<'_> {
+impl Debug for RuntimeLang {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RuntimeLang").finish()
     }
 }
 
-impl PartialEq for RuntimeLang<'_> {
+impl PartialEq for RuntimeLang {
     fn eq(&self, other: &Self) -> bool {
         std::ptr::eq(self, other)
     }
 }
 
-impl Eq for RuntimeLang<'_> {}
+impl Eq for RuntimeLang {}
 
-impl Display for RuntimeLang<'_> {
+impl Display for RuntimeLang {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "RuntimeLang")
     }
 }
 
-impl<'a> std::hash::Hash for RuntimeLang<'a> {
+impl std::hash::Hash for RuntimeLang {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::ptr::hash(self, state);
     }
 }
 
-impl<'a> Lang for RuntimeLang<'a> {
+impl Lang for RuntimeLang {
     type Token = u32;
 
     type Syntax = u32;

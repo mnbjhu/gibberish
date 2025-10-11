@@ -17,12 +17,15 @@ pub fn expr_parser(cache: &mut ParserCache<DslLang>) -> ParserIndex<DslLang> {
         |expr, cache| {
             let name = just(T::Ident, cache).named(S::Name, cache);
             let func_args = expr
+                .clone()
                 .sep_by(just(T::Comma, cache), cache)
                 .delim_by(just(T::LParen, cache), just(T::RParen, cache), cache)
                 .named(S::Args, cache);
 
-            let parens = expr.delim_by(just(T::LParen, cache), just(T::RParen, cache), cache);
-            let optional = expr.named(S::Optional, cache).delim_by(
+            let parens =
+                expr.clone()
+                    .delim_by(just(T::LParen, cache), just(T::RParen, cache), cache);
+            let optional = expr.clone().named(S::Optional, cache).delim_by(
                 just(T::LBracket, cache),
                 just(T::RBracket, cache),
                 cache,
@@ -36,14 +39,19 @@ pub fn expr_parser(cache: &mut ParserCache<DslLang>) -> ParserIndex<DslLang> {
                     cache,
                 )
                 .named(S::CallArm, cache);
-            let atom = atom.fold(S::Call, member_call, cache);
+            let atom = atom.clone().fold(S::Call, member_call, cache);
 
-            let seq = atom.fold(S::Seq, just(T::Plus, cache).then(atom, cache), cache);
-            let choice = seq.fold(S::Choice, just(T::Bar, cache).then(seq, cache), cache);
+            let seq = atom
+                .clone()
+                .fold(S::Seq, just(T::Plus, cache).then(atom, cache), cache);
+            let choice = seq
+                .clone()
+                .fold(S::Choice, just(T::Bar, cache).then(seq, cache), cache);
             choice
         },
         cache,
     );
 
-    expr.fold_once(S::Fold, seq(vec![just(T::Fold, cache), expr], cache), cache)
+    expr.clone()
+        .fold_once(S::Fold, seq(vec![just(T::Fold, cache), expr], cache), cache)
 }

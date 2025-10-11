@@ -85,7 +85,7 @@ mod tests {
 
     fn sum_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
         let number = just(JsonToken::Int, cache).named(JsonSyntax::Number, cache);
-        number.fold(
+        number.clone().fold(
             JsonSyntax::Add,
             seq(vec![just(JsonToken::Plus, cache), number], cache),
             cache,

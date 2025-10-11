@@ -13,8 +13,12 @@ pub struct Break<L: Lang> {
 
 impl<'a, L: Lang> Break<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
-        let index = state.push_delim(self.break_);
-        let mut res = self.inner.get_ref(state.cache).do_parse(state, recover);
+        let index = state.push_delim(self.break_.clone());
+        let mut res = self
+            .inner
+            .clone()
+            .get_ref(state.cache)
+            .do_parse(state, recover);
         if let PRes::Break(i) = res
             && index == i
         {
@@ -25,11 +29,15 @@ impl<'a, L: Lang> Break<L> {
     }
 
     pub fn peak(&'a self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
-        self.inner.get_ref(state.cache).peak(state, recover, offset)
+        self.inner
+            .clone()
+            .get_ref(state.cache)
+            .clone()
+            .peak(state, recover, offset)
     }
 
     pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.inner.get_ref(state.cache).expected(state)
+        self.inner.clone().get_ref(state.cache).expected(state)
     }
 }
 

@@ -5,7 +5,7 @@ mod api;
 mod cli;
 mod dsl;
 mod json;
-// mod lsp;
+mod lsp;
 mod parser;
 mod report;
 

@@ -19,11 +19,11 @@ impl<'a, L: Lang> Seq<L> {
         let last_index = rec_index + self.0.len() - 1;
 
         for p in self.0[1..].iter().rev() {
-            let _ = state.push_delim(*p);
+            let _ = state.push_delim(p.clone());
         }
         let mut parsing_index = 0;
         loop {
-            let p = self.0[parsing_index];
+            let p = self.0[parsing_index].clone();
             let (res, bumped) = state.try_parse(p.get_ref(state.cache), recover);
             match res {
                 PRes::Break(index) if index <= rec_index => {

@@ -3,7 +3,12 @@ use std::{
     path::Path,
 };
 
-use crate::dsl::{dsl_parser, lst::lang::DslLang, parser::build_parser};
+use crate::api::ptr::ParserIndex;
+use crate::dsl::lst::syntax::DslSyntax;
+use crate::dsl::{
+    lst::{dsl_parser, lang::DslLang},
+    parser::build_parser,
+};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 use crate::{
@@ -33,7 +38,9 @@ pub fn parse(path: &Path, errors: bool, tokens: bool) {
     res.debug_print(errors, tokens, &DslLang);
 }
 
-pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
+pub fn build_parser_from_src(
+    parser: &Path,
+) -> (ParserIndex<RuntimeLang>, ParserCache<RuntimeLang>) {
     let mut d_cache = ParserCache::new(DslLang);
     let d_parser = dsl_parser(&mut d_cache);
     let parser_text = fs::read_to_string(parser).unwrap();
@@ -43,19 +50,21 @@ pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
         panic!("Failed to build parser")
     }
     let dsl_ast = RootAst(dsl_lst.as_group());
+    assert_eq!(dsl_lst.as_group().kind, DslSyntax::Root);
     let lexer = build_lexer(dsl_ast);
     let lang = RuntimeLang {
-        lexer: &lexer,
-        vars: &[],
+        lexer,
+        vars: vec![],
     };
-    let mut builder = ParserBuilder::new(lang, &lexer, &parser_text, parser_filename);
+    let mut builder = ParserBuilder::new(lang, &parser_text, parser_filename);
     let parser = build_parser(dsl_ast, &mut builder);
-    let lang = RuntimeLang {
-        lexer: &lexer,
-        vars: &builder.vars,
-    };
-    builder.cache.lang = lang;
+    builder.cache.lang.vars = builder.vars;
+    (parser, builder.cache)
+}
+
+pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
+    let (parser, mut cache) = build_parser_from_src(path);
     let text = fs::read_to_string(path).unwrap();
-    let res = parser.parse(&text, &builder.cache);
-    res.debug_print(errors, tokens, &lang);
+    let res = parser.parse(&text, &mut cache);
+    res.debug_print(errors, tokens, &cache.lang);
 }

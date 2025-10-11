@@ -50,7 +50,11 @@ impl<L: Lang> Node<L> {
             Node::Lexeme(lexeme) => {
                 if tokens {
                     print_offset(offset);
-                    println!("{}", Blue.paint(lang.token_name(&lexeme.kind)))
+                    println!(
+                        "{}: {:?}",
+                        Blue.paint(lang.token_name(&lexeme.kind)),
+                        lexeme.text
+                    )
                 }
             }
             Node::Err(err_group) => {

@@ -1,5 +1,5 @@
 use crate::{
-    giblang::{lang::GLang, lexer::GToken, syntax::GSyntax},
+    dsl::lst::{syntax::DslSyntax, token::DslToken},
     parser::{
         lang::Lang,
         node::{Group, Node, Span},
@@ -35,62 +35,6 @@ pub enum SemanticTokenNode<L: Lang + 'static> {
         token: L::Token,
         kind: TokenKind,
     },
-}
-
-pub fn semantic_token_map() -> SemanticTokenNode<GLang> {
-    use SemanticTokenNode::Group;
-    use SemanticTokenNode::Token;
-
-    Group {
-        syntax: GSyntax::Root,
-        children: &[Group {
-            syntax: GSyntax::Function,
-            children: &[
-                Token {
-                    token: GToken::Fn,
-                    kind: TokenKind::Keyword,
-                },
-                Group {
-                    syntax: GSyntax::Params,
-                    children: &[Group {
-                        syntax: GSyntax::Param,
-                        children: &[Token {
-                            token: GToken::Ident,
-                            kind: TokenKind::Param,
-                        }],
-                    }],
-                },
-            ],
-        }],
-    }
-}
-
-pub fn semantic_token_type_map() -> SemanticTokenNode<GLang> {
-    use SemanticTokenNode::Group;
-    use SemanticTokenNode::Token;
-
-    Group {
-        syntax: GSyntax::Type,
-        children: &[Group {
-            syntax: GSyntax::Function,
-            children: &[
-                Token {
-                    token: GToken::Fn,
-                    kind: TokenKind::Keyword,
-                },
-                Group {
-                    syntax: GSyntax::Params,
-                    children: &[Group {
-                        syntax: GSyntax::Param,
-                        children: &[Token {
-                            token: GToken::Ident,
-                            kind: TokenKind::Param,
-                        }],
-                    }],
-                },
-            ],
-        }],
-    }
 }
 
 impl<L: Lang> Node<L> {

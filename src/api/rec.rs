@@ -5,7 +5,7 @@ use crate::{
 
 use super::Parser;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Recursive<L: Lang>(pub ParserIndex<L>);
 
 impl<'a, L: Lang> Recursive<L> {
@@ -30,7 +30,7 @@ pub fn recursive<L: Lang>(
     cache
         .parsers
         .push(Parser::Rec(Recursive(ParserIndex::from(0))));
-    let res = builder(index, cache);
+    let res = builder(index.clone(), cache);
     let Some(Parser::Rec(p)) = cache.parsers.get_mut(index.index) else {
         panic!()
     };

@@ -5,10 +5,19 @@ use crate::{
     parser::{lang::Lang, node::Node},
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct ParserIndex<L: Lang> {
     pub index: usize,
     _pd: PhantomData<L>,
+}
+
+impl<L: Lang> Clone for ParserIndex<L> {
+    fn clone(&self) -> Self {
+        Self {
+            index: self.index.clone(),
+            _pd: self._pd.clone(),
+        }
+    }
 }
 
 impl<L: Lang> ParserIndex<L> {
@@ -45,11 +54,11 @@ impl<L: Lang> std::fmt::Debug for ParserCache<L> {
 }
 
 impl<'a, L: Lang> ParserIndex<L> {
-    pub fn get_ref(self, cache: &'a ParserCache<L>) -> &'a Parser<L> {
+    pub fn get_ref(&self, cache: &'a ParserCache<L>) -> &'a Parser<L> {
         &cache.parsers[self.index]
     }
 
-    pub fn get_mut(self, cache: &'a mut ParserCache<L>) -> &'a mut Parser<L> {
+    pub fn get_mut(&self, cache: &'a mut ParserCache<L>) -> &'a mut Parser<L> {
         &mut cache.parsers[self.index]
     }
 
@@ -61,7 +70,7 @@ impl<'a, L: Lang> ParserIndex<L> {
 impl<L: Lang> Parser<L> {
     pub fn cache(self, cache: &mut ParserCache<L>) -> ParserIndex<L> {
         if let Some(cached) = cache.cached.get(&self) {
-            *cached
+            cached.clone()
         } else {
             let index = cache.parsers.len();
             cache.parsers.push(self);

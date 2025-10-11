@@ -22,24 +22,17 @@ use crate::{
 };
 
 pub struct ParserBuilder<'a> {
-    pub vars: Vec<(String, ParserIndex<RuntimeLang<'a>>)>,
-    pub cache: ParserCache<RuntimeLang<'a>>,
-    lexer: &'a RuntimeLexer,
+    pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
+    pub cache: ParserCache<RuntimeLang>,
     text: &'a str,
     filename: &'a str,
 }
 
 impl<'a> ParserBuilder<'a> {
-    pub fn new(
-        lang: RuntimeLang<'a>,
-        lexer: &'a RuntimeLexer,
-        text: &'a str,
-        filename: &'a str,
-    ) -> Self {
+    pub fn new(lang: RuntimeLang, text: &'a str, filename: &'a str) -> Self {
         Self {
             vars: vec![],
             cache: ParserCache::new(lang),
-            lexer,
             text,
             filename,
         }
@@ -53,7 +46,7 @@ impl<'a> ParserBuilder<'a> {
 pub fn build_parser<'a>(
     ast: RootAst<'a>,
     builder: &mut ParserBuilder<'a>,
-) -> ParserIndex<RuntimeLang<'a>> {
+) -> ParserIndex<RuntimeLang> {
     let res = ast
         .iter()
         .filter_map(|it| match it {
@@ -63,15 +56,14 @@ pub fn build_parser<'a>(
         })
         .last()
         .unwrap();
-    if let Parser::Named(Named { inner, .. }) = res.get_ref(&builder.cache) {
-        *inner
-    } else {
-        unreachable!()
+    match res.get_ref(&builder.cache) {
+        Parser::Named(Named { inner, .. }) => inner.clone(),
+        _ => res,
     }
 }
 
 impl<'a> ParserDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang<'a>> {
+    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
         let name = self.name().text.as_str();
         let name_index = builder.vars.len();
         if let Some(expr) = self.expr() {
@@ -79,22 +71,22 @@ impl<'a> ParserDefAst<'a> {
             if !name.starts_with("_") {
                 p = p.named(name_index as u32, &mut builder.cache);
             }
-            if builder.replace_var(name, p) {
+            if builder.replace_var(name, p.clone()) {
                 p
             } else {
-                builder.vars.push((name.to_string(), p));
+                builder.vars.push((name.to_string(), p.clone()));
                 p
             }
         } else {
             let empty = Parser::Empty.cache(&mut builder.cache);
-            builder.vars.push((name.to_string(), empty));
+            builder.vars.push((name.to_string(), empty.clone()));
             empty
         }
     }
 }
 
 impl<'a> ParserBuilder<'a> {
-    fn replace_var(&mut self, name: &str, p: ParserIndex<RuntimeLang<'a>>) -> bool {
+    fn replace_var(&mut self, name: &str, p: ParserIndex<RuntimeLang>) -> bool {
         if let Some(existing) = self.get_var(name) {
             *existing.get_mut(&mut self.cache) = p.get_ref(&self.cache).clone();
             true
@@ -103,39 +95,41 @@ impl<'a> ParserBuilder<'a> {
         }
     }
 
-    pub fn get_var(&self, name: &str) -> Option<ParserIndex<RuntimeLang<'a>>> {
+    pub fn get_var(&self, name: &str) -> Option<ParserIndex<RuntimeLang>> {
         self.vars
             .iter()
-            .find_map(|(n, p)| if name == n { Some(*p) } else { None })
+            .find_map(|(n, p)| if name == n { Some(p.clone()) } else { None })
     }
 }
 
 impl<'a> FoldDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang<'a>> {
+    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
         let name = self.name().text.as_str();
         assert!(!name.starts_with("_"), "Fold expressions should be named");
         let name_index = builder.vars.len();
         let first = self.first().build(builder);
         let next = self.next().unwrap().build(builder);
         let p = first.fold(name_index as u32, next, &mut builder.cache);
-        builder.vars.push((name.to_string(), p));
+        builder.vars.push((name.to_string(), p.clone()));
         p
     }
 }
 
 impl<'a> ExprAst<'a> {
-    pub fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang<'a>> {
+    pub fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
         match self {
             ExprAst::Ident(lexeme) => {
                 if let Some(p) = builder
                     .vars
                     .iter()
                     .find(|it| it.0 == lexeme.text)
-                    .map(|it| it.1)
+                    .map(|it| it.1.clone())
                 {
                     p
                 } else {
                     let tok = builder
+                        .cache
+                        .lang
                         .lexer
                         .tokens
                         .iter()
@@ -173,7 +167,7 @@ impl<'a> ExprAst<'a> {
                             if args.len() != 1 {
                                 panic!("'sep_by' expecteds one arg but {} were found", args.len())
                             }
-                            expr = expr.sep_by(args[0], &mut builder.cache)
+                            expr = expr.sep_by(args[0].clone(), &mut builder.cache)
                         }
                         "delim_by" => {
                             let args = member
@@ -183,7 +177,8 @@ impl<'a> ExprAst<'a> {
                             if args.len() != 2 {
                                 panic!("'delim_by' expecteds 2 args but {} were found", args.len())
                             }
-                            expr = expr.delim_by(args[0], args[1], &mut builder.cache)
+                            expr =
+                                expr.delim_by(args[0].clone(), args[1].clone(), &mut builder.cache)
                         }
                         "skip" => {
                             let args = member

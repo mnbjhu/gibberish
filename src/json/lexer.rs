@@ -3,7 +3,7 @@ use std::fmt::Display;
 #[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum JsonToken {
-    #[regex("\"[^\"]*\"")]
+    #[regex(r#""(?:\\"|[^"\\])*""#)]
     String,
     #[regex(r"[0-9]+")]
     Int,

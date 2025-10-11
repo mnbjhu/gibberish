@@ -24,7 +24,7 @@ impl<'a, L: Lang> Delim<L> {
             warn!("Failed to parse delim");
             return start;
         };
-        let _ = state.push_delim(self.end);
+        let _ = state.push_delim(self.end.clone());
         let (inner, bumped) = state.try_parse(self.inner.get_ref(state.cache), recover);
         if inner != PRes::Ok && !bumped {
             state.missing(self.inner.get_ref(state.cache));

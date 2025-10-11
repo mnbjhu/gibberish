@@ -9,7 +9,7 @@ use super::{
     state::ParserState,
 };
 
-pub trait Lang: Clone + PartialEq + Eq + Display + Debug + Hash + Copy {
+pub trait Lang: PartialEq + Eq + Display + Debug + Hash + Clone {
     type Token: Clone + PartialEq + Eq + Display + Debug + Hash;
     type Syntax: Clone + PartialEq + Eq + Display + Debug + Hash;
 

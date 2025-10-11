@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     api::ptr::ParserCache,
-    dsl::{dsl_parser, lst::lang::DslLang},
+    dsl::lst::{dsl_parser, lang::DslLang},
 };
 
 /// ANSI-clear + move cursor to top-left
@@ -24,6 +24,7 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
     parser
+        .clone()
         .parse(&text, &cache)
         .debug_print(errors, tokens, &DslLang);
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
@@ -38,6 +39,7 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
                 parser
+                    .clone()
                     .parse(&text, &cache)
                     .debug_print(errors, tokens, &DslLang);
             }

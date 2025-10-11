@@ -1,17 +1,25 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
 
-use crate::parser::{err::ParseError, lang::Lang, node::Node};
+use crate::parser::{
+    err::ParseError,
+    lang::Lang,
+    node::{Node, Span},
+};
 
 pub mod simple;
+impl<L: Lang> ParseError<L> {
+    pub fn span(&self) -> Span {
+        self.actual()
+            .first()
+            .map(|it| it.span.start..self.actual().last().unwrap().span.end)
+            .unwrap_or(self.start()..self.start())
+    }
+}
 
 pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &str, lang: &L) {
     let red = Color::Red;
     let blue = Color::Cyan;
-    let error_span = error
-        .actual()
-        .first()
-        .map(|it| it.span.start..error.actual().last().unwrap().span.end)
-        .unwrap_or(error.start()..error.start());
+    let error_span = error.span();
     match error {
         ParseError::MissingError {
             start_delim,

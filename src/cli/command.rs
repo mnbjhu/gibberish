@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
-use crate::cli::{lex::lex_custom, parse::parse_custom};
+use crate::cli::{lex::lex_custom, lsp::main_loop, parse::parse_custom};
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -35,6 +35,9 @@ pub enum Command {
         #[clap(short('t'), long)]
         hide_tokens: bool,
     },
+
+    /// Starts an lsp for the specified syntax file
+    Lsp { path: PathBuf },
 }
 
 impl Command {
@@ -64,6 +67,7 @@ impl Command {
                 hide_errors,
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
+            Command::Lsp { path } => main_loop(path).await,
         }
     }
 }

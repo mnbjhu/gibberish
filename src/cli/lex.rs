@@ -4,9 +4,8 @@ use crate::{
     api::ptr::ParserCache,
     dsl::{
         ast::RootAst,
-        dsl_parser,
         lexer::{RuntimeLang, build_lexer},
-        lst::{lang::DslLang, token::DslToken},
+        lst::{dsl_parser, lang::DslLang, token::DslToken},
     },
     parser::lang::Lang,
 };
@@ -28,15 +27,15 @@ pub fn lex_custom(path: &Path, parser: &Path) {
     let dsl_ast = RootAst(dsl_lst.as_group());
     let lexer = build_lexer(dsl_ast);
     let lang = RuntimeLang {
-        lexer: &lexer,
-        vars: &[],
+        lexer,
+        vars: vec![],
     };
     let text = fs::read_to_string(path).unwrap();
     let lex = lang.lex(&text);
     for tok in lex {
         println!(
             "{}: {:?}",
-            lexer
+            lang.lexer
                 .tokens
                 .get(tok.kind as usize)
                 .map(|(name, _)| name.as_ref())

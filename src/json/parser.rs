@@ -15,6 +15,7 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
             let int = just(JsonToken::Int, cache).named(JsonSyntax::Number, cache);
 
             let arr = e
+                .clone()
                 .sep_by(just(JsonToken::Comma, cache), cache)
                 .delim_by(
                     just(JsonToken::LBracket, cache),
@@ -43,7 +44,7 @@ pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
                 .named(JsonSyntax::Object, cache);
             let atom = choice(vec![obj, arr, string, int], cache);
 
-            atom.fold(
+            atom.clone().fold(
                 JsonSyntax::Add,
                 seq(vec![just(JsonToken::Plus, cache), atom], cache),
                 cache,
