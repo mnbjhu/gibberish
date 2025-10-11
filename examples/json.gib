@@ -14,7 +14,9 @@ parser num = int;
 parser array = _expr.sep_by(comma).delim_by(l_bracket, r_bracket);
 parser field = str + colon + _expr;
 parser object = field.sep_by(comma).delim_by(l_brace, r_brace);
-parser _expr = (object | array | string | num).skip(whitespace)
+parser _expr = (object | array | string | num).skip(whitespace);
+
+parser root = _expr
 
 
 

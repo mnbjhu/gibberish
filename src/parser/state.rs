@@ -267,7 +267,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
         }
         let current = self.current();
         let start = if let Some(current) = &current {
-            current.span.end
+            current.span.start
         } else {
             self.eof_offset()
         };

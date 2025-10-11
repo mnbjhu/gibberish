@@ -8,10 +8,7 @@ use crate::{
 };
 use async_lsp::{
     LanguageClient as _,
-    lsp_types::{
-        Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Location,
-        PublishDiagnosticsParams, Url,
-    },
+    lsp_types::{Diagnostic, DiagnosticSeverity, PublishDiagnosticsParams, Url},
 };
 
 use crate::{lsp::span_to_range_str, parser::node::Node};
@@ -34,26 +31,31 @@ impl Node<RuntimeLang> {
                     ..
                 } => {
                     let mut related = vec![];
-                    related.push(DiagnosticRelatedInformation {
-                        location: Location {
-                            uri: url.clone(),
-                            range: span_to_range_str(start_delim.span.clone(), txt),
-                        },
-                        message: format!(
-                            "A {} delim is opened here",
-                            lang.token_name(&start_delim.kind)
-                        ),
+                    diags.push(Diagnostic {
+                        range: span_to_range_str(start_delim.span.clone(), txt),
+                        severity: Some(DiagnosticSeverity::INFORMATION),
+                        code: None,
+                        code_description: None,
+                        source: None,
+                        message: "A delim is opened here".to_string(),
+                        related_information: None,
+                        tags: None,
+                        data: None,
                     });
                     if let Some(before) = before {
-                        related.push(DiagnosticRelatedInformation {
-                            location: Location {
-                                uri: url.clone(),
-                                range: span_to_range_str(before.span.clone(), txt),
-                            },
+                        diags.push(Diagnostic {
+                            range: span_to_range_str(before.span.clone(), txt),
+                            severity: Some(DiagnosticSeverity::INFORMATION),
+                            code: None,
+                            code_description: None,
+                            source: None,
                             message: format!(
                                 "Expected {} before here",
                                 expected_text(expected, lang)
                             ),
+                            related_information: None,
+                            tags: None,
+                            data: None,
                         });
                     }
                     diags.push(Diagnostic {

@@ -63,8 +63,8 @@ pub fn build_parser_from_src(
 }
 
 pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
-    let (parser, mut cache) = build_parser_from_src(path);
+    let (parser, cache) = build_parser_from_src(parser);
     let text = fs::read_to_string(path).unwrap();
-    let res = parser.parse(&text, &mut cache);
+    let res = parser.parse(&text, &cache);
     res.debug_print(errors, tokens, &cache.lang);
 }
