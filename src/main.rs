@@ -7,6 +7,7 @@ mod dsl;
 mod json;
 mod lsp;
 mod parser;
+mod query;
 mod report;
 
 #[tokio::main]

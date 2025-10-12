@@ -30,6 +30,8 @@ pub fn capabilities() -> InitializeResult {
                             SemanticTokenType::ENUM_MEMBER,
                             SemanticTokenType::INTERFACE,
                             SemanticTokenType::NAMESPACE,
+                            SemanticTokenType::STRING,
+                            SemanticTokenType::NUMBER,
                         ],
                         token_modifiers: vec![],
                     },

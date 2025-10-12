@@ -12,6 +12,7 @@ pub enum DslSyntax {
     Add,
     Name,
     Seq,
+    Group,
     Choice,
     Call,
     CallArm,
@@ -21,6 +22,10 @@ pub enum DslSyntax {
     KeywordDef,
     Expr,
     Fold,
+    Query,
+    Label,
+    LabelQuery,
+    Highlight,
 }
 
 impl Display for DslSyntax {
@@ -45,6 +50,11 @@ impl Display for DslSyntax {
             DslSyntax::KeywordDef => f.write_str("KeywordDef"),
             DslSyntax::Expr => f.write_str("Expr"),
             DslSyntax::Fold => f.write_str("Fold"),
+            DslSyntax::Group => f.write_str("Group"),
+            DslSyntax::Query => f.write_str("Query"),
+            DslSyntax::Label => f.write_str("Label"),
+            DslSyntax::LabelQuery => f.write_str("LabelQuery"),
+            DslSyntax::Highlight => f.write_str("Highlight"),
         }
     }
 }

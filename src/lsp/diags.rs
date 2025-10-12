@@ -1,6 +1,6 @@
 use crate::{
-    cli::lsp::ServerState,
     dsl::lexer::RuntimeLang,
+    lsp::ServerState,
     parser::{
         err::{Expected, ParseError},
         lang::Lang,

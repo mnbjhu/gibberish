@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
-use crate::cli::{lex::lex_custom, lsp::main_loop, parse::parse_custom};
+use crate::cli::parse::parse_custom;
+use crate::cli::query::query;
+use crate::{cli::lex::lex_custom, lsp::main_loop};
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -10,7 +12,8 @@ use super::{lex::lex, parse::parse, watch::watch};
 pub enum Command {
     /// Lexes a file
     Lex {
-        path: PathBuf,
+        #[clap(long)]
+        src: PathBuf,
 
         #[clap(long)]
         parser_src: Option<PathBuf>,
@@ -36,6 +39,14 @@ pub enum Command {
         hide_tokens: bool,
     },
 
+    Query {
+        #[clap(long)]
+        src: PathBuf,
+        #[clap(long)]
+        parser_src: PathBuf,
+        query: String,
+    },
+
     /// Starts an lsp for the specified syntax file
     Lsp { path: PathBuf },
 }
@@ -43,7 +54,10 @@ pub enum Command {
 impl Command {
     pub async fn run(&self) {
         match self {
-            Command::Lex { path, parser_src } => {
+            Command::Lex {
+                src: path,
+                parser_src,
+            } => {
                 if let Some(parser_src) = parser_src {
                     lex_custom(path, parser_src)
                 } else {
@@ -68,6 +82,13 @@ impl Command {
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
             Command::Lsp { path } => main_loop(path).await,
+            Command::Query {
+                src,
+                parser_src,
+                query: q,
+            } => {
+                query(parser_src, src, q);
+            }
         }
     }
 }

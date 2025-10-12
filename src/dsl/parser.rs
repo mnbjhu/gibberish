@@ -13,11 +13,13 @@ use crate::{
         ast::{
             RootAst,
             expr::ExprAst,
-            stmt::{StmtAst, fold::FoldDefAst, parser::ParserDefAst},
+            stmt::{StmtAst, fold::FoldDefAst, highlight::HighlightAst, parser::ParserDefAst},
         },
-        lexer::{RuntimeLang, RuntimeLexer},
+        lexer::RuntimeLang,
     },
+    lsp::semantic_tokens::TokenKind,
     parser::node::Span,
+    query::Query,
     report::simple::report_simple_error,
 };
 
@@ -52,6 +54,10 @@ pub fn build_parser<'a>(
         .filter_map(|it| match it {
             StmtAst::Parser(p) => Some(p.build(builder)),
             StmtAst::Fold(f) => Some(f.build(builder)),
+            StmtAst::Highlight(h) => {
+                builder.cache.highlights.push(h.query().build(builder));
+                None
+            }
             _ => None,
         })
         .last()
@@ -165,7 +171,7 @@ impl<'a> ExprAst<'a> {
                                 .map(|it| it.build(builder))
                                 .collect::<Vec<_>>();
                             if args.len() != 1 {
-                                panic!("'sep_by' expecteds one arg but {} were found", args.len())
+                                panic!("'sep_by' expected one arg but {} were found", args.len())
                             }
                             expr = expr.sep_by(args[0].clone(), &mut builder.cache)
                         }
@@ -175,7 +181,7 @@ impl<'a> ExprAst<'a> {
                                 .map(|it| it.build(builder))
                                 .collect::<Vec<_>>();
                             if args.len() != 2 {
-                                panic!("'delim_by' expecteds 2 args but {} were found", args.len())
+                                panic!("'delim_by' expected 2 args but {} were found", args.len())
                             }
                             expr =
                                 expr.delim_by(args[0].clone(), args[1].clone(), &mut builder.cache)
@@ -186,13 +192,23 @@ impl<'a> ExprAst<'a> {
                                 .map(|it| it.build(builder))
                                 .collect::<Vec<_>>();
                             if args.len() != 1 {
-                                panic!("'skip' expecteds 1 arg but {} were found", args.len())
+                                panic!("'skip' expected 1 arg but {} were found", args.len())
                             }
                             if let Parser::Just(tok) = args[0].get_ref(&builder.cache) {
                                 expr = expr.skip(tok.0, &mut builder.cache)
                             } else {
                                 panic!("Expected a token but found a parser")
                             }
+                        }
+                        "or_not" => {
+                            let args = member
+                                .args()
+                                .map(|it| it.build(builder))
+                                .collect::<Vec<_>>();
+                            if !args.is_empty() {
+                                panic!("'skip' expected 0 arg but {} were found", args.len())
+                            }
+                            expr = expr.or_not(&mut builder.cache);
                         }
                         name => builder.error(
                             &format!("Function not found '{name}'"),

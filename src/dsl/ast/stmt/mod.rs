@@ -1,3 +1,4 @@
+use crate::dsl::ast::stmt::highlight::HighlightAst;
 use crate::dsl::lst::{lang::DslLang, syntax::DslSyntax as S};
 use crate::{
     dsl::ast::stmt::{
@@ -7,6 +8,7 @@ use crate::{
 };
 
 pub mod fold;
+pub mod highlight;
 pub mod keyword;
 pub mod parser;
 pub mod token;
@@ -17,6 +19,7 @@ pub enum StmtAst<'a> {
     Keyword(KeywordDefAst<'a>),
     Parser(ParserDefAst<'a>),
     Fold(FoldDefAst<'a>),
+    Highlight(HighlightAst<'a>),
 }
 
 impl<'a> From<&'a Group<DslLang>> for StmtAst<'a> {
@@ -32,6 +35,7 @@ impl<'a> From<&'a Group<DslLang>> for StmtAst<'a> {
             }
             S::TokenDef => StmtAst::Token(TokenDefAst(value)),
             S::KeywordDef => StmtAst::Keyword(KeywordDefAst(value)),
+            S::Highlight => StmtAst::Highlight(HighlightAst(value)),
             kind => panic!("Unexpected kind for stmt: {kind}"),
         }
     }

@@ -2,7 +2,10 @@ use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
     api::Parser,
+    dsl::lexer::RuntimeLang,
+    lsp::semantic_tokens::TokenKind,
     parser::{lang::Lang, node::Node},
+    query::Query,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -33,6 +36,7 @@ pub struct ParserCache<L: Lang> {
     pub lang: L,
     pub parsers: Vec<Parser<L>>,
     pub cached: HashMap<Parser<L>, ParserIndex<L>>,
+    pub highlights: Vec<Query<RuntimeLang, TokenKind>>,
 }
 
 impl<L: Lang> ParserCache<L> {
@@ -41,6 +45,7 @@ impl<L: Lang> ParserCache<L> {
             parsers: vec![],
             cached: HashMap::new(),
             lang,
+            highlights: vec![],
         }
     }
 }

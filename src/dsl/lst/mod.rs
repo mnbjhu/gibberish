@@ -8,6 +8,7 @@ use crate::{
 
 pub mod expr;
 pub mod lang;
+pub mod query;
 pub mod stmt;
 pub mod syntax;
 pub mod token;

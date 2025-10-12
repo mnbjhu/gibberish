@@ -5,7 +5,9 @@ use crate::{
         ptr::{ParserCache, ParserIndex},
         seq::seq,
     },
-    dsl::lst::{expr::expr_parser, lang::DslLang, syntax::DslSyntax, token::DslToken},
+    dsl::lst::{
+        expr::expr_parser, lang::DslLang, query::query_parser, syntax::DslSyntax, token::DslToken,
+    },
 };
 
 pub fn stmt_parser(cache: &mut ParserCache<DslLang>) -> ParserIndex<DslLang> {
@@ -34,5 +36,9 @@ pub fn stmt_parser(cache: &mut ParserCache<DslLang>) -> ParserIndex<DslLang> {
             cache,
         )
         .named(S::ParserDef, cache);
-    choice(vec![token_def, keyword_def, parser_def], cache)
+
+    let highlight = just(T::Highlight, cache)
+        .then(query_parser(cache), cache)
+        .named(S::Highlight, cache);
+    choice(vec![token_def, keyword_def, parser_def, highlight], cache)
 }

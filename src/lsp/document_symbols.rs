@@ -1,4 +1,5 @@
-use crate::{cli::lsp::ServerState, dsl::lexer::RuntimeLang};
+use crate::dsl::lexer::RuntimeLang;
+use crate::lsp::ServerState;
 use async_lsp::lsp_types::{
     DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse, SymbolKind,
 };

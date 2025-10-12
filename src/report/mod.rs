@@ -6,6 +6,7 @@ use crate::parser::{
     node::{Node, Span},
 };
 
+pub mod regex;
 pub mod simple;
 impl<L: Lang> ParseError<L> {
     pub fn span(&self) -> Span {

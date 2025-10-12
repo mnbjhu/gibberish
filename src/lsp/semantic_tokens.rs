@@ -19,47 +19,13 @@ pub enum TokenKind {
     Trait,
     Property,
     Keyword,
+    String,
+    Number,
 }
 
 pub struct SemanticToken {
     pub span: Span,
     pub kind: TokenKind,
-}
-
-pub enum SemanticTokenNode<L: Lang + 'static> {
-    Group {
-        syntax: L::Syntax,
-        children: &'static [SemanticTokenNode<L>],
-    },
-    Token {
-        token: L::Token,
-        kind: TokenKind,
-    },
-}
-
-impl<L: Lang> Node<L> {
-    pub fn tokens(&self, map: &SemanticTokenNode<L>, tokens: &mut Vec<SemanticToken>) {
-        match (self, map) {
-            (Node::Group(group), SemanticTokenNode::Group { syntax, children })
-                if &group.kind == syntax =>
-            {
-                for node in &group.children {
-                    for m in children.iter() {
-                        node.tokens(m, tokens);
-                    }
-                }
-            }
-            (Node::Lexeme(lexeme), SemanticTokenNode::Token { token, kind })
-                if &lexeme.kind == token =>
-            {
-                tokens.push(SemanticToken {
-                    span: lexeme.span.clone(),
-                    kind: *kind,
-                });
-            }
-            _ => {}
-        }
-    }
 }
 
 use async_lsp::lsp_types::SemanticToken as LspSemanticToken;
@@ -88,6 +54,8 @@ pub fn get_semantic_tokens(mut tokens: Vec<SemanticToken>, text: &str) -> Option
                     TokenKind::Trait => Some(12),
                     TokenKind::Module => Some(13),
                     TokenKind::Generic => Some(6),
+                    TokenKind::String => Some(14),
+                    TokenKind::Number => Some(15),
                 };
                 if let Some(ty) = ty {
                     found.push(LspSemanticToken {

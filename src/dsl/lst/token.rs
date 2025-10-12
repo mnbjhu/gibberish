@@ -34,6 +34,8 @@ pub enum DslToken {
     #[token("*")]
     Mul,
 
+    #[token("highlight")]
+    Highlight,
     #[token("token")]
     Token,
     #[token("keyword")]
@@ -51,6 +53,9 @@ pub enum DslToken {
 
     #[token(";")]
     Semi,
+
+    #[token("@")]
+    At,
 
     Err,
 }
@@ -81,6 +86,8 @@ impl Display for DslToken {
             DslToken::Keyword => f.write_str("Keyword"),
             DslToken::Parser => f.write_str("Parser"),
             DslToken::Fold => f.write_str("Fold"),
+            DslToken::At => f.write_str("At"),
+            DslToken::Highlight => f.write_str("Highlight"),
         }
     }
 }

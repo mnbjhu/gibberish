@@ -25,7 +25,7 @@ pub fn lex_custom(path: &Path, parser: &Path) {
     let parser_text = fs::read_to_string(parser).unwrap();
     let dsl_lst = d_parser.parse(&parser_text, &d_cache);
     let dsl_ast = RootAst(dsl_lst.as_group());
-    let lexer = build_lexer(dsl_ast);
+    let lexer = build_lexer(dsl_ast, &parser_text, parser.to_str().unwrap());
     let lang = RuntimeLang {
         lexer,
         vars: vec![],

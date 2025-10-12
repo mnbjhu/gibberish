@@ -9,6 +9,7 @@ use crate::{
         stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
     },
     parser::{lang::Lang, node::Lexeme},
+    report::simple::report_simple_error,
 };
 
 #[derive(Default, Clone)]
@@ -16,28 +17,47 @@ pub struct RuntimeLexer {
     pub tokens: Vec<(String, Regex)>,
 }
 
-pub fn build_lexer<'a>(ast: RootAst<'a>) -> RuntimeLexer {
+pub fn build_lexer<'a>(ast: RootAst<'a>, src: &str, filename: &str) -> RuntimeLexer {
     let mut lexer = RuntimeLexer::default();
     for stmt in ast.iter() {
         match stmt {
-            StmtAst::Token(token_def_ast) => token_def_ast.build(&mut lexer),
+            StmtAst::Token(token_def_ast) => token_def_ast.build(&mut lexer, src, filename),
             StmtAst::Keyword(keyword_def_ast) => keyword_def_ast.build(&mut lexer),
-            StmtAst::Parser(_) => {}
-            StmtAst::Fold(_) => {}
+            _ => {}
         }
     }
     lexer
 }
 
 impl<'a> TokenDefAst<'a> {
-    fn build(&self, lexer: &mut RuntimeLexer) {
-        let mut text = self.value().unwrap().text.clone();
+    fn build(&self, lexer: &mut RuntimeLexer, src: &str, filename: &str) {
+        let value = self.value().unwrap();
+        let mut text = value.text.clone();
         text.remove(0);
         text.pop();
         text.insert(0, '^');
-        lexer
-            .tokens
-            .push((self.name().text.clone(), Regex::new(&text).unwrap()));
+        text = text.replace("\\\\", "\\");
+        text = text.replace("\\\"", "\"");
+        text = text.replace("\\n", "\n");
+        text = text.replace("\\t", "\t");
+        println!("Creating regex {text:?}");
+        match Regex::new(&text) {
+            Ok(regex) => {
+                lexer.tokens.push((self.name().text.clone(), regex));
+            }
+            Err(err) => {
+                report_simple_error(
+                    &format!("Regex error: {err}"),
+                    value.span.clone(),
+                    src,
+                    filename,
+                );
+                lexer.tokens.push((
+                    self.name().text.clone(),
+                    Regex::new("TODO: SOME ACTUAL REGEX").unwrap(),
+                ));
+            }
+        }
     }
 }
 
@@ -95,15 +115,18 @@ impl Lang for RuntimeLang {
         let mut offset = 0;
         let mut res = vec![];
         'outer: loop {
+            // println!("LEXING: {text}");
             if text.is_empty() {
                 return res;
             }
-            for (index, (_, parser)) in self.lexer.tokens.iter().enumerate() {
+            for (index, (name, parser)) in self.lexer.tokens.iter().enumerate() {
                 if let Some(captures) = parser.captures(text) {
                     let whole = captures
                         .iter()
                         .last()
-                        .unwrap()
+                        .unwrap_or_else(|| panic!("No caputure groups found for {name} regex"));
+
+                    let whole = whole
                         .unwrap()
                         .as_str()
                         .to_string();

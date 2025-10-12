@@ -1,1 +1,0 @@
-select abc * (123 + other), one_more from table
