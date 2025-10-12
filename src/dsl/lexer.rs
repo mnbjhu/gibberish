@@ -1,92 +1,184 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
-#[derive(logos::Logos, Debug, PartialEq, Eq, Clone, Hash)]
-pub enum PToken {
-    #[regex(r"[ \t\n\f]+")]
-    Whitespace,
-    #[regex("\"[^\"]*\"")]
-    String,
+use regex::Regex;
 
-    #[token(":")]
-    Colon,
+use crate::{
+    api::ptr::ParserIndex,
+    dsl::ast::{
+        RootAst,
+        stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
+    },
+    parser::{lang::Lang, node::Lexeme},
+    report::simple::report_simple_error,
+};
 
-    #[token(",")]
-    Comma,
-
-    #[token("[")]
-    LBracket,
-
-    #[token("]")]
-    RBracket,
-
-    #[token("(")]
-    LParen,
-
-    #[token(")")]
-    RParen,
-
-    #[token("{")]
-    LBrace,
-
-    #[token("}")]
-    RBrace,
-
-    #[token("|")]
-    Or,
-
-    #[token("=")]
-    Eq,
-
-    #[token("->")]
-    Then,
-
-    #[token("sep")]
-    SepBy,
-
-    #[token("named")]
-    Named,
-
-    #[token("fold")]
-    Fold,
-
-    #[token("delim")]
-    Delim,
-
-    #[token("rec")]
-    Rec,
-
-    #[token(";")]
-    Semi,
-
-    #[regex(r#"[a-zA-Z][a-zA-Z0-9_]+"#)]
-    Ident,
-    Error,
+#[derive(Default, Clone)]
+pub struct RuntimeLexer {
+    pub tokens: Vec<(String, Regex)>,
 }
 
-impl Display for PToken {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PToken::String => f.write_str("String"),
-            PToken::Colon => f.write_str("Colon"),
-            PToken::Comma => f.write_str("Comma"),
-            PToken::LBracket => f.write_str("LBracket"),
-            PToken::RBracket => f.write_str("RBracket"),
-            PToken::LParen => f.write_str("LParen"),
-            PToken::RParen => f.write_str("RParen"),
-            PToken::LBrace => f.write_str("LBrace"),
-            PToken::RBrace => f.write_str("RBrace"),
-            PToken::Or => f.write_str("Or"),
-            PToken::Eq => f.write_str("Eq"),
-            PToken::Then => f.write_str("Then"),
-            PToken::SepBy => f.write_str("SepBy"),
-            PToken::Delim => f.write_str("Delim"),
-            PToken::Rec => f.write_str("Rec"),
-            PToken::Ident => f.write_str("Ident"),
-            PToken::Semi => f.write_str("Semi"),
-            PToken::Fold => f.write_str("Fold"),
-            PToken::Named => f.write_str("Named"),
-            PToken::Whitespace => f.write_str("Whitespace"),
-            PToken::Error => f.write_str("ERR"),
+pub fn build_lexer<'a>(ast: RootAst<'a>, src: &str, filename: &str) -> RuntimeLexer {
+    let mut lexer = RuntimeLexer::default();
+    for stmt in ast.iter() {
+        match stmt {
+            StmtAst::Token(token_def_ast) => token_def_ast.build(&mut lexer, src, filename),
+            StmtAst::Keyword(keyword_def_ast) => keyword_def_ast.build(&mut lexer),
+            _ => {}
         }
+    }
+    lexer
+}
+
+impl<'a> TokenDefAst<'a> {
+    fn build(&self, lexer: &mut RuntimeLexer, src: &str, filename: &str) {
+        let value = self.value().unwrap();
+        let mut text = value.text.clone();
+        text.remove(0);
+        text.pop();
+        text.insert(0, '^');
+        text = text.replace("\\\\", "\\");
+        text = text.replace("\\\"", "\"");
+        text = text.replace("\\n", "\n");
+        text = text.replace("\\t", "\t");
+        println!("Creating regex {text:?}");
+        match Regex::new(&text) {
+            Ok(regex) => {
+                lexer.tokens.push((self.name().text.clone(), regex));
+            }
+            Err(err) => {
+                report_simple_error(
+                    &format!("Regex error: {err}"),
+                    value.span.clone(),
+                    src,
+                    filename,
+                );
+                lexer.tokens.push((
+                    self.name().text.clone(),
+                    Regex::new("TODO: SOME ACTUAL REGEX").unwrap(),
+                ));
+            }
+        }
+    }
+}
+
+impl<'a> KeywordDefAst<'a> {
+    fn build(&self, lexer: &mut RuntimeLexer) {
+        let regex = format!("^({})[^_a-zA-Z]", self.name().text);
+        lexer
+            .tokens
+            .push((self.name().text.clone(), Regex::new(&regex).unwrap()));
+    }
+}
+
+#[derive(Clone)]
+pub struct RuntimeLang {
+    pub lexer: RuntimeLexer,
+    pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
+}
+
+impl Debug for RuntimeLang {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RuntimeLang").finish()
+    }
+}
+
+impl PartialEq for RuntimeLang {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
+impl Eq for RuntimeLang {}
+
+impl Display for RuntimeLang {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RuntimeLang")
+    }
+}
+
+impl std::hash::Hash for RuntimeLang {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::ptr::hash(self, state);
+    }
+}
+
+impl Lang for RuntimeLang {
+    type Token = u32;
+
+    type Syntax = u32;
+
+    fn lex(&self, src: &str) -> Vec<crate::parser::node::Lexeme<Self>>
+    where
+        Self: Sized,
+    {
+        let mut text = src;
+        let mut offset = 0;
+        let mut res = vec![];
+        'outer: loop {
+            // println!("LEXING: {text}");
+            if text.is_empty() {
+                return res;
+            }
+            for (index, (name, parser)) in self.lexer.tokens.iter().enumerate() {
+                if let Some(captures) = parser.captures(text) {
+                    let whole = captures
+                        .iter()
+                        .last()
+                        .unwrap_or_else(|| panic!("No caputure groups found for {name} regex"));
+
+                    let whole = whole
+                        .unwrap()
+                        .as_str()
+                        .to_string();
+                    let len = whole.len();
+                    res.push(Lexeme {
+                        span: offset..(offset + len),
+                        kind: index as u32,
+                        text: whole,
+                    });
+                    offset += len;
+                    text = &text[len..];
+                    continue 'outer;
+                }
+            }
+            let err_index = self.lexer.tokens.len();
+            if let Some(Lexeme {
+                span,
+                kind,
+                text: t,
+            }) = res.last_mut()
+                && *kind as usize == err_index
+            {
+                offset += 1;
+                span.end = offset;
+                t.push(text.chars().next().unwrap());
+                text = &text[1..];
+            } else {
+                res.push(Lexeme {
+                    span: offset..(offset + 1),
+                    kind: err_index as u32,
+                    text: text.chars().next().unwrap().to_string(),
+                });
+                offset += 1;
+                text = &text[1..];
+            }
+        }
+    }
+
+    fn root(&self) -> Self::Syntax {
+        self.vars.len().saturating_sub(1) as u32
+    }
+
+    fn token_name(&self, token: &Self::Token) -> String {
+        self.lexer
+            .tokens
+            .get(*token as usize)
+            .map(|it| it.0.as_str())
+            .unwrap_or("ERR")
+            .to_string()
+    }
+
+    fn syntax_name(&self, syntax: &Self::Syntax) -> String {
+        self.vars.get(*syntax as usize).unwrap().0.clone()
     }
 }

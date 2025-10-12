@@ -4,11 +4,13 @@ use cli::command::Command;
 mod api;
 mod cli;
 mod dsl;
-#[cfg(test)]
 mod json;
-pub mod lexer;
-pub mod parser;
+mod lsp;
+mod parser;
+mod query;
+mod report;
 
-fn main() {
-    Command::parse().run();
+#[tokio::main]
+async fn main() {
+    Command::parse().run().await;
 }

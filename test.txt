@@ -1,7 +1,2 @@
-hello = "Thing";
-hello = rec { abc: 
-  hello = ["Hello" | "other"];
-  hello = "Hello"
-};
-test = ["Hello" | "other"];
-hello = "World"
+name: hello;
+age: 123

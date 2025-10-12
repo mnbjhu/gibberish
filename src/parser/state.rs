@@ -1,8 +1,12 @@
 use std::collections::HashSet;
 
-use tracing::info;
+use ariadne::Span;
+use tracing::debug;
 
-use crate::api::Parser;
+use crate::api::{
+    Parser,
+    ptr::{ParserCache, ParserIndex},
+};
 
 use super::{
     err::{Expected, ParseError},
@@ -12,25 +16,27 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct ParserState<L: Lang> {
+pub struct ParserState<'a, L: Lang> {
     stack: Vec<Node<L>>,
     input: Vec<Lexeme<L>>,
     offset: usize,
-    delim_stack: Vec<Parser<L>>,
+    delim_stack: Vec<ParserIndex<L>>,
     skipping: HashSet<L::Token>,
+    pub cache: &'a ParserCache<L>,
 }
 
-impl<L: Lang> ParserState<L> {
-    pub fn new(input: Vec<Lexeme<L>>) -> ParserState<L> {
+impl<'a, L: Lang> ParserState<'a, L> {
+    pub fn new(input: Vec<Lexeme<L>>, cache: &'a ParserCache<L>) -> ParserState<'a, L> {
         ParserState {
             stack: vec![Node::Group(Group {
-                kind: L::root(),
+                kind: cache.lang.root(),
                 children: vec![],
             })],
             input,
             offset: 0,
             delim_stack: vec![],
             skipping: HashSet::new(),
+            cache,
         }
     }
 
@@ -44,11 +50,11 @@ impl<L: Lang> ParserState<L> {
 
     pub fn bump(&mut self) {
         let current = self.current().expect("Called bump at EOF").clone();
-        info!("Bumping token {current:?}");
+        debug!("Bumping token {current:?}");
         self.stack
             .last_mut()
             .expect("Tree has no root node")
-            .push_tok(current);
+            .push_tok(current.clone());
         self.offset += 1;
         self.bump_skipped();
     }
@@ -75,29 +81,38 @@ impl<L: Lang> ParserState<L> {
         self.skipping.remove(&token)
     }
 
+    pub fn eof_offset(&self) -> usize {
+        self.input.last().map(|it| it.span.end()).unwrap_or(0)
+    }
+
     pub fn bump_err(&mut self, expected: Vec<Expected<L>>) {
         let current = self.current().cloned();
-        if current.is_some() {
+        let start = if let Some(current) = &current {
             self.offset += 1;
-        }
-        let err = if let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() {
+            current.span.end
+        } else {
+            self.eof_offset()
+        };
+        let err = if let Some(Node::Err(err)) = self.current_group_mut().children.last_mut() {
             err
         } else {
             self.current_group_mut()
                 .children
-                .push(Node::Err(ParseError {
+                .push(Node::Err(ParseError::Unexpected {
+                    start,
                     expected,
                     actual: vec![],
                 }));
             let Node::Err(err) = self.current_group_mut().children.last_mut().unwrap() else {
-                unreachable!()
+                panic!()
             };
             err
         };
 
         if let Some(current) = current {
-            err.actual.push(current.kind.clone());
+            err.actual_mut().push(current.clone());
         }
+        self.bump_skipped();
     }
 
     pub fn try_delim(&self) -> Option<usize> {
@@ -107,54 +122,58 @@ impl<L: Lang> ParserState<L> {
             .enumerate()
             .rev()
             .find_map(|(n, it)| {
-                if it.peak(self, true, self.after_skip()) == PRes::Ok {
+                if it.get_ref(self.cache).peak(self, false, self.after_skip()) == PRes::Ok {
                     Some(n)
                 } else {
                     None
                 }
             });
         if let Some(index) = res {
-            info!("Hit delim: {index}");
+            debug!("Hit delim: {index}");
         }
         res
     }
 
     #[must_use]
-    pub fn push_delim(&mut self, delim: Parser<L>) -> usize {
+    pub fn push_delim(&mut self, delim: ParserIndex<L>) -> usize {
         let index = self.delim_stack.len();
+        debug!("Added delim to stack {delim:?}");
         self.delim_stack.push(delim);
         index
     }
     pub fn pop_delim(&mut self) {
-        self.delim_stack
+        let removed = self
+            .delim_stack
             .pop()
             .expect("Attempted to pop delim but stack was empty");
+        debug!("Removed delim from stack {removed:?}");
     }
 
-    pub fn try_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
+    pub fn try_parse(&mut self, parser: &'a Parser<L>, recover: bool) -> (PRes, bool) {
+        let mut bumped = false;
         loop {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
-                    self.bump_err(parser.expected());
+                    bumped = true;
+                    self.bump_err(parser.expected(self));
                 }
                 PRes::Eof => {
-                    self.bump_err(parser.expected());
-                    return PRes::Eof;
+                    return (PRes::Eof, bumped);
                 }
-                PRes::Break(_) => return res,
+                PRes::Break(_) => return (res, bumped),
                 PRes::Ok => break,
             }
         }
-        PRes::Ok
+        (PRes::Ok, bumped)
     }
 
-    pub fn maybe_parse(&mut self, parser: &Parser<L>, recover: bool) -> PRes {
+    pub fn maybe_parse(&mut self, parser: &'a Parser<L>, recover: bool) -> PRes {
         loop {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
-                    self.bump_err(parser.expected());
+                    self.bump_err(parser.expected(self));
                 }
                 PRes::Eof => {
                     return PRes::Eof;
@@ -214,16 +233,48 @@ impl<L: Lang> ParserState<L> {
         }
     }
 
-    pub fn missing(&mut self, parser: &Parser<L>) {
-        let expected = parser.expected();
-        if let Some(Node::Err(err)) = self.current_group().children.last() {
-            if err.expected == expected {
-                return;
-            }
+    pub fn missing_delim(&mut self, parser: &'a Parser<L>, start_delim: Lexeme<L>) {
+        let current = self.current();
+        let expected = parser.expected(self);
+        if let Some(Node::Err(err)) = self.current_group().children.last()
+            && err.expected() == &expected
+        {
+            return;
         }
+        let start = if let Some(current) = &current {
+            current.span.end
+        } else {
+            self.eof_offset()
+        };
+        let before = self.current().cloned();
         self.current_group_mut()
             .children
-            .push(Node::Err(ParseError {
+            .push(Node::Err(ParseError::MissingError {
+                start,
+                expected,
+                actual: vec![],
+                before,
+                start_delim,
+            }));
+    }
+
+    pub fn missing(&mut self, parser: &'a Parser<L>) {
+        let expected = parser.expected(self);
+        if let Some(Node::Err(err)) = self.current_group().children.last()
+            && err.expected() == &expected
+        {
+            return;
+        }
+        let current = self.current();
+        let start = if let Some(current) = &current {
+            current.span.start
+        } else {
+            self.eof_offset()
+        };
+        self.current_group_mut()
+            .children
+            .push(Node::Err(ParseError::Unexpected {
+                start,
                 expected,
                 actual: vec![],
             }));
@@ -247,5 +298,20 @@ impl<L: Lang> ParserState<L> {
             }
         }
         res
+    }
+
+    pub fn after_white_space(&self, mut offset: usize) -> usize {
+        while let Some(current) = self.at_offset(offset) {
+            if self.skipping.contains(&current.kind) {
+                offset += 1;
+            } else {
+                break;
+            }
+        }
+        offset
+    }
+
+    pub fn recover_index(&self) -> usize {
+        self.delim_stack.len()
     }
 }

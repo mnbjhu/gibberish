@@ -1,47 +1,72 @@
-use crate::api::{Parser, choice::choice, just::just, rec::recursive, seq::seq};
+use crate::api::{
+    choice::choice,
+    just::just,
+    ptr::{ParserCache, ParserIndex},
+    rec::recursive,
+    seq::seq,
+};
 
 use super::{lang::JsonLang, lexer::JsonToken, syntax::JsonSyntax};
 
-fn json_parser() -> Parser<JsonLang> {
-    recursive(|e| {
-        let string = just(JsonToken::String).named(JsonSyntax::String);
-        let int = just(JsonToken::Int).named(JsonSyntax::Number);
+pub fn json_parser(cache: &mut ParserCache<JsonLang>) -> ParserIndex<JsonLang> {
+    recursive(
+        |e, cache| {
+            let string = just(JsonToken::String, cache).named(JsonSyntax::String, cache);
+            let int = just(JsonToken::Int, cache).named(JsonSyntax::Number, cache);
 
-        let arr = e
-            .clone()
-            .sep_by(just(JsonToken::Comma))
-            .delim_by(just(JsonToken::LBracket), just(JsonToken::RBracket))
-            .named(JsonSyntax::Array);
+            let arr = e
+                .clone()
+                .sep_by(just(JsonToken::Comma, cache), cache)
+                .delim_by(
+                    just(JsonToken::LBracket, cache),
+                    just(JsonToken::RBracket, cache),
+                    cache,
+                )
+                .named(JsonSyntax::Array, cache);
 
-        let obj_field = seq(vec![
-            just(JsonToken::String).named(JsonSyntax::Key),
-            just(JsonToken::Colon),
-            e,
-        ])
-        .named(JsonSyntax::Field);
+            let obj_field = seq(
+                vec![
+                    just(JsonToken::String, cache).named(JsonSyntax::Key, cache),
+                    just(JsonToken::Colon, cache),
+                    e,
+                ],
+                cache,
+            )
+            .named(JsonSyntax::Field, cache);
 
-        let obj = obj_field
-            .sep_by(just(JsonToken::Comma))
-            .delim_by(just(JsonToken::LBrace), just(JsonToken::RBrace))
-            .named(JsonSyntax::Object);
-        let atom = choice(vec![obj, arr, string, int]);
+            let obj = obj_field
+                .sep_by(just(JsonToken::Comma, cache), cache)
+                .delim_by(
+                    just(JsonToken::LBrace, cache),
+                    just(JsonToken::RBrace, cache),
+                    cache,
+                )
+                .named(JsonSyntax::Object, cache);
+            let atom = choice(vec![obj, arr, string, int], cache);
 
-        atom.clone()
-            .fold(JsonSyntax::Add, seq(vec![just(JsonToken::Plus), atom]))
-    })
+            atom.clone().fold(
+                JsonSyntax::Add,
+                seq(vec![just(JsonToken::Plus, cache), atom], cache),
+                cache,
+            )
+        },
+        cache,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        json::{parser::json_parser, syntax::JsonSyntax},
+        api::ptr::ParserCache,
+        json::{lang::JsonLang, parser::json_parser, syntax::JsonSyntax},
         parser::node::{Group, Node},
     };
 
     #[test]
     fn test_parse_string() {
         let input = r#""Test""#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         if let Node::Group(Group { kind, children, .. }) = root {
             assert_eq!(kind, JsonSyntax::Root);
             assert_eq!(children.len(), 1, "Expected a single child");
@@ -56,7 +81,8 @@ mod tests {
     #[test]
     fn test_parse_array() {
         let input = r#"["Test"]"#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -70,7 +96,8 @@ mod tests {
     #[test]
     fn test_parse_array_2() {
         let input = r#"[123, 456]"#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -90,7 +117,8 @@ mod tests {
     #[test]
     fn test_parse_obj() {
         let input = r#"{"thing": 123}"#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -114,8 +142,8 @@ mod tests {
     #[test]
     fn test_sum_in_arr_with_err() {
         let input = r#"[123 +]"#;
-        let root = json_parser().parse(input);
-        assert_eq!(root.name(), JsonSyntax::Root);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
         let arr = root.green_children().next().unwrap();
@@ -138,7 +166,8 @@ mod tests {
     #[test]
     fn test_missing_expression() {
         let input = r#"[123,]"#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -157,7 +186,8 @@ mod tests {
     #[test]
     fn test_invalid_sep() {
         let input = r#"[123 "abc"]"#;
-        let root = json_parser().parse(input);
+        let mut cache = ParserCache::new(JsonLang);
+        let root = json_parser(&mut cache).parse(input, &cache);
         assert_eq!(root.name(), JsonSyntax::Root);
         assert_eq!(root.green_children().count(), 1, "Expected a single child");
 
@@ -167,8 +197,8 @@ mod tests {
         assert_eq!(arr.errors().count(), 1);
 
         assert_eq!(arr.errors().count(), 1);
-        let error = arr.errors().next().unwrap();
-        assert_eq!(error.actual.len(), 1);
+        let (_, error) = arr.errors().next().unwrap();
+        assert_eq!(error.actual().len(), 1);
 
         let num = arr.green_children().next().unwrap();
         assert_eq!(num.errors().count(), 0);

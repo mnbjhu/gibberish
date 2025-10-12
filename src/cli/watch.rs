@@ -6,7 +6,10 @@ use std::{
     sync::mpsc,
 };
 
-use crate::dsl::parser::p_parser;
+use crate::{
+    api::ptr::ParserCache,
+    dsl::lst::{dsl_parser, lang::DslLang},
+};
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -16,10 +19,14 @@ fn clear_screen() {
 }
 
 pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
-    let parser = p_parser();
+    let mut cache = ParserCache::new(DslLang);
+    let parser = dsl_parser(&mut cache);
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    parser.parse(&text).debug_print(errors, tokens);
+    parser
+        .clone()
+        .parse(&text, &cache)
+        .debug_print(errors, tokens, &DslLang);
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;
     watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -31,7 +38,10 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
                 }
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
-                parser.parse(&text).debug_print(errors, tokens);
+                parser
+                    .clone()
+                    .parse(&text, &cache)
+                    .debug_print(errors, tokens, &DslLang);
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }
