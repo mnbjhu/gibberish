@@ -12,6 +12,12 @@ use crate::{
     report::simple::report_simple_error,
 };
 
+pub mod build;
+pub mod choice;
+pub mod exact;
+pub mod option;
+pub mod seq;
+
 #[derive(Default, Clone)]
 pub struct RuntimeLexer {
     pub tokens: Vec<(String, Regex)>,
@@ -126,10 +132,7 @@ impl Lang for RuntimeLang {
                         .last()
                         .unwrap_or_else(|| panic!("No caputure groups found for {name} regex"));
 
-                    let whole = whole
-                        .unwrap()
-                        .as_str()
-                        .to_string();
+                    let whole = whole.unwrap().as_str().to_string();
                     let len = whole.len();
                     res.push(Lexeme {
                         span: offset..(offset + len),

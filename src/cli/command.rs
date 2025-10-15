@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
+use crate::cli::build::build;
 use crate::cli::parse::parse_custom;
 use crate::cli::query::query;
 use crate::{cli::lex::lex_custom, lsp::main_loop};
@@ -49,6 +50,9 @@ pub enum Command {
 
     /// Starts an lsp for the specified syntax file
     Lsp { path: PathBuf },
+
+    /// Builds a parser
+    Build { path: PathBuf },
 }
 
 impl Command {
@@ -89,6 +93,7 @@ impl Command {
             } => {
                 query(parser_src, src, q);
             }
+            Command::Build { path } => build(path),
         }
     }
 }
