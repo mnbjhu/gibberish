@@ -1,6 +1,16 @@
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 use crate::dsl::{lexer::build::LexerBuilderState, regex::OptionAst};
+
+impl<'a> Display for OptionAst<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OptionAst::Range(range) => write!(f, "{}-{}", range.start as char, range.end as char),
+            OptionAst::Char(c) => write!(f, "{}", *c as char),
+            OptionAst::Regex(regex_ast) => todo!(),
+        }
+    }
+}
 
 impl<'a> OptionAst<'a> {
     pub fn build(&self, state: &mut LexerBuilderState, f: &mut impl Write) -> usize {
@@ -9,6 +19,7 @@ impl<'a> OptionAst<'a> {
             OptionAst::Range(range) => write!(
                 f,
                 "
+
 function w $lex_{id}(l %ptr, l %len) {{
 @start
     %offset =l loadl $offset_ptr

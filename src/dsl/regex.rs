@@ -65,6 +65,7 @@ pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<
             '{' => Some(RegexAst::Exact("{")),
             '}' => Some(RegexAst::Exact("}")),
             '+' => Some(RegexAst::Exact("+")),
+            '*' => Some(RegexAst::Exact("*")),
             '|' => Some(RegexAst::Exact("|")),
             '.' => Some(RegexAst::Exact(".")),
             _ => None,
@@ -161,11 +162,13 @@ fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     if !matches!(regex.chars().nth(*offset), Some('(')) {
         return None;
     }
+    *offset += 1;
     let mut options = vec![];
     loop {
         options.push(parse_seq(regex, offset)?);
         let current = regex.chars().nth(*offset)?;
         if current == ')' {
+            *offset += 1;
             break;
         }
         if current == '|' {
@@ -175,9 +178,5 @@ fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
         }
     }
     assert_ne!(options.len(), 0);
-    if options.len() == 1 {
-        Some(options.pop().unwrap())
-    } else {
-        Some(RegexAst::Group { options })
-    }
+    Some(RegexAst::Group { options })
 }

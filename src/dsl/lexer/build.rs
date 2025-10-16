@@ -3,14 +3,15 @@ use std::fmt::Write;
 use crate::dsl::{
     ast::{
         RootAst,
-        stmt::{StmtAst, token::TokenDefAst},
+        stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
     },
     lexer::{
         choice::{build_choice_regex, build_negated_chocie_regex},
         exact::build_exact_regex,
+        group::build_group_regex,
         seq::build_seq_regex,
     },
-    regex::{OptionAst, RegexAst, parse_regex, parse_seq},
+    regex::{OptionAst, RegexAst, parse_seq},
 };
 
 pub struct LexerBuilderState {
@@ -41,7 +42,7 @@ impl<'a> RegexAst<'a> {
                     build_choice_regex(state, f, options)
                 }
             }
-            RegexAst::Group { options } => todo!(),
+            RegexAst::Group { options } => build_group_regex(state, f, options),
             RegexAst::Rep0(regex_ast) => {
                 let inner = regex_ast.build(state, f);
                 let id = state.id();
@@ -52,12 +53,15 @@ impl<'a> RegexAst<'a> {
 function w $lex_{id} (l %ptr, l %len) {{
 @start
     jmp @loop
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
 @loop
     %res =w call $lex_{inner}(l %ptr, l %len)
-    jnz %res, @loop, @pass
+    jnz %res, @check_eof, @pass
 @pass
-    %offset =l loadl $offset_ptr
-    ret %offset
+    ret 1
 }}
 "
                 )
@@ -73,14 +77,21 @@ function w $lex_{id} (l %ptr, l %len) {{
 
 function w $lex_{id} (l %ptr, l %len) {{
 @start
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
     %res =w call $lex_{inner}(l %ptr, l %len)
-    jnz %res, @loop, @fail
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
 @loop
     %res =w call $lex_{inner}(l %ptr, l %len)
-    jnz %res, @loop, @pass
+    jnz %res, @check_eof, @pass
 @pass
-    %offset =l loadl $offset_ptr
-    ret %offset
+    ret 1
 @fail
     ret 0
 }}
@@ -89,7 +100,34 @@ function w $lex_{id} (l %ptr, l %len) {{
                 .unwrap();
                 id
             }
-            RegexAst::Whitepace => todo!(),
+            RegexAst::Whitepace => {
+                let id = state.id();
+                write!(
+                    f,
+                    "
+
+function w $lex_{id} (l %ptr, l %len) {{
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %space =w ceqw %current, 32
+    %lower =w cugew %current, 9
+    %upper =w culew %current, 13
+    %res =w and %lower, %upper
+    %res =w or %res, %space
+    jnz %res, @pass, @fail
+@fail
+    ret 0
+@pass
+    call $inc_offset()
+    ret 1
+}}
+"
+                )
+                .unwrap();
+                id
+            }
             RegexAst::Any => todo!(),
         }
     }
@@ -99,6 +137,10 @@ pub fn build_lexer_qbe<'a>(ast: RootAst<'a>, src: &str, filename: &str, f: &mut 
     write!(
         f,
         "
+data $error_token = {{ b \"ERROR\\n\", b 0 }}
+data $offset_ptr = {{ l 0 }}
+data $group_end = {{ l 0 }}
+
 function w $cmp_current(l %ptr, l %len, w %char) {{
 @start
     %offset =l loadl $offset_ptr
@@ -115,17 +157,97 @@ function w $inc_offset() {{
     storel %offset, $offset_ptr
     ret 0
 }}
-"
+
+",
     )
     .unwrap();
     let mut state = LexerBuilderState::new();
+    let mut names = vec![];
     for stmt in ast.iter() {
         match stmt {
-            StmtAst::Token(token_def_ast) => token_def_ast.build_qbe(&mut state, f),
-            // StmtAst::Keyword(keyword_def_ast) => keyword_def_ast.build_qbe(f),
-            _ => {}
-        }
+            StmtAst::Token(token_def_ast) => {
+                let name = &token_def_ast.name().text;
+                write!(
+                    f,
+                    "
+data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
+"
+                )
+                .unwrap();
+                token_def_ast.build_qbe(&mut state, f);
+                names.push(name);
+            }
+            StmtAst::Keyword(kw_ast) => {
+                let name = &kw_ast.name().text;
+                write!(
+                    f,
+                    "
+data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
+"
+                )
+                .unwrap();
+                kw_ast.build_qbe(&mut state, f);
+                names.push(name);
+            }
+            _ => (),
+        };
     }
+    println!("len: {}", names.len());
+    write!(
+        f,
+        "
+export function w $lex(l %ptr, l %len) {{
+@start
+    jmp @loop
+@loop
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @end, @check_{first}
+",
+        first = names.first().unwrap()
+    )
+    .unwrap();
+    let last = names.len() - 1;
+    for (index, name) in names.iter().enumerate() {
+        let next = if index == last {
+            "fail"
+        } else {
+            &format!("check_{}", names[index + 1])
+        };
+        write!(
+            f,
+            "
+@check_{name}
+    %res =l call $lex_{name}(l %ptr, l %len)
+    jnz %res, @bump_{name}, @{next}
+@bump_{name}
+    call $printf(l $lex_{name}_text, l %res)
+    %offset =l loadl $offset_ptr
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+"
+        )
+        .unwrap();
+    }
+    write!(
+        f,
+        "
+
+@fail
+    call $printf(l $error_token)
+    %ptr =l add %ptr, 1
+    %len =l sub %len, 1
+    storel 0, $offset_ptr
+    storel 0, $group_end
+@end
+    ret 0
+}}
+"
+    )
+    .unwrap()
 }
 
 impl<'a> TokenDefAst<'a> {
@@ -138,27 +260,61 @@ impl<'a> TokenDefAst<'a> {
         text = text.replace("\\\"", "\"");
         text = text.replace("\\n", "\n");
         text = text.replace("\\t", "\t");
+        let Some(regex) = parse_seq(&text, &mut 0) else {
+            panic!("Failed to parse regex {text}");
+        };
+        build_token_parser(&self.name().text, &regex, state, f)
+    }
+}
 
-        let id = parse_seq(&text, &mut 0).unwrap().build(state, f);
-        write!(
-            f,
-            "
-data $offset_ptr = {{ w 0 }}
+impl<'a> KeywordDefAst<'a> {
+    pub fn build_qbe(&self, state: &mut LexerBuilderState, f: &mut impl Write) {
+        let value = self.name();
+        let text = &value.text;
+        let regex = RegexAst::Seq(vec![
+            RegexAst::Group {
+                options: vec![RegexAst::Exact(text)],
+            },
+            RegexAst::Choice {
+                negate: true,
+                options: vec![
+                    OptionAst::Range('a' as u8..'z' as u8),
+                    OptionAst::Range('A' as u8..'Z' as u8),
+                    OptionAst::Range('0' as u8..'9' as u8),
+                    OptionAst::Char('_' as u8),
+                ],
+            },
+        ]);
+        build_token_parser(&self.name().text, &regex, state, f)
+    }
+}
 
-export function l $lex_{} (l %ptr, l %len) {{
+pub fn build_token_parser<'a>(
+    name: &str,
+    regex: &RegexAst<'a>,
+    state: &mut LexerBuilderState,
+    f: &mut impl Write,
+) {
+    let id = regex.build(state, f);
+    write!(
+        f,
+        "
+function l $lex_{name} (l %ptr, l %len) {{
 @start
-    storel 0, $offset_ptr
     %res =w call $lex_{id}(l %ptr, l %len)
     jnz %res, @pass, @fail
 @pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
     %offset =l loadl $offset_ptr
     ret %offset
 @fail
     ret 0
 }}
 ",
-            self.name().text
-        )
-        .unwrap();
-    }
+    )
+    .unwrap();
 }

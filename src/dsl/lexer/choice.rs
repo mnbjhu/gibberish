@@ -25,7 +25,7 @@ function l $lex_{id} (l %ptr, l %len) {{
     let end = parts.len() - 1;
     for (index, part) in parts.iter().enumerate() {
         let next = if index == end {
-            "pass"
+            "fail"
         } else {
             &format!("part_{}", index + 1)
         };
@@ -35,7 +35,7 @@ function l $lex_{id} (l %ptr, l %len) {{
 @part_{index}
     storel %start, $offset_ptr
     %res =w call $lex_{part}(l %ptr, l %len)
-    jnz %res, @fail, @{next}
+    jnz %res, @pass, @{next}
 "
         )
         .unwrap()
@@ -44,7 +44,6 @@ function l $lex_{id} (l %ptr, l %len) {{
         f,
         "
 @pass
-    call $inc_offset()
     ret 1
 
 @fail
@@ -79,8 +78,8 @@ function l $lex_{id} (l %ptr, l %len) {{
     .unwrap();
     let end = parts.len() - 1;
     for (index, part) in parts.iter().enumerate() {
-        let fail = if index == end {
-            "fail"
+        let next = if index == end {
+            "pass"
         } else {
             &format!("option_{}", index + 1)
         };
@@ -89,7 +88,7 @@ function l $lex_{id} (l %ptr, l %len) {{
             "
 @option_{index}
     %res =w call $lex_{part}(l %ptr, l %len)
-    jnz %res, @pass, @{fail}
+    jnz %res, @fail, @{next}
 "
         )
         .unwrap()
@@ -98,6 +97,7 @@ function l $lex_{id} (l %ptr, l %len) {{
         f,
         "
 @pass
+    call $inc_offset()
     ret 1
 
 @fail
