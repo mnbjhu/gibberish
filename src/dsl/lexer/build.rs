@@ -49,7 +49,6 @@ impl<'a> RegexAst<'a> {
                 write!(
                     f,
                     "
-
 function w $lex_{id} (l %ptr, l %len) {{
 @start
     jmp @loop
@@ -137,6 +136,76 @@ pub fn build_lexer_qbe<'a>(ast: RootAst<'a>, src: &str, filename: &str, f: &mut 
     write!(
         f,
         "
+data $tokens_ptr = {{ l 0 }}
+data $tokens_len = {{ l 0 }}
+data $tokens_cap = {{ l 0 }}
+
+data $fmt = {{ b \"{{ token: %d, start: %d, end: %d }}\\n\", b 0 }}
+
+function w $print_tokens() {{
+@start
+    %len =l loadl $tokens_len
+    %token_ptr =l loadl $tokens_ptr
+    %finish_offset =l mul %len, 24
+    %finish_offset =l add %token_ptr, %finish_offset
+    jmp @loop
+@loop
+    %at_end =l ceql %finish_offset, %token_ptr
+    jnz %at_end, @end, @inc
+@inc
+    %start_ptr =l add %token_ptr, 8
+    %end_ptr =l add %token_ptr, 16
+    %tok =l loadl %token_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+    %token_ptr =l add %token_ptr, 24
+    call $printf(l $fmt, l %tok, l %start, l %end)
+    jmp @loop
+@end
+    ret 1
+}}
+
+function w $create_tokens() {{
+@start
+    storel 4, $tokens_cap
+    storel 0, $tokens_len
+    %ptr =l call $malloc(l 96)
+    storel %ptr, $tokens_ptr
+    ret 1
+}}
+
+function w $push_token(l %tok, l %start, l %end) {{
+@start
+    %cap =l loadl $tokens_cap
+    %len =l loadl $tokens_len
+    %ptr =l loadl $tokens_ptr
+    %full =w ceql %len, %cap
+    jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %size =l mul %cap, 24
+    %new_ptr =l call $malloc(l %size)
+    storel %cap, $tokens_cap
+    storel %new_ptr, $tokens_ptr
+
+    %size =l mul %len, 24
+    call $memcpy(l %new_ptr, l %ptr, l %size)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, 24
+    %token_ptr =l add %offset, %ptr
+    %start_ptr =l add %token_ptr, 8
+    %end_ptr =l add %token_ptr, 16
+    %len =l add %len, 1
+    storel %len, $tokens_len
+    storel %tok, %token_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret 1
+}}
+
 data $error_token = {{ b \"ERROR\\n\", b 0 }}
 data $offset_ptr = {{ l 0 }}
 data $group_end = {{ l 0 }}
@@ -198,6 +267,7 @@ data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
         "
 export function w $lex(l %ptr, l %len) {{
 @start
+    %total_offset =l copy 0
     jmp @loop
 @loop
     %offset =l loadl $offset_ptr
@@ -223,6 +293,9 @@ export function w $lex(l %ptr, l %len) {{
 @bump_{name}
     call $printf(l $lex_{name}_text, l %res)
     %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    call $push_token(l {index}, l %total_offset, l %end)
+    %total_offset =l copy %end
     %ptr =l add %ptr, %res
     %len =l sub %len, %res
     storel 0, $offset_ptr

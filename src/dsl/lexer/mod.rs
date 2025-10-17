@@ -22,6 +22,7 @@ pub mod seq;
 #[derive(Default, Clone)]
 pub struct RuntimeLexer {
     pub tokens: Vec<(String, Regex)>,
+    pub keywords: Vec<usize>,
 }
 
 pub fn build_lexer<'a>(ast: RootAst<'a>, src: &str, filename: &str) -> RuntimeLexer {
@@ -71,6 +72,8 @@ impl<'a> TokenDefAst<'a> {
 impl<'a> KeywordDefAst<'a> {
     fn build(&self, lexer: &mut RuntimeLexer) {
         let regex = format!("^({})[^_a-zA-Z]", self.name().text);
+        let id = lexer.tokens.len();
+        lexer.keywords.push(id);
         lexer
             .tokens
             .push((self.name().text.clone(), Regex::new(&regex).unwrap()));
@@ -164,7 +167,8 @@ impl Lang for RuntimeLang {
                     text: text.chars().next().unwrap().to_string(),
                 });
                 offset += 1;
-                text = &text[1..];
+                let index = text.char_indices().nth(1).unwrap().0;
+                text = &text[index..];
             }
         }
     }

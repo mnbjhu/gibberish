@@ -137,7 +137,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
     #[must_use]
     pub fn push_delim(&mut self, delim: ParserIndex<L>) -> usize {
         let index = self.delim_stack.len();
-        debug!("Added delim to stack {delim:?}");
+        debug!("Added delim to stack {:?}", delim.get_ref(self.cache));
         self.delim_stack.push(delim);
         index
     }
@@ -146,7 +146,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
             .delim_stack
             .pop()
             .expect("Attempted to pop delim but stack was empty");
-        debug!("Removed delim from stack {removed:?}");
+        debug!("Removed delim from stack {:?}", removed.get_ref(self.cache));
     }
 
     pub fn try_parse(&mut self, parser: &'a Parser<L>, recover: bool) -> (PRes, bool) {

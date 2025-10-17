@@ -2,6 +2,10 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
+use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::util::SubscriberInitExt as _;
+use tracing_subscriber::{EnvFilter, fmt};
+
 use crate::cli::build::build;
 use crate::cli::parse::parse_custom;
 use crate::cli::query::query;
@@ -57,6 +61,16 @@ pub enum Command {
 
 impl Command {
     pub async fn run(&self) {
+        let fmt_layer = fmt::layer().with_target(false);
+        let filter_layer = EnvFilter::try_from_default_env()
+            .or_else(|_| EnvFilter::try_new("info"))
+            .unwrap();
+
+        tracing_subscriber::registry()
+            .with(filter_layer)
+            .with(fmt_layer)
+            .init();
+
         match self {
             Command::Lex {
                 src: path,

@@ -21,6 +21,9 @@ pub enum TokenKind {
     Keyword,
     String,
     Number,
+    Comment,
+    Modifier,
+    Type,
 }
 
 pub struct SemanticToken {
@@ -56,6 +59,9 @@ pub fn get_semantic_tokens(mut tokens: Vec<SemanticToken>, text: &str) -> Option
                     TokenKind::Generic => Some(6),
                     TokenKind::String => Some(14),
                     TokenKind::Number => Some(15),
+                    TokenKind::Comment => Some(16),
+                    TokenKind::Modifier => Some(17),
+                    TokenKind::Type => Some(6),
                 };
                 if let Some(ty) = ty {
                     found.push(LspSemanticToken {

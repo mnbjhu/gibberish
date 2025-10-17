@@ -12,7 +12,10 @@ use skip::Skip;
 use tracing::debug;
 
 use crate::{
-    api::{break_::Break, fold_once::FoldOnce, none_of::NoneOf, tok_seq::TokSeq, unskip::UnSkip},
+    api::{
+        break_::Break, fold_once::FoldOnce, none_of::NoneOf, repeated::Repeated, tok_seq::TokSeq,
+        unskip::UnSkip,
+    },
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
 
@@ -30,6 +33,7 @@ pub mod optional;
 pub mod ptr;
 pub mod rec;
 pub mod recover;
+pub mod repeated;
 pub mod sep;
 pub mod seq;
 pub mod significant;
@@ -56,6 +60,7 @@ pub enum Parser<L: Lang> {
     NoneOf(NoneOf<L>),
     Break(Break<L>),
     FoldOnce(FoldOnce<L>),
+    Repeated(Repeated<L>),
     Empty,
 }
 
@@ -80,6 +85,7 @@ impl<'a, L: Lang> Parser<L> {
             Parser::FoldOnce(fold_once) => fold_once.parse(state, recover),
             Parser::TokSeq(tok_seq) => tok_seq.parse(state),
             Parser::Empty => todo!(),
+            Parser::Repeated(repeated) => repeated.parse(state, recover),
         };
         debug!("Done parsing: {};{res:?}", self.name());
         res
@@ -105,6 +111,7 @@ impl<'a, L: Lang> Parser<L> {
             Parser::FoldOnce(fold_once) => fold_once.peak(state, recover, offset),
             Parser::TokSeq(tok_seq) => tok_seq.peak(state, recover, offset),
             Parser::Empty => todo!(),
+            Parser::Repeated(repeated) => repeated.peak(state, recover, offset),
         };
         debug!("Done peaking: {};{res:?}", self.name());
         res
@@ -130,6 +137,7 @@ impl<'a, L: Lang> Parser<L> {
             Parser::FoldOnce(fold_once) => fold_once.expected(state),
             Parser::TokSeq(tok_seq) => tok_seq.expected(),
             Parser::Empty => todo!(),
+            Parser::Repeated(repeated) => repeated.expected(state),
         }
     }
 
@@ -152,6 +160,7 @@ impl<'a, L: Lang> Parser<L> {
             Parser::FoldOnce(_) => "FoldOnce".to_string(),
             Parser::TokSeq(_) => "TokSeq".to_string(),
             Parser::Empty => todo!(),
+            Parser::Repeated(_) => "Repeated".to_string(),
         }
     }
 }

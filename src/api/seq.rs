@@ -15,8 +15,8 @@ impl<'a, L: Lang> Seq<L> {
             return start;
         }
 
-        let rec_index = state.recover_index();
-        let last_index = rec_index + self.0.len() - 1;
+        let first_index = state.recover_index();
+        let last_index = first_index + self.0.len() - 2;
 
         for p in self.0[1..].iter().rev() {
             let _ = state.push_delim(p.clone());
@@ -26,23 +26,29 @@ impl<'a, L: Lang> Seq<L> {
             let p = self.0[parsing_index].clone();
             let (res, bumped) = state.try_parse(p.get_ref(state.cache), recover);
             match res {
-                PRes::Break(index) if index <= rec_index => {
+                PRes::Break(index) if index < first_index => {
                     if !bumped {
                         state.missing(p.get_ref(state.cache));
                     }
-
+                    for _ in parsing_index..self.0.len() - 2 {
+                        state.pop_delim();
+                    }
                     return PRes::Ok;
                 }
                 PRes::Break(index) => {
-                    let i = last_index - index;
-                    for _ in 0..i {
+                    assert!(index <= last_index);
+                    let new_index = last_index - index + 1;
+                    for _ in parsing_index..new_index - 1 {
                         state.pop_delim();
                     }
-                    state.missing(self.0[i].get_ref(state.cache));
-                    parsing_index = i + 1;
+                    state.missing(self.0[new_index - 1].get_ref(state.cache));
+                    parsing_index = new_index;
                 }
                 PRes::Eof => {
                     state.missing(p.get_ref(state.cache));
+                    for _ in parsing_index..self.0.len() - 2 {
+                        state.pop_delim();
+                    }
                     return PRes::Ok;
                 }
                 PRes::Ok => {

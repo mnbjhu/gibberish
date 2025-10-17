@@ -2,18 +2,11 @@ use core::panic;
 
 use crate::{
     api::{
-        Parser,
-        choice::choice,
-        just::just,
-        named::Named,
-        ptr::{ParserCache, ParserIndex},
-        seq::seq,
+        choice::choice, just::just, maybe::Requirement, named::Named, ptr::{ParserCache, ParserIndex}, seq::seq, Parser
     },
     dsl::{
         ast::{
-            RootAst,
-            expr::ExprAst,
-            stmt::{StmtAst, fold::FoldDefAst, highlight::HighlightAst, parser::ParserDefAst},
+            expr::ExprAst, stmt::{fold::FoldDefAst, highlight::HighlightAst, parser::ParserDefAst, StmtAst}, RootAst
         },
         lexer::RuntimeLang,
     },
@@ -165,6 +158,16 @@ impl<'a> ExprAst<'a> {
                 let mut expr = member_ast.target().build(builder);
                 for member in member_ast.arms() {
                     match member.name().text.as_str() {
+                        "repeated" => {
+                            let args = member
+                                .args()
+                                .map(|it| it.build(builder))
+                                .collect::<Vec<_>>();
+                            if !args.is_empty() {
+                                panic!("'repeated' expected no args but {} were found", args.len())
+                            }
+                            expr = expr.repeated(&mut builder.cache)
+                        }
                         "sep_by" => {
                             let args = member
                                 .args()
@@ -174,6 +177,16 @@ impl<'a> ExprAst<'a> {
                                 panic!("'sep_by' expected one arg but {} were found", args.len())
                             }
                             expr = expr.sep_by(args[0].clone(), &mut builder.cache)
+                        }
+                        "sep_by_padded" => {
+                            let args = member
+                                .args()
+                                .map(|it| it.build(builder))
+                                .collect::<Vec<_>>();
+                            if args.len() != 1 {
+                                panic!("'sep_by_padded' expected one arg but {} were found", args.len())
+                            }
+                            expr = expr.sep_by_extra(args[0].clone(), Requirement::Maybe,Requirement::Maybe, &mut builder.cache)
                         }
                         "delim_by" => {
                             let args = member
@@ -200,13 +213,27 @@ impl<'a> ExprAst<'a> {
                                 panic!("Expected a token but found a parser")
                             }
                         }
+                        "unskip" => {
+                            let args = member
+                                .args()
+                                .map(|it| it.build(builder))
+                                .collect::<Vec<_>>();
+                            if args.len() != 1 {
+                                panic!("'unskip' expected 1 arg but {} were found", args.len())
+                            }
+                            if let Parser::Just(tok) = args[0].get_ref(&builder.cache) {
+                                expr = expr.unskip(tok.0, &mut builder.cache)
+                            } else {
+                                panic!("Expected a token but found a parser")
+                            }
+                        }
                         "or_not" => {
                             let args = member
                                 .args()
                                 .map(|it| it.build(builder))
                                 .collect::<Vec<_>>();
                             if !args.is_empty() {
-                                panic!("'skip' expected 0 arg but {} were found", args.len())
+                                panic!("'or_not' expected 0 arg but {} were found", args.len())
                             }
                             expr = expr.or_not(&mut builder.cache);
                         }

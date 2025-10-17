@@ -32,6 +32,8 @@ pub fn capabilities() -> InitializeResult {
                             SemanticTokenType::NAMESPACE,
                             SemanticTokenType::STRING,
                             SemanticTokenType::NUMBER,
+                            SemanticTokenType::COMMENT,
+                            SemanticTokenType::MODIFIER,
                         ],
                         token_modifiers: vec![],
                     },
@@ -41,7 +43,11 @@ pub fn capabilities() -> InitializeResult {
             ),
             document_formatting_provider: Some(OneOf::Left(true)),
             completion_provider: Some(CompletionOptions {
-                trigger_characters: Some(vec![":".to_string(), ".".to_string()]),
+                trigger_characters: Some(vec![
+                    ":".to_string(),
+                    ".".to_string(),
+                    "/\\w+/".to_string(),
+                ]),
                 ..Default::default()
             }),
             ..ServerCapabilities::default()

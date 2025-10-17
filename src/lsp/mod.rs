@@ -1,4 +1,7 @@
-use async_lsp::lsp_types::{Position, Range, Url};
+use async_lsp::lsp_types::request::Completion;
+use async_lsp::lsp_types::{
+    CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, Position, Range, Url,
+};
 
 pub mod capabilities;
 pub mod diags;
@@ -35,6 +38,8 @@ use crate::dsl::parser::{ParserBuilder, build_parser};
 use crate::lsp::capabilities::capabilities;
 use crate::lsp::document_symbols::get_document_symbols;
 use crate::lsp::semantic_tokens::{SemanticToken, get_semantic_tokens};
+use crate::parser::err::Expected;
+use crate::parser::lang::Lang;
 use crate::parser::node::Node;
 use crate::parser::state::ParserState;
 
@@ -82,6 +87,37 @@ pub async fn main_loop(parser_path: &Path) {
                 let cache = st.cache.clone();
                 async move { semantic_tokens_full(db, uri, parser, cache) }
             })
+            .request::<request::Completion, _>(|st, msg| {
+                let db = st.db.clone();
+                let parser = st.parser.clone();
+                let text = db
+                    .get(&msg.text_document_position.text_document.uri.to_string())
+                    .unwrap();
+                let ast = parser.parse(text.value(), &st.cache);
+                let offset = position_to_offset(msg.text_document_position.position, &text);
+                if let Some(Node::Err(err)) = ast.at_offset(offset) {
+                    err.expected().iter().filter_map(|it| {
+                        if let Expected::Token(t) = it
+                            && st
+                                .cache
+                                .lang
+                                .lexer
+                                .keywords
+                                .iter()
+                                .any(|kw| *kw == *t as usize)
+                        {
+                            Some(CompletionItem {
+                                label: st.cache.lang.token_name(t),
+                                kind: Some(CompletionItemKind::KEYWORD),
+                                ..Default::default()
+                            })
+                        } else {
+                            None
+                        }
+                    });
+                }
+                async { Ok(Some(CompletionResponse::Array(vec![]))) }
+            })
             // .request::<request::SemanticTokensFullRequest, _>(semantic_tokens_full)
             .request::<request::DocumentSymbolRequest, _>(get_document_symbols)
             .notification::<notification::Initialized>(|_, _| ControlFlow::Continue(()))
@@ -103,12 +139,6 @@ pub async fn main_loop(parser_path: &Path) {
             .layer(ClientProcessMonitorLayer::new(client))
             .service(router)
     });
-
-    tracing_subscriber::fmt()
-        .with_max_level(Level::ERROR)
-        .with_ansi(false)
-        .with_writer(std::io::stderr)
-        .init();
 
     // Prefer truly asynchronous piped stdin/stdout without blocking tasks.
     #[cfg(unix)]

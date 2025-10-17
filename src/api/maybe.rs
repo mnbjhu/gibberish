@@ -13,17 +13,18 @@ impl<'a> Requirement {
     pub fn parse<L: Lang>(
         &self,
         parser: &'a Parser<L>,
+        next: &'a Parser<L>,
         state: &mut ParserState<'a, L>,
         recover: bool,
-    ) -> PRes {
+    ) -> (bool, PRes) {
         match self {
-            Requirement::Yes => parser.do_parse(state, recover),
-            Requirement::No => PRes::Ok,
+            Requirement::Yes => (true, parser.do_parse(state, recover)),
+            Requirement::No => (false, next.do_parse(state, recover)),
             Requirement::Maybe => {
-                if parser.peak(state, recover, state.after_skip()) == PRes::Ok {
-                    parser.do_parse(state, recover)
+                if parser.do_parse(state, recover).is_ok() {
+                    return (true, PRes::Ok);
                 } else {
-                    PRes::Ok
+                    (false, next.do_parse(state, recover))
                 }
             }
         }
@@ -32,16 +33,20 @@ impl<'a> Requirement {
     pub fn peak<L: Lang>(
         &self,
         parser: &Parser<L>,
+        next: &Parser<L>,
         state: &ParserState<L>,
         recover: bool,
         offset: usize,
     ) -> PRes {
         match self {
             Requirement::Yes => parser.peak(state, recover, offset),
-            Requirement::No => PRes::Ok,
+            Requirement::No => next.peak(state, recover, offset),
             Requirement::Maybe => {
-                let yes = parser.peak(state, recover, offset);
-                if yes != PRes::Err { yes } else { PRes::Ok }
+                if parser.peak(state, recover, offset).is_ok() {
+                    PRes::Ok
+                } else {
+                    next.peak(state, recover, offset)
+                }
             }
         }
     }
@@ -49,11 +54,17 @@ impl<'a> Requirement {
     pub fn expected<L: Lang>(
         &self,
         parser: &Parser<L>,
+        next: &Parser<L>,
         state: &ParserState<'a, L>,
     ) -> Vec<Expected<L>> {
         match self {
-            Requirement::Yes | Requirement::Maybe => parser.expected(state),
-            Requirement::No => vec![],
+            Requirement::Yes => parser.expected(state),
+            Requirement::No => next.expected(state),
+            Requirement::Maybe => {
+                let mut res = parser.expected(state);
+                res.extend(next.expected(state));
+                res
+            }
         }
     }
 }

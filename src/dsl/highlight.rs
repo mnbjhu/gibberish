@@ -41,11 +41,19 @@ impl<'a> QueryAst<'a> {
             QueryAst::Label(ast) => {
                 let token_kind = match ast.name() {
                     "property" => TokenKind::Property,
+                    "parameter" => TokenKind::Param,
                     "keyword" => TokenKind::Keyword,
                     "var" => TokenKind::Var,
                     "string" => TokenKind::String,
                     "number" => TokenKind::Number,
                     "function" => TokenKind::Func,
+                    "variable" => TokenKind::Var,
+                    "type" => TokenKind::Type,
+                    "modifier" => TokenKind::Modifier,
+                    "struct" => TokenKind::Struct,
+                    "enum" => TokenKind::Enum,
+                    "variant" => TokenKind::Member,
+                    "comment" => TokenKind::Comment,
                     it => panic!("Unsupported token kind {it}"),
                 };
                 Query::Data {

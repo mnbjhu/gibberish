@@ -96,6 +96,17 @@ impl<L: Lang> Node<L> {
             Node::Err(_) => panic!("ErrGroup has no children"),
         }
     }
+
+    pub fn at_offset(&self, offset: usize) -> Option<&Node<L>> {
+        match self {
+            Node::Group(group) => group.children.iter().find_map(|it| it.at_offset(offset)),
+            Node::Lexeme(Lexeme { span, .. }) if span.start <= offset && offset <= span.end => {
+                Some(self)
+            }
+            Node::Err(err) if err.span().start <= offset && offset <= err.span().end => Some(self),
+            _ => None,
+        }
+    }
 }
 
 impl<L: Lang> Group<L> {
