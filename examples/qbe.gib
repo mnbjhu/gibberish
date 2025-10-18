@@ -1,6 +1,8 @@
 keyword function;
 keyword export;
 keyword data;
+keyword type;
+keyword align;
 
 keyword add;
 keyword sub;
@@ -62,9 +64,11 @@ keyword ret;
 keyword alloc4;
 keyword alloc8;
 keyword alloc16;
+keyword blit;
 
 token string = "\"[^\"]*\"";
 token comment = "#[^\n]+";
+token type_name = ":[_a-zA-Z][_a-zA-Z0-9]*";
 token global = "\$[_a-zA-Z][_a-zA-Z0-9]*";
 token label = "@[_a-zA-Z][_a-zA-Z0-9]*";
 token temp = "%[_a-zA-Z][_a-zA-Z0-9]*";
@@ -88,9 +92,9 @@ token l_paren = "\(";
 token r_paren = "\)";
 
 parser _name = temp | global | label | int;
-parser type = (b | w | l);
+parser ty = (b | w | l);
 
-parser call_arg = type + _name;
+parser call_arg = ty + _name;
 parser call_args = call_arg.sep_by(comma).delim_by(l_paren, r_paren);
 
 
@@ -113,33 +117,41 @@ parser store_instr = (storew | storel | storeub | storeb) + _name + comma + _nam
 parser load_instr = (loadl | loadw | loadb | loadub) + _name;
 parser call_instr = call + global + call_args;
 
-parser _alloc_instr = (alloc4 | alloc8 | alloc16) + _name;
+parser alloc_instr = (alloc4 | alloc8 | alloc16) + _name;
+parser blit_instr = blit + _name + comma + _name + comma + _name;
 
-parser _unassignable_instr = store_instr | jmp_instr | jnz_instr | ret_instr;
-parser _assignable_instr = add_instr | mul_instr  |sub_instr | cmp_instr | copy_instr | load_instr | or_instr | and_instr | call_instr | _alloc_instr;
+parser _unassignable_instr = store_instr | jmp_instr | jnz_instr | ret_instr | blit_instr;
+parser _assignable_instr = add_instr | mul_instr  |sub_instr | cmp_instr | copy_instr | load_instr | or_instr | and_instr | call_instr | alloc_instr;
 
 
 parser assignment = temp + (eqw | eql | eqb) + _assignable_instr;
 parser _stmt = assignment | _assignable_instr | _unassignable_instr;
 
-parser func_arg = type + temp;
+parser func_arg = (ty | type_name) + temp;
 parser func_args = func_arg.sep_by(comma).delim_by(l_paren, r_paren);
 
 parser block = label + _stmt.sep_by_padded(newline.repeated());
 parser func_body = (newline.repeated().or_not() + block.repeated()).delim_by(l_brace, r_brace);
 
-parser function_def = function + type + global + func_args + func_body;
-parser export_function_def = export + function + type + global + func_args + func_body;
-parser data_part = type + (int | string);
+parser function_def = function + (ty | type_name) + global + func_args + func_body;
+parser export_function_def = export + function + (ty | type_name) + global + func_args + func_body;
+
+parser data_part = ty + (int | string);
 parser data_def = data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
-parser _decl = (function_def | export_function_def | data_def).unskip(newline);
+
+parser type_part = ty + int.or_not();
+parser alignment = align + int;
+parser type_def = type + type_name + eq + alignment.or_not() + type_part.sep_by(comma).delim_by(l_brace, r_brace);
+parser _decl = (function_def | export_function_def | data_def | type_def).unskip(newline);
 
 parser root = _decl.repeated().skip(ws).skip(comment).skip(newline);
 
 highlight int @"number";
 highlight string @"string";
 highlight temp @"variable";
-highlight type @"type";
+highlight ty @"type";
+highlight type_name @"type";
+highlight type @"keyword";
 highlight label @"variant";
 
 highlight function @"keyword";
@@ -160,6 +172,9 @@ highlight loadl @"keyword";
 highlight loadw @"keyword";
 highlight loadb @"keyword";
 highlight loadub @"keyword";
+
+highlight align @"keyword";
+highlight blit @"keyword";
 
 highlight jmp @"keyword";
 highlight jnz @"keyword";

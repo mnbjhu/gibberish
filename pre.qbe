@@ -1,0 +1,106 @@
+type :vec = { l 3 }
+type :token = { l 3 }
+
+type :node = { w 2, l 3 }
+
+# <stack: 3> <tokens: 3> <offset: 1>
+type :state = { l 3, l 3, l }
+
+function :vec $load_vec(l %addr) {
+@start
+    ret %addr
+}
+
+
+function :node $new_token_node(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 32
+    %kind_ptr =l add %res, 8
+    %start_ptr =l add %res, 16
+    %end_ptr =l add %res, 24
+    storel 0, %res
+    storel %kind, %kind_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function :node $new_group_node(l %kind) {
+@start
+    %res =l alloc8 32
+    %group_kind =l add %res, 4
+    %vec =l call $new_vec(l 32)
+    %vec_ptr =l add %res, 8
+    blit %vec_ptr, %vec, 24
+    storew 1, %res
+    storew %kind, %res
+    ret %res
+}
+
+
+function :node $new_error_node() {
+@start
+    %res =l alloc8 32
+    %vec =l call $new_vec(l 24)
+    %vec_ptr =l add %res, 8
+    blit %vec_ptr, %vec, 24
+    storel 2, %res
+    ret %res
+}
+
+export function :vec $new_vec(l %item_size) {
+@start
+    %ptr_ptr =l alloc8 24
+    %len_ptr =l add %ptr_ptr, 8
+    %cap_ptr =l add %ptr_ptr, 16
+
+    %size =l mul %item_size, 4
+    %ptr =l call $malloc(l %size)
+
+    storel %ptr, %ptr_ptr
+    storel 0, %len_ptr
+    storel 4, %cap_ptr
+    ret %ptr_ptr
+}
+
+
+function :token $new_token(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 24
+    %start_ptr =l add %res, 8
+    %end_ptr =l add %res, 16
+    storel %kind, %res
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function w $push(l %vec, l %value_size, l %value_ptr) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %size =l mul %cap, %value_size
+    %new_ptr =l call $malloc(l %size)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    %size =l mul %len, %value_size
+    call $memcpy(l %new_ptr, l %ptr, l %size)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, %value_size
+    %item_ptr =l add %offset, %ptr
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    call $memcpy(l %item_ptr, l %value_ptr, l %value_size)
+    ret 1
+}
