@@ -172,20 +172,27 @@ function w $inc_offset() {{
                 write!(
                     f,
                     "
+
+data ${name}_token_name = {{ b \"{name}\", b 0 }}
+data ${name}_token_name_len = {{ l {name_len} }}
 data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
-"
+",
+                    name_len = name.len()
                 )
                 .unwrap();
                 token_def_ast.build_qbe(&mut state, f);
-                names.push(name);
+                names.push(name.as_str());
             }
             StmtAst::Keyword(kw_ast) => {
                 let name = &kw_ast.name().text;
                 write!(
                     f,
                     "
+data ${name}_token_name = {{ b \"{name}\", b 0 }}
+data ${name}_token_name_len = {{ l {name_len} }}
 data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
-"
+",
+                    name_len = name.len()
                 )
                 .unwrap();
                 kw_ast.build_qbe(&mut state, f);
@@ -195,6 +202,56 @@ data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
         };
     }
     println!("len: {}", names.len());
+    create_lex_function(f, &names);
+    create_name_function(f, &names);
+}
+
+fn create_name_function(f: &mut impl Write, names: &[&str]) {
+    write!(
+        f,
+        "
+data $err_token_name = {{ b \"ERROR\", b 0}}
+export function :str_slice $name(w %kind) {{"
+    )
+    .unwrap();
+    for (index, name) in names.iter().enumerate() {
+        let next = if index == names.len() - 1 {
+            "err"
+        } else {
+            names[index + 1]
+        };
+        write!(
+            f,
+            "
+@{name}
+    %ptr =l copy ${name}_token_name
+    %len =l copy {name_len}
+    %res =w ceqw %kind, {index}
+    jnz %res, @found, @{next}
+",
+            name_len = name.len()
+        )
+        .unwrap();
+    }
+    write!(
+        f,
+        "
+@err
+    %ptr =l copy $err_token_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}}"
+    )
+    .unwrap();
+}
+fn create_lex_function(f: &mut impl Write, names: &[&str]) {
     write!(
         f,
         "

@@ -1,3 +1,4 @@
+type :str_slice = { l 2 }
 type :vec = { l 3 }
 type :token = { l 3 }
 
@@ -6,12 +7,115 @@ type :node = { w 2, l 3 }
 # <stack: 3> <tokens: 3> <offset: 1>
 type :state = { l 3, l 3, l }
 
-function :vec $load_vec(l %addr) {
+function w $bump(l %state_ptr) {
 @start
-    ret %addr
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =l call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret 1
 }
 
+function l $last(l %vec_ptr, l %size) {
+@start
+    %ptr =l loadl %vec_ptr
 
+    %len_ptr =l add %vec_ptr, 8
+    %len =l loadl %len_ptr
+
+    %index =l sub %len, 1
+
+    %offset =l mul %index, %size
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+export function :state $default_state(l %ptr, l %len) {
+@start
+    %tokens =:vec call $lex(l %ptr, l %len)
+    %res =:state call $new_state(:vec %tokens)
+    ret %res
+}
+
+export function :state $test_state(l %ptr, l %len) {
+@start
+    %res =:state call $default_state(l %ptr, l %len)
+
+    call $bump(l %res)
+
+    ret %res
+}
+
+export function :node $test_node() {
+@start
+    call $printf(l $AHH)
+    %tok =:node call $new_token_node(l 1, l 2, l 3)
+    %vec =:vec call $new_vec(l 32)
+    %group =:node call $new_group_node(l 123)
+    %children_ptr =l add %group, 8
+    call $push(l %children_ptr, l 32, l %tok)
+    ret %group
+}
+
+function :state $new_state(:vec %tokens) {
+@start
+    %res =l alloc8 56
+    %stack_ptr =l add %res, 24
+    %offset_ptr =l add %res, 48
+
+    %group =:node call $new_group_node(l 0)
+    %stack =:vec call $new_vec(l 32)
+    call $push(l %stack, l 32, l %group)
+
+    blit %tokens, %res, 24
+    blit %stack, %stack_ptr, 24
+    storel 0, %offset_ptr
+
+    ret %res
+}
+
+data $debug_group = { b "Group { kind: %d, group_kind: %d, ptr: %d, len: %d, cap: %d, }", b 0 }
+
+function w $print_group(:node %group) {
+@start
+    %group_kind_ptr =l add %group, 4
+    %ptr_ptr =l add %group, 8
+    %len_ptr =l add %group, 16
+    %cap_ptr =l add %group, 24
+
+    %kind =l loadw %group
+    %group_kind =l loadw %group_kind_ptr
+    %ptr =l loadl %ptr_ptr
+    %len =l loadl %len_ptr
+    %cap =l loadl %cap_ptr
+    call $printf(l $debug_group, w %kind, w %group_kind, l %ptr, l %len, l %cap)
+    ret 1
+}
+
+function l $get(l %vec_ptr, l %size, l %index) {
+@start
+    %offset =l mul %size, %index
+    %item_ptr =l add %vec_ptr, %offset
+    ret %item_ptr
+}
+
+data $AHH = { b "AHHH", b 0 }
 function :node $new_token_node(l %kind, l %start, l %end) {
 @start
     %res =l alloc8 32
@@ -29,11 +133,12 @@ function :node $new_group_node(l %kind) {
 @start
     %res =l alloc8 32
     %group_kind =l add %res, 4
-    %vec =l call $new_vec(l 32)
+    %vec =:vec call $new_vec(l 32)
     %vec_ptr =l add %res, 8
-    blit %vec_ptr, %vec, 24
+    %group_kind_ptr =l add 4, %res
+    blit %vec, %vec_ptr, 24
     storew 1, %res
-    storew %kind, %res
+    storew %kind, %group_kind_ptr
     ret %res
 }
 
