@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 use crate::{
     api::ptr::{ParserCache, ParserIndex},

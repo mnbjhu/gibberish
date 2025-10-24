@@ -174,10 +174,8 @@ function w $inc_offset() {{
                     "
 
 data ${name}_token_name = {{ b \"{name}\", b 0 }}
-data ${name}_token_name_len = {{ l {name_len} }}
 data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
-",
-                    name_len = name.len()
+"
                 )
                 .unwrap();
                 token_def_ast.build_qbe(&mut state, f);

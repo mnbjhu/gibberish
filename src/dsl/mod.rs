@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub mod ast;
+pub mod build;
 pub mod highlight;
 pub mod lexer;
 pub mod lst;

@@ -7,6 +7,15 @@ type :node = { w 2, l 3 }
 # <stack: 3> <tokens: 3> <offset: 1>
 type :state = { l 3, l 3, l }
 
+function w $is_eof(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %tokens_len =l loadl %tokens_len_ptr
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %res =w ceql %current, %tokens_len
+}
 function w $bump(l %state_ptr) {
 @start
     %current_ptr =l add %state_ptr, 48
