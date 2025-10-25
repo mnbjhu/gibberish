@@ -1,0 +1,2060 @@
+type :str_slice = { l 2 }
+type :vec = { l 3 }
+type :token = { l 3 }
+
+type :node = { w 2, l 3 }
+
+# <stack: 3> <tokens: 3> <offset: 1>
+type :state = { l 3, l 3, l }
+
+function w $is_eof(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %tokens_len =l loadl %tokens_len_ptr
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %res =w ceql %current, %tokens_len
+    ret %res
+}
+
+
+export function w $bumpN(l %state_ptr, l %n) {
+@start
+    jmp @loop
+@loop
+    jnz %n, @iter, @ret
+@iter
+    %n =l sub %n, 1
+    call $bump(l %state_ptr)
+    jmp @loop
+@ret
+    ret 1
+}
+
+export function w $enter_group(l %state_ptr, w %group_kind) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %new =:node call $new_group_node(w %group_kind)
+    call $push(l %stack_ptr, l 32, l %new)
+    ret 1
+}
+
+export function w $exit_group(l %state_ptr) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+
+    %removed =l call $pop(l %stack_ptr, l 32)
+    %last =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %last, 8
+
+    call $push(l %children_ptr, l 32, l %removed)
+    ret 1
+}
+
+export function w $bump(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret 1
+}
+
+export function l $default_state_ptr(l %ptr, l %len) {
+@start
+    %ptr =:state call $default_state(l %ptr, l %len)
+    %res =l call $malloc(l 56)
+    call $memcpy(l %res, l %ptr, l 56)
+    ret %res
+}
+
+export function :state $get_state(l %ptr) {
+@start
+    %state =l alloc8 56
+    blit %ptr, %state, 56
+    ret %state
+}
+
+function l $last(l %vec_ptr, l %size) {
+@start
+    %ptr =l loadl %vec_ptr
+
+    %len_ptr =l add %vec_ptr, 8
+    %len =l loadl %len_ptr
+
+    %index =l sub %len, 1
+
+    %offset =l mul %index, %size
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+export function :state $default_state(l %ptr, l %len) {
+@start
+    %tokens =:vec call $lex(l %ptr, l %len)
+    %res =:state call $new_state(:vec %tokens)
+    ret %res
+}
+
+export function :state $test_state(l %ptr, l %len) {
+@start
+    %state_ptr =:state call $default_state(l %ptr, l %len)
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret %state_ptr
+}
+
+export function :node $test_node() {
+@start
+    call $printf(l $AHH)
+    %tok =:node call $new_token_node(l 1, l 2, l 3)
+    %vec =:vec call $new_vec(l 32)
+    %group =:node call $new_group_node(w 123)
+    %children_ptr =l add %group, 8
+    call $push(l %children_ptr, l 32, l %tok)
+    ret %group
+}
+
+function :state $new_state(:vec %tokens) {
+@start
+    %res =l alloc8 56
+    %stack_ptr =l add %res, 24
+    %offset_ptr =l add %res, 48
+
+    %group =:node call $new_group_node(w 0)
+    %stack =:vec call $new_vec(l 32)
+    call $push(l %stack, l 32, l %group)
+
+    blit %tokens, %res, 24
+    blit %stack, %stack_ptr, 24
+    storel 0, %offset_ptr
+
+    ret %res
+}
+
+data $debug_group = { b "Group { kind: %d, group_kind: %d, ptr: %d, len: %d, cap: %d, }", b 0 }
+
+function w $print_group(:node %group) {
+@start
+    %group_kind_ptr =l add %group, 4
+    %ptr_ptr =l add %group, 8
+    %len_ptr =l add %group, 16
+    %cap_ptr =l add %group, 24
+
+    %kind =l loadw %group
+    %group_kind =l loadw %group_kind_ptr
+    %ptr =l loadl %ptr_ptr
+    %len =l loadl %len_ptr
+    %cap =l loadl %cap_ptr
+    call $printf(l $debug_group, w %kind, w %group_kind, l %ptr, l %len, l %cap)
+    ret 1
+}
+
+export function l $get(l %vec_ptr, l %size, l %index) {
+@start
+    %ptr =l loadl %vec_ptr
+    %offset =l mul %size, %index
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+data $AHH = { b "AHHH", b 0 }
+function :node $new_token_node(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 32
+    %kind_ptr =l add %res, 8
+    %start_ptr =l add %res, 16
+    %end_ptr =l add %res, 24
+    storel 0, %res
+    storel %kind, %kind_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function :node $new_group_node(w %kind) {
+@start
+    %res =l alloc8 32
+    %group_kind =l add %res, 4
+    %vec =:vec call $new_vec(l 32)
+    %vec_ptr =l add %res, 8
+    %group_kind_ptr =l add 4, %res
+    blit %vec, %vec_ptr, 24
+    storew 1, %res
+    storew %kind, %group_kind_ptr
+    ret %res
+}
+
+
+function :node $new_error_node() {
+@start
+    %res =l alloc8 32
+    %vec =l call $new_vec(l 24)
+    %vec_ptr =l add %res, 8
+    blit %vec_ptr, %vec, 24
+    storel 2, %res
+    ret %res
+}
+
+export function :vec $new_vec(l %item_size) {
+@start
+    %ptr_ptr =l alloc8 24
+    %len_ptr =l add %ptr_ptr, 8
+    %cap_ptr =l add %ptr_ptr, 16
+
+    %size =l mul %item_size, 4
+    %ptr =l call $malloc(l %size)
+
+    storel %ptr, %ptr_ptr
+    storel 0, %len_ptr
+    storel 4, %cap_ptr
+    ret %ptr_ptr
+}
+
+
+function :token $new_token(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 24
+    %start_ptr =l add %res, 8
+    %end_ptr =l add %res, 16
+    storel %kind, %res
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function l $pop(l %vec, l %value_size) {
+@start
+  %len_ptr =l add %vec, 8
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+
+  %len =l sub %len, 1
+  storel %len, %len_ptr
+
+  %offset =l mul %len, %value_size
+  %item_ptr =l add %offset, %ptr
+  ret %item_ptr
+}
+
+function w $push(l %vec, l %value_size, l %value_ptr) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %size =l mul %cap, %value_size
+    %new_ptr =l call $malloc(l %size)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    %size =l mul %len, %value_size
+    call $memcpy(l %new_ptr, l %ptr, l %size)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, %value_size
+    %item_ptr =l add %offset, %ptr
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    call $memcpy(l %item_ptr, l %value_ptr, l %value_size)
+    ret 1
+}
+
+
+data $error_token = { b "ERROR\n", b 0 }
+data $offset_ptr = { l 0 }
+data $group_end = { l 0 }
+
+function w $cmp_current(l %ptr, l %len, w %char) {
+@start
+    %offset =l loadl $offset_ptr
+    %actual_offset =l add %ptr, %offset
+    %current =w loadub %actual_offset
+    %res =w ceqw %current, %char
+    ret %res
+}
+
+function w $inc_offset() {
+@start
+    %offset =l loadl $offset_ptr
+    %offset =l add %offset, 1
+    storel %offset, $offset_ptr
+    ret 0
+}
+
+
+data $select_token_name = { b "select", b 0 }
+data $select_token_name_len = { l 6 }
+data $lex_select_text = { b "select %d\n", b 0 }
+
+function l $lex_2 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 115)
+    call $inc_offset()
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $cmp_current(l %ptr, l %len, w 101)
+    call $inc_offset()
+    jnz %res, @part_2, @fail
+
+@part_2
+    %res =w call $cmp_current(l %ptr, l %len, w 108)
+    call $inc_offset()
+    jnz %res, @part_3, @fail
+
+@part_3
+    %res =w call $cmp_current(l %ptr, l %len, w 101)
+    call $inc_offset()
+    jnz %res, @part_4, @fail
+
+@part_4
+    %res =w call $cmp_current(l %ptr, l %len, w 99)
+    call $inc_offset()
+    jnz %res, @part_5, @fail
+
+@part_5
+    %res =w call $cmp_current(l %ptr, l %len, w 116)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_1 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, $offset_ptr
+    %res =w call $lex_2(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    %offset =l loadl $offset_ptr
+    storel %offset, $group_end
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+
+function w $lex_4(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 97
+    %upper =w culew %current, 122
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_5(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 65
+    %upper =w culew %current, 90
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_6(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 48
+    %upper =w culew %current, 57
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function w $lex_7(l %ptr, l %len) {
+@start
+    %res =w call $cmp_current(l %ptr, l %len, w 95)
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_3 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @option_0
+
+@option_0
+    %res =w call $lex_4(l %ptr, l %len)
+    jnz %res, @fail, @option_1
+
+@option_1
+    %res =w call $lex_5(l %ptr, l %len)
+    jnz %res, @fail, @option_2
+
+@option_2
+    %res =w call $lex_6(l %ptr, l %len)
+    jnz %res, @fail, @option_3
+
+@option_3
+    %res =w call $lex_7(l %ptr, l %len)
+    jnz %res, @fail, @pass
+
+@pass
+    call $inc_offset()
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_0 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_1(l %ptr, l %len)
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $lex_3(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_select (l %ptr, l %len) {
+@start
+    %res =w call $lex_0(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+data $from_token_name = { b "from", b 0 }
+data $from_token_name_len = { l 4 }
+data $lex_from_text = { b "from %d\n", b 0 }
+
+function l $lex_10 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 102)
+    call $inc_offset()
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $cmp_current(l %ptr, l %len, w 114)
+    call $inc_offset()
+    jnz %res, @part_2, @fail
+
+@part_2
+    %res =w call $cmp_current(l %ptr, l %len, w 111)
+    call $inc_offset()
+    jnz %res, @part_3, @fail
+
+@part_3
+    %res =w call $cmp_current(l %ptr, l %len, w 109)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_9 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, $offset_ptr
+    %res =w call $lex_10(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    %offset =l loadl $offset_ptr
+    storel %offset, $group_end
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+
+function w $lex_12(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 97
+    %upper =w culew %current, 122
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_13(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 65
+    %upper =w culew %current, 90
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_14(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 48
+    %upper =w culew %current, 57
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function w $lex_15(l %ptr, l %len) {
+@start
+    %res =w call $cmp_current(l %ptr, l %len, w 95)
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_11 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @option_0
+
+@option_0
+    %res =w call $lex_12(l %ptr, l %len)
+    jnz %res, @fail, @option_1
+
+@option_1
+    %res =w call $lex_13(l %ptr, l %len)
+    jnz %res, @fail, @option_2
+
+@option_2
+    %res =w call $lex_14(l %ptr, l %len)
+    jnz %res, @fail, @option_3
+
+@option_3
+    %res =w call $lex_15(l %ptr, l %len)
+    jnz %res, @fail, @pass
+
+@pass
+    call $inc_offset()
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_8 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_9(l %ptr, l %len)
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $lex_11(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_from (l %ptr, l %len) {
+@start
+    %res =w call $lex_8(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+data $delete_token_name = { b "delete", b 0 }
+data $delete_token_name_len = { l 6 }
+data $lex_delete_text = { b "delete %d\n", b 0 }
+
+function l $lex_18 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 100)
+    call $inc_offset()
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $cmp_current(l %ptr, l %len, w 101)
+    call $inc_offset()
+    jnz %res, @part_2, @fail
+
+@part_2
+    %res =w call $cmp_current(l %ptr, l %len, w 108)
+    call $inc_offset()
+    jnz %res, @part_3, @fail
+
+@part_3
+    %res =w call $cmp_current(l %ptr, l %len, w 101)
+    call $inc_offset()
+    jnz %res, @part_4, @fail
+
+@part_4
+    %res =w call $cmp_current(l %ptr, l %len, w 116)
+    call $inc_offset()
+    jnz %res, @part_5, @fail
+
+@part_5
+    %res =w call $cmp_current(l %ptr, l %len, w 101)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_17 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, $offset_ptr
+    %res =w call $lex_18(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    %offset =l loadl $offset_ptr
+    storel %offset, $group_end
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+
+function w $lex_20(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 97
+    %upper =w culew %current, 122
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_21(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 65
+    %upper =w culew %current, 90
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_22(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 48
+    %upper =w culew %current, 57
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function w $lex_23(l %ptr, l %len) {
+@start
+    %res =w call $cmp_current(l %ptr, l %len, w 95)
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_19 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @option_0
+
+@option_0
+    %res =w call $lex_20(l %ptr, l %len)
+    jnz %res, @fail, @option_1
+
+@option_1
+    %res =w call $lex_21(l %ptr, l %len)
+    jnz %res, @fail, @option_2
+
+@option_2
+    %res =w call $lex_22(l %ptr, l %len)
+    jnz %res, @fail, @option_3
+
+@option_3
+    %res =w call $lex_23(l %ptr, l %len)
+    jnz %res, @fail, @pass
+
+@pass
+    call $inc_offset()
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_16 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_17(l %ptr, l %len)
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $lex_19(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_delete (l %ptr, l %len) {
+@start
+    %res =w call $lex_16(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $NUM_token_name = { b "NUM", b 0 }
+data $lex_NUM_text = { b "NUM %d\n", b 0 }
+
+
+function w $lex_26(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 48
+    %upper =w culew %current, 57
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_25 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, $offset_ptr
+    %res =w call $lex_26(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+
+function w $lex_27 (l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
+    %res =w call $lex_25(l %ptr, l %len)
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_25(l %ptr, l %len)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_24 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_27(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_NUM (l %ptr, l %len) {
+@start
+    %res =w call $lex_24(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $STR_token_name = { b "STR", b 0 }
+data $lex_STR_text = { b "STR %d\n", b 0 }
+
+function l $lex_29 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 34)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function w $lex_31(l %ptr, l %len) {
+@start
+    %res =w call $cmp_current(l %ptr, l %len, w 34)
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_30 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @option_0
+
+@option_0
+    %res =w call $lex_31(l %ptr, l %len)
+    jnz %res, @fail, @pass
+
+@pass
+    call $inc_offset()
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function w $lex_32 (l %ptr, l %len) {
+@start
+    jmp @loop
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_30(l %ptr, l %len)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+}
+
+function l $lex_33 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 34)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_28 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_29(l %ptr, l %len)
+    jnz %res, @part_1, @fail
+
+@part_1
+    %res =w call $lex_32(l %ptr, l %len)
+    jnz %res, @part_2, @fail
+
+@part_2
+    %res =w call $lex_33(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_STR (l %ptr, l %len) {
+@start
+    %res =w call $lex_28(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $WHITESPACE_token_name = { b "WHITESPACE", b 0 }
+data $lex_WHITESPACE_text = { b "WHITESPACE %d\n", b 0 }
+
+
+function w $lex_35 (l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %space =w ceqw %current, 32
+    %lower =w cugew %current, 9
+    %upper =w culew %current, 13
+    %res =w and %lower, %upper
+    %res =w or %res, %space
+    jnz %res, @pass, @fail
+@fail
+    ret 0
+@pass
+    call $inc_offset()
+    ret 1
+}
+
+
+function w $lex_36 (l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
+    %res =w call $lex_35(l %ptr, l %len)
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_35(l %ptr, l %len)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_34 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_36(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_WHITESPACE (l %ptr, l %len) {
+@start
+    %res =w call $lex_34(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $IDENT_token_name = { b "IDENT", b 0 }
+data $lex_IDENT_text = { b "IDENT %d\n", b 0 }
+
+function w $lex_39(l %ptr, l %len) {
+@start
+    %res =w call $cmp_current(l %ptr, l %len, w 95)
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_40(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 97
+    %upper =w culew %current, 122
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+
+function w $lex_41(l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 65
+    %upper =w culew %current, 90
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset()
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_38 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, $offset_ptr
+    %res =w call $lex_39(l %ptr, l %len)
+    jnz %res, @pass, @part_1
+
+@part_1
+    storel %start, $offset_ptr
+    %res =w call $lex_40(l %ptr, l %len)
+    jnz %res, @pass, @part_2
+
+@part_2
+    storel %start, $offset_ptr
+    %res =w call $lex_41(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+
+function w $lex_42 (l %ptr, l %len) {
+@start
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
+    %res =w call $lex_38(l %ptr, l %len)
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_38(l %ptr, l %len)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+@fail
+    ret 0
+}
+
+function l $lex_37 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_42(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_IDENT (l %ptr, l %len) {
+@start
+    %res =w call $lex_37(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $COLON_token_name = { b "COLON", b 0 }
+data $lex_COLON_text = { b "COLON %d\n", b 0 }
+
+function l $lex_44 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 58)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_43 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_44(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_COLON (l %ptr, l %len) {
+@start
+    %res =w call $lex_43(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $COMMA_token_name = { b "COMMA", b 0 }
+data $lex_COMMA_text = { b "COMMA %d\n", b 0 }
+
+function l $lex_46 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 44)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_45 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_46(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_COMMA (l %ptr, l %len) {
+@start
+    %res =w call $lex_45(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $SEMI_token_name = { b "SEMI", b 0 }
+data $lex_SEMI_text = { b "SEMI %d\n", b 0 }
+
+function l $lex_48 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 59)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_47 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_48(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_SEMI (l %ptr, l %len) {
+@start
+    %res =w call $lex_47(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $PLUS_token_name = { b "PLUS", b 0 }
+data $lex_PLUS_text = { b "PLUS %d\n", b 0 }
+
+function l $lex_50 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 43)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_49 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_50(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_PLUS (l %ptr, l %len) {
+@start
+    %res =w call $lex_49(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $TIMES_token_name = { b "TIMES", b 0 }
+data $lex_TIMES_text = { b "TIMES %d\n", b 0 }
+
+function l $lex_52 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 42)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_51 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_52(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_TIMES (l %ptr, l %len) {
+@start
+    %res =w call $lex_51(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $LParen_token_name = { b "LParen", b 0 }
+data $lex_LParen_text = { b "LParen %d\n", b 0 }
+
+function l $lex_54 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 40)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_53 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_54(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_LParen (l %ptr, l %len) {
+@start
+    %res =w call $lex_53(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+data $RParen_token_name = { b "RParen", b 0 }
+data $lex_RParen_text = { b "RParen %d\n", b 0 }
+
+function l $lex_56 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %ptr, l %len, w 41)
+    call $inc_offset()
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_55 (l %ptr, l %len) {
+@start
+    %start =l loadl $offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_56(l %ptr, l %len)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, $offset_ptr
+    ret 0
+}
+
+function l $lex_RParen (l %ptr, l %len) {
+@start
+    %res =w call $lex_55(l %ptr, l %len)
+    jnz %res, @pass, @fail
+@pass
+    %group =l loadl $group_end
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset =l loadl $offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+export function :vec $lex(l %ptr, l %len) {
+@start
+    %tokens =:vec call $new_vec(l 24)
+    %total_offset =l copy 0
+    jmp @loop
+@loop
+    %offset =l loadl $offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @end, @check_select
+
+@check_select
+    %res =l call $lex_select(l %ptr, l %len)
+    jnz %res, @bump_select, @check_from
+@bump_select
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 0, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_from
+    %res =l call $lex_from(l %ptr, l %len)
+    jnz %res, @bump_from, @check_delete
+@bump_from
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 1, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_delete
+    %res =l call $lex_delete(l %ptr, l %len)
+    jnz %res, @bump_delete, @check_NUM
+@bump_delete
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 2, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_NUM
+    %res =l call $lex_NUM(l %ptr, l %len)
+    jnz %res, @bump_NUM, @check_STR
+@bump_NUM
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 3, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_STR
+    %res =l call $lex_STR(l %ptr, l %len)
+    jnz %res, @bump_STR, @check_WHITESPACE
+@bump_STR
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 4, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_WHITESPACE
+    %res =l call $lex_WHITESPACE(l %ptr, l %len)
+    jnz %res, @bump_WHITESPACE, @check_IDENT
+@bump_WHITESPACE
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 5, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_IDENT
+    %res =l call $lex_IDENT(l %ptr, l %len)
+    jnz %res, @bump_IDENT, @check_COLON
+@bump_IDENT
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 6, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_COLON
+    %res =l call $lex_COLON(l %ptr, l %len)
+    jnz %res, @bump_COLON, @check_COMMA
+@bump_COLON
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 7, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_COMMA
+    %res =l call $lex_COMMA(l %ptr, l %len)
+    jnz %res, @bump_COMMA, @check_SEMI
+@bump_COMMA
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 8, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_SEMI
+    %res =l call $lex_SEMI(l %ptr, l %len)
+    jnz %res, @bump_SEMI, @check_PLUS
+@bump_SEMI
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 9, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_PLUS
+    %res =l call $lex_PLUS(l %ptr, l %len)
+    jnz %res, @bump_PLUS, @check_TIMES
+@bump_PLUS
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 10, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_TIMES
+    %res =l call $lex_TIMES(l %ptr, l %len)
+    jnz %res, @bump_TIMES, @check_LParen
+@bump_TIMES
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 11, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_LParen
+    %res =l call $lex_LParen(l %ptr, l %len)
+    jnz %res, @bump_LParen, @check_RParen
+@bump_LParen
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 12, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+@check_RParen
+    %res =l call $lex_RParen(l %ptr, l %len)
+    jnz %res, @bump_RParen, @fail
+@bump_RParen
+    %offset =l loadl $offset_ptr
+    %end =l add %total_offset, %offset
+    %tok =:token call $new_token(l 13, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel 0, $offset_ptr
+    storel 0, $group_end
+    jmp @loop
+
+
+@fail
+    call $printf(l $error_token)
+    %end =l add %total_offset, 1
+    %tok =:token call $new_token(l 14, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, 1
+    %len =l sub %len, 1
+    storel 0, $offset_ptr
+    storel 0, $group_end
+@end
+    ret %tokens
+}
+
+data $err_token_name = { b "ERROR", b 0}
+export function :str_slice $name(w %kind) {
+@select
+    %ptr =l copy $select_token_name
+    %len =l copy 6
+    %res =w ceqw %kind, 0
+    jnz %res, @found, @from
+
+@from
+    %ptr =l copy $from_token_name
+    %len =l copy 4
+    %res =w ceqw %kind, 1
+    jnz %res, @found, @delete
+
+@delete
+    %ptr =l copy $delete_token_name
+    %len =l copy 6
+    %res =w ceqw %kind, 2
+    jnz %res, @found, @NUM
+
+@NUM
+    %ptr =l copy $NUM_token_name
+    %len =l copy 3
+    %res =w ceqw %kind, 3
+    jnz %res, @found, @STR
+
+@STR
+    %ptr =l copy $STR_token_name
+    %len =l copy 3
+    %res =w ceqw %kind, 4
+    jnz %res, @found, @WHITESPACE
+
+@WHITESPACE
+    %ptr =l copy $WHITESPACE_token_name
+    %len =l copy 10
+    %res =w ceqw %kind, 5
+    jnz %res, @found, @IDENT
+
+@IDENT
+    %ptr =l copy $IDENT_token_name
+    %len =l copy 5
+    %res =w ceqw %kind, 6
+    jnz %res, @found, @COLON
+
+@COLON
+    %ptr =l copy $COLON_token_name
+    %len =l copy 5
+    %res =w ceqw %kind, 7
+    jnz %res, @found, @COMMA
+
+@COMMA
+    %ptr =l copy $COMMA_token_name
+    %len =l copy 5
+    %res =w ceqw %kind, 8
+    jnz %res, @found, @SEMI
+
+@SEMI
+    %ptr =l copy $SEMI_token_name
+    %len =l copy 4
+    %res =w ceqw %kind, 9
+    jnz %res, @found, @PLUS
+
+@PLUS
+    %ptr =l copy $PLUS_token_name
+    %len =l copy 4
+    %res =w ceqw %kind, 10
+    jnz %res, @found, @TIMES
+
+@TIMES
+    %ptr =l copy $TIMES_token_name
+    %len =l copy 5
+    %res =w ceqw %kind, 11
+    jnz %res, @found, @LParen
+
+@LParen
+    %ptr =l copy $LParen_token_name
+    %len =l copy 6
+    %res =w ceqw %kind, 12
+    jnz %res, @found, @RParen
+
+@RParen
+    %ptr =l copy $RParen_token_name
+    %len =l copy 6
+    %res =w ceqw %kind, 13
+    jnz %res, @found, @err
+
+@err
+    %ptr =l copy $err_token_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}

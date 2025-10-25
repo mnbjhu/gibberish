@@ -1,0 +1,312 @@
+type :str_slice = { l 2 }
+type :vec = { l 3 }
+type :token = { l 3 }
+
+type :node = { w 2, l 3 }
+
+# <stack: 3> <tokens: 3> <offset: 1>
+type :state = { l 3, l 3, l }
+
+function w $is_eof(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %tokens_len =l loadl %tokens_len_ptr
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %res =w ceql %current, %tokens_len
+    ret %res
+}
+
+
+export function w $bumpN(l %state_ptr, l %n) {
+@start
+    jmp @loop
+@loop
+    jnz %n, @iter, @ret
+@iter
+    %n =l sub %n, 1
+    call $bump(l %state_ptr)
+    jmp @loop
+@ret
+    ret 1
+}
+
+export function w $enter_group(l %state_ptr, w %group_kind) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %new =:node call $new_group_node(w %group_kind)
+    call $push(l %stack_ptr, l 32, l %new)
+    ret 1
+}
+
+export function w $exit_group(l %state_ptr) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+
+    %removed =l call $pop(l %stack_ptr, l 32)
+    %last =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %last, 8
+
+    call $push(l %children_ptr, l 32, l %removed)
+    ret 1
+}
+
+export function w $bump(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret 1
+}
+
+export function l $default_state_ptr(l %ptr, l %len) {
+@start
+    %ptr =:state call $default_state(l %ptr, l %len)
+    %res =l call $malloc(l 56)
+    call $memcpy(l %res, l %ptr, l 56)
+    ret %res
+}
+
+export function :state $get_state(l %ptr) {
+@start
+    %state =l alloc8 56
+    blit %ptr, %state, 56
+    ret %state
+}
+
+function l $last(l %vec_ptr, l %size) {
+@start
+    %ptr =l loadl %vec_ptr
+
+    %len_ptr =l add %vec_ptr, 8
+    %len =l loadl %len_ptr
+
+    %index =l sub %len, 1
+
+    %offset =l mul %index, %size
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+export function :state $default_state(l %ptr, l %len) {
+@start
+    %tokens =:vec call $lex(l %ptr, l %len)
+    %res =:state call $new_state(:vec %tokens)
+    ret %res
+}
+
+export function :state $test_state(l %ptr, l %len) {
+@start
+    %state_ptr =:state call $default_state(l %ptr, l %len)
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret %state_ptr
+}
+
+export function :node $test_node() {
+@start
+    call $printf(l $AHH)
+    %tok =:node call $new_token_node(l 1, l 2, l 3)
+    %vec =:vec call $new_vec(l 32)
+    %group =:node call $new_group_node(w 123)
+    %children_ptr =l add %group, 8
+    call $push(l %children_ptr, l 32, l %tok)
+    ret %group
+}
+
+function :state $new_state(:vec %tokens) {
+@start
+    %res =l alloc8 56
+    %stack_ptr =l add %res, 24
+    %offset_ptr =l add %res, 48
+
+    %group =:node call $new_group_node(w 0)
+    %stack =:vec call $new_vec(l 32)
+    call $push(l %stack, l 32, l %group)
+
+    blit %tokens, %res, 24
+    blit %stack, %stack_ptr, 24
+    storel 0, %offset_ptr
+
+    ret %res
+}
+
+data $debug_group = { b "Group { kind: %d, group_kind: %d, ptr: %d, len: %d, cap: %d, }", b 0 }
+
+function w $print_group(:node %group) {
+@start
+    %group_kind_ptr =l add %group, 4
+    %ptr_ptr =l add %group, 8
+    %len_ptr =l add %group, 16
+    %cap_ptr =l add %group, 24
+
+    %kind =l loadw %group
+    %group_kind =l loadw %group_kind_ptr
+    %ptr =l loadl %ptr_ptr
+    %len =l loadl %len_ptr
+    %cap =l loadl %cap_ptr
+    call $printf(l $debug_group, w %kind, w %group_kind, l %ptr, l %len, l %cap)
+    ret 1
+}
+
+export function l $get(l %vec_ptr, l %size, l %index) {
+@start
+    %ptr =l loadl %vec_ptr
+    %offset =l mul %size, %index
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+data $AHH = { b "AHHH", b 0 }
+function :node $new_token_node(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 32
+    %kind_ptr =l add %res, 8
+    %start_ptr =l add %res, 16
+    %end_ptr =l add %res, 24
+    storel 0, %res
+    storel %kind, %kind_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function :node $new_group_node(w %kind) {
+@start
+    %res =l alloc8 32
+    %group_kind =l add %res, 4
+    %vec =:vec call $new_vec(l 32)
+    %vec_ptr =l add %res, 8
+    %group_kind_ptr =l add 4, %res
+    blit %vec, %vec_ptr, 24
+    storew 1, %res
+    storew %kind, %group_kind_ptr
+    ret %res
+}
+
+
+function :node $new_error_node() {
+@start
+    %res =l alloc8 32
+    %vec =l call $new_vec(l 24)
+    %vec_ptr =l add %res, 8
+    blit %vec_ptr, %vec, 24
+    storel 2, %res
+    ret %res
+}
+
+export function :vec $new_vec(l %item_size) {
+@start
+    %ptr_ptr =l alloc8 24
+    %len_ptr =l add %ptr_ptr, 8
+    %cap_ptr =l add %ptr_ptr, 16
+
+    %size =l mul %item_size, 4
+    %ptr =l call $malloc(l %size)
+
+    storel %ptr, %ptr_ptr
+    storel 0, %len_ptr
+    storel 4, %cap_ptr
+    ret %ptr_ptr
+}
+
+
+function :token $new_token(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 24
+    %start_ptr =l add %res, 8
+    %end_ptr =l add %res, 16
+    storel %kind, %res
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+function l $pop(l %vec, l %value_size) {
+@start
+  %len_ptr =l add %vec, 8
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+
+  %len =l sub %len, 1
+  storel %len, %len_ptr
+
+  %offset =l mul %len, %value_size
+  %item_ptr =l add %offset, %ptr
+  ret %item_ptr
+}
+
+function w $push(l %vec, l %value_size, l %value_ptr) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %size =l mul %cap, %value_size
+    %new_ptr =l call $malloc(l %size)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    %size =l mul %len, %value_size
+    call $memcpy(l %new_ptr, l %ptr, l %size)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, %value_size
+    %item_ptr =l add %offset, %ptr
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    call $memcpy(l %item_ptr, l %value_ptr, l %value_size)
+    ret 1
+}
