@@ -139,7 +139,6 @@ pub fn build_lexer_qbe<'a>(ast: RootAst<'a>, src: &str, filename: &str, f: &mut 
         f,
         "
 
-data $error_token = {{ b \"ERROR\\n\", b 0 }}
 data $offset_ptr = {{ l 0 }}
 data $group_end = {{ l 0 }}
 
@@ -169,30 +168,11 @@ function w $inc_offset() {{
         match stmt {
             StmtAst::Token(token_def_ast) => {
                 let name = &token_def_ast.name().text;
-                write!(
-                    f,
-                    "
-
-data ${name}_token_name = {{ b \"{name}\", b 0 }}
-data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
-"
-                )
-                .unwrap();
                 token_def_ast.build_qbe(&mut state, f);
                 names.push(name.as_str());
             }
             StmtAst::Keyword(kw_ast) => {
                 let name = &kw_ast.name().text;
-                write!(
-                    f,
-                    "
-data ${name}_token_name = {{ b \"{name}\", b 0 }}
-data ${name}_token_name_len = {{ l {name_len} }}
-data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
-",
-                    name_len = name.len()
-                )
-                .unwrap();
                 kw_ast.build_qbe(&mut state, f);
                 names.push(name);
             }
@@ -201,15 +181,28 @@ data $lex_{name}_text = {{ b \"{name} %d\\n\", b 0 }}
     }
     println!("len: {}", names.len());
     create_lex_function(f, &names);
-    create_name_function(f, &names);
+    create_name_function(f, "token", &names);
 }
 
-fn create_name_function(f: &mut impl Write, names: &[&str]) {
+pub fn create_name_function(f: &mut impl Write, kind: &str, names: &[&str]) {
+    for name in names {
+        write!(
+            f,
+            "
+data ${name}_{kind}_name = {{ b \"{name}\", b 0 }}
+data ${name}_{kind}_name_len = {{ l {name_len} }}
+",
+            name_len = name.len()
+        )
+        .unwrap();
+    }
     write!(
         f,
         "
-data $err_token_name = {{ b \"ERROR\", b 0}}
-export function :str_slice $name(w %kind) {{"
+data $err_{kind}_name = {{ b \"{kind}_error\", b 0}}
+
+
+export function :str_slice ${kind}_name(w %kind) {{"
     )
     .unwrap();
     for (index, name) in names.iter().enumerate() {
@@ -222,7 +215,7 @@ export function :str_slice $name(w %kind) {{"
             f,
             "
 @{name}
-    %ptr =l copy ${name}_token_name
+    %ptr =l copy ${name}_{kind}_name
     %len =l copy {name_len}
     %res =w ceqw %kind, {index}
     jnz %res, @found, @{next}
@@ -235,7 +228,7 @@ export function :str_slice $name(w %kind) {{"
         f,
         "
 @err
-    %ptr =l copy $err_token_name
+    %ptr =l copy $err_{kind}_name
     %len =l copy 5
     jmp @found
 @found
@@ -299,7 +292,6 @@ export function :vec $lex(l %ptr, l %len) {{
         "
 
 @fail
-    call $printf(l $error_token)
     %end =l add %total_offset, 1
     %tok =:token call $new_token(l {error_index}, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)

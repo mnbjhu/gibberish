@@ -4,8 +4,25 @@ type :token = { l 3 }
 
 type :node = { w 2, l 3 }
 
-# <stack: 3> <tokens: 3> <offset: 1>
-type :state = { l 3, l 3, l }
+data $match_just = { b "Matched just %d\n", b 0 }
+data $eof_just = { b "Eof just %d\n", b 0 }
+data $skipped_just = { b "Skipped just %d\n", b 0 }
+data $break_just = { b "Break just %d\n", b 0 }
+data $err_just = { b "Err just %d\n", b 0 }
+
+
+# <stack: 3> <tokens: 3> <offset: 1> <delim_stack: 3> <skip: 3>
+type :state = { l 3, l 3, l, l 3, l 3 }
+
+export function :vec $test_vec_contains() {
+@start
+    %vec =:vec call $new_vec(l 8)
+    call $push_long(l %vec, l 0)
+    call $push_long(l %vec, l 1)
+    call $push_long(l %vec, l 2)
+    #%res =l call $contains_long(l %vec, l 1)
+    ret %vec
+}
 
 function w $is_eof(l %state_ptr) {
 @start
@@ -18,6 +35,91 @@ function w $is_eof(l %state_ptr) {
     ret %res
 }
 
+data $skipping_token = { b "Skipping token %u\n", b 0 }
+
+function w $skip(l %state_ptr, l %token_kind) {
+@start
+    %skip_ptr =l add %state_ptr, 80
+    %already =l call $contains_long(l %skip_ptr, l %token_kind)
+    jnz %already, @already, @push
+@already
+    ret 0
+@push
+    call $push_long(l %skip_ptr, l %token_kind)
+    ret 1
+}
+
+function w $unskip(l %state_ptr, l %token_kind) {
+@start
+    %skip_ptr =l add %state_ptr, 80
+    %already =l call $contains_long(l %skip_ptr, l %token_kind)
+    jnz %already, @already, @remove
+@already
+    ret 0
+@remove
+    %index =l sub %already, 1
+    call $remove_long(l %skip_ptr, l %index)
+    ret 1
+}
+
+function w $remove_long(l %vec, l %index) {
+@start
+    %len_ptr =l add %vec, 8
+    %len =l loadl %len_ptr
+    %end =l mul %len, 8
+    %offset =l mul %index, 8
+    %after =l add %index, 8
+    %cpy_size =l sub %end, %after
+    call $memcpy(l %offset, l %after, l %cpy_size)
+    %len =l sub %len, 1
+    storel %len, %len_ptr
+    ret 1
+}
+
+data $checking_skipped = { b "Checking %u == %u\n" ,b 0}
+data $found_skipped = { b "Found %d\n" ,b 0}
+data $info_msg = {b "Checking contains long for arr %u, len: %u\n"}
+
+function l $contains_long(l %vec, l %value) {
+@start
+    %ptr =l loadl %vec
+    %len_ptr =l add %vec, 8
+    %len =l loadl %len_ptr
+    %index =l copy 0
+    %item_ptr =l loadl %vec
+    jnz %len, @loop, @false
+@loop
+    %item =l loadl %item_ptr
+    %found =l ceql %item, %value
+    jnz %found, @true, @iter
+@iter
+    %index =l add %index, 1
+    %item_ptr =l add %item_ptr, 8
+    %is_end =l ceql %index, %len
+    jnz %is_end, @false, @loop
+@false
+    ret 0
+@true
+    %res =l add %index, 1
+    ret %res
+}
+
+function l $push_delim(l %state_ptr, l %delim) {
+@start
+    %delim_stack_ptr =l add %state_ptr, 56
+    call $push_long(l %delim_stack_ptr, l %delim)
+    %delim_len_ptr =l add %delim_stack_ptr, 8
+    %delim_len =l loadl %delim_len_ptr
+    %res =l add 3, %delim_len
+    ret %res
+}
+
+function w $pop_delim(l %state_ptr) {
+@start
+    %delim_stack_ptr =l add %state_ptr, 56
+    call $pop(l %delim_stack_ptr, l 8)
+    ret 1
+}
 
 export function w $bumpN(l %state_ptr, l %n) {
 @start
@@ -38,6 +140,52 @@ export function w $enter_group(l %state_ptr, w %group_kind) {
     %new =:node call $new_group_node(w %group_kind)
     call $push(l %stack_ptr, l 32, l %new)
     ret 1
+}
+
+function l $current_kind(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %token_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %token =l loadl %token_ptr
+    ret %token
+}
+
+export function l $kind_at_offset(l %state_ptr, l %offset) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %at_offset =l add %current, %offset
+    %token_ptr =l call $get(l %state_ptr, l 24, l %at_offset)
+    %token =l loadl %token_ptr
+    ret %token
+}
+
+data $skipped_msg = { b "SKIPPED\n", b 0}
+function l $after_skipped(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %current_ptr =l add %state_ptr, 48
+
+    %current =l loadl %current_ptr
+    %len =l loadl %tokens_len_ptr
+
+    %offset =l copy 0
+    %skip_ptr =l add %state_ptr, 80
+@check_eof
+    %index =l add %offset, %current
+    %is_eof =l ceql %len, %index
+    jnz %is_eof, @ret, @loop
+@loop
+    %kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %is_skipped =l call $contains_long(l %skip_ptr, l %kind)
+    jnz %is_skipped, @iter, @ret
+@iter
+    %offset =l add %offset, 1
+    jmp @check_eof
+@ret
+    ret %offset
 }
 
 export function w $exit_group(l %state_ptr) {
@@ -80,18 +228,50 @@ export function w $bump(l %state_ptr) {
     ret 1
 }
 
+
+export function w $bump_err(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+
+    %children_ptr =l add %current_group, 8
+    %last_child =l call $last(l %children_ptr, l 32)
+
+    %last_child_kind =l loadl %last_child
+    %last_is_err =l ceql %last_child_kind, 2
+    jnz %last_is_err, @extend_err, @new_error
+@extend_err
+    %tokens =l add %last_child, 8
+    call $push(l %tokens, l 24, l %tok_ptr)
+    ret 1
+@new_error
+    %new_node =:node call $new_error_node()
+    %tokens =l add %new_node, 8
+    call $push(l %tokens, l 24, l %tok_ptr)
+    call $push(l %children_ptr, l 32, l %new_node)
+    ret 1
+}
+
 export function l $default_state_ptr(l %ptr, l %len) {
 @start
     %ptr =:state call $default_state(l %ptr, l %len)
-    %res =l call $malloc(l 56)
-    call $memcpy(l %res, l %ptr, l 56)
+    %res =l call $malloc(l 104)
+    call $memcpy(l %res, l %ptr, l 104)
     ret %res
 }
 
 export function :state $get_state(l %ptr) {
 @start
-    %state =l alloc8 56
-    blit %ptr, %state, 56
+    %state =l alloc8 104
+    blit %ptr, %state, 104
     ret %state
 }
 
@@ -116,58 +296,27 @@ export function :state $default_state(l %ptr, l %len) {
     ret %res
 }
 
-export function :state $test_state(l %ptr, l %len) {
-@start
-    %state_ptr =:state call $default_state(l %ptr, l %len)
-
-    %current_ptr =l add %state_ptr, 48
-    %current =l loadl %current_ptr
-
-    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
-    %start_ptr =l add %tok_ptr, 8
-    %end_ptr =l add %tok_ptr, 16
-
-    %current =l add %current, 1
-    storel %current, %current_ptr
-
-    %token =l loadl %tok_ptr
-    %start =l loadl %start_ptr
-    %end =l loadl %end_ptr
-
-    %new =:node call $new_token_node(l %token, l %start, l %end)
-
-    %stack_ptr =l add %state_ptr, 24
-    %current_group =l call $last(l %stack_ptr, l 32)
-    %children_ptr =l add %current_group, 8
-
-    call $push(l %children_ptr, l 32, l %new)
-
-    ret %state_ptr
-}
-
-export function :node $test_node() {
-@start
-    call $printf(l $AHH)
-    %tok =:node call $new_token_node(l 1, l 2, l 3)
-    %vec =:vec call $new_vec(l 32)
-    %group =:node call $new_group_node(w 123)
-    %children_ptr =l add %group, 8
-    call $push(l %children_ptr, l 32, l %tok)
-    ret %group
-}
-
 function :state $new_state(:vec %tokens) {
 @start
-    %res =l alloc8 56
+    %res =l alloc8 104
     %stack_ptr =l add %res, 24
     %offset_ptr =l add %res, 48
+    %delim_stack_ptr =l add %res, 56
+    %skip_ptr =l add %res, 80
 
-    %group =:node call $new_group_node(w 0)
+    %root =w loadw $root_group_id
+    %group =:node call $new_group_node(w %root)
+
     %stack =:vec call $new_vec(l 32)
     call $push(l %stack, l 32, l %group)
 
+    %delim_stack =:vec call $new_vec(l 8)
+    %skip =:vec call $new_vec(l 8)
+
     blit %tokens, %res, 24
     blit %stack, %stack_ptr, 24
+    blit %delim_stack, %delim_stack_ptr, 24
+    blit %skip, %skip_ptr, 24
     storel 0, %offset_ptr
 
     ret %res
@@ -187,7 +336,6 @@ function w $print_group(:node %group) {
     %ptr =l loadl %ptr_ptr
     %len =l loadl %len_ptr
     %cap =l loadl %cap_ptr
-    call $printf(l $debug_group, w %kind, w %group_kind, l %ptr, l %len, l %cap)
     ret 1
 }
 
@@ -227,12 +375,13 @@ function :node $new_group_node(w %kind) {
 }
 
 
+
 function :node $new_error_node() {
 @start
     %res =l alloc8 32
-    %vec =l call $new_vec(l 24)
+    %vec =:vec call $new_vec(l 24)
     %vec_ptr =l add %res, 8
-    blit %vec_ptr, %vec, 24
+    blit %vec, %vec_ptr, 24
     storel 2, %res
     ret %res
 }
@@ -279,6 +428,36 @@ function l $pop(l %vec, l %value_size) {
   ret %item_ptr
 }
 
+function w $push_long(l %vec, l %value) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %new_ptr =l call $malloc(l %cap)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    call $memcpy(l %new_ptr, l %ptr, l %len)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, 8
+    %item_ptr =l add %ptr, %offset
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    storel %value, %item_ptr
+    ret 1
+}
+
 function w $push(l %vec, l %value_size, l %value_ptr) {
 @start
   %len_ptr =l add %vec, 8
@@ -312,7 +491,6 @@ function w $push(l %vec, l %value_size, l %value_ptr) {
 }
 
 
-data $error_token = { b "ERROR\n", b 0 }
 data $offset_ptr = { l 0 }
 data $group_end = { l 0 }
 
@@ -333,10 +511,6 @@ function w $inc_offset() {
     ret 0
 }
 
-
-data $select_token_name = { b "select", b 0 }
-data $select_token_name_len = { l 6 }
-data $lex_select_text = { b "select %d\n", b 0 }
 
 function l $lex_2 (l %ptr, l %len) {
 @start
@@ -530,10 +704,6 @@ function l $lex_select (l %ptr, l %len) {
     ret 0
 }
 
-data $from_token_name = { b "from", b 0 }
-data $from_token_name_len = { l 4 }
-data $lex_from_text = { b "from %d\n", b 0 }
-
 function l $lex_10 (l %ptr, l %len) {
 @start
     %start =l loadl $offset_ptr
@@ -715,10 +885,6 @@ function l $lex_from (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-data $delete_token_name = { b "delete", b 0 }
-data $delete_token_name_len = { l 6 }
-data $lex_delete_text = { b "delete %d\n", b 0 }
 
 function l $lex_18 (l %ptr, l %len) {
 @start
@@ -913,10 +1079,6 @@ function l $lex_delete (l %ptr, l %len) {
 }
 
 
-data $NUM_token_name = { b "NUM", b 0 }
-data $lex_NUM_text = { b "NUM %d\n", b 0 }
-
-
 function w $lex_26(l %ptr, l %len) {
 @start
     %offset =l loadl $offset_ptr
@@ -1005,10 +1167,6 @@ function l $lex_NUM (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-
-data $STR_token_name = { b "STR", b 0 }
-data $lex_STR_text = { b "STR %d\n", b 0 }
 
 function l $lex_29 (l %ptr, l %len) {
 @start
@@ -1131,10 +1289,6 @@ function l $lex_STR (l %ptr, l %len) {
 }
 
 
-data $WHITESPACE_token_name = { b "WHITESPACE", b 0 }
-data $lex_WHITESPACE_text = { b "WHITESPACE %d\n", b 0 }
-
-
 function w $lex_35 (l %ptr, l %len) {
 @start
     %offset =l loadl $offset_ptr
@@ -1207,10 +1361,6 @@ function l $lex_WHITESPACE (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-
-data $IDENT_token_name = { b "IDENT", b 0 }
-data $lex_IDENT_text = { b "IDENT %d\n", b 0 }
 
 function w $lex_39(l %ptr, l %len) {
 @start
@@ -1340,10 +1490,6 @@ function l $lex_IDENT (l %ptr, l %len) {
     ret 0
 }
 
-
-data $COLON_token_name = { b "COLON", b 0 }
-data $lex_COLON_text = { b "COLON %d\n", b 0 }
-
 function l $lex_44 (l %ptr, l %len) {
 @start
     %start =l loadl $offset_ptr
@@ -1394,10 +1540,6 @@ function l $lex_COLON (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-
-data $COMMA_token_name = { b "COMMA", b 0 }
-data $lex_COMMA_text = { b "COMMA %d\n", b 0 }
 
 function l $lex_46 (l %ptr, l %len) {
 @start
@@ -1450,10 +1592,6 @@ function l $lex_COMMA (l %ptr, l %len) {
     ret 0
 }
 
-
-data $SEMI_token_name = { b "SEMI", b 0 }
-data $lex_SEMI_text = { b "SEMI %d\n", b 0 }
-
 function l $lex_48 (l %ptr, l %len) {
 @start
     %start =l loadl $offset_ptr
@@ -1504,10 +1642,6 @@ function l $lex_SEMI (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-
-data $PLUS_token_name = { b "PLUS", b 0 }
-data $lex_PLUS_text = { b "PLUS %d\n", b 0 }
 
 function l $lex_50 (l %ptr, l %len) {
 @start
@@ -1560,10 +1694,6 @@ function l $lex_PLUS (l %ptr, l %len) {
     ret 0
 }
 
-
-data $TIMES_token_name = { b "TIMES", b 0 }
-data $lex_TIMES_text = { b "TIMES %d\n", b 0 }
-
 function l $lex_52 (l %ptr, l %len) {
 @start
     %start =l loadl $offset_ptr
@@ -1615,10 +1745,6 @@ function l $lex_TIMES (l %ptr, l %len) {
     ret 0
 }
 
-
-data $LParen_token_name = { b "LParen", b 0 }
-data $lex_LParen_text = { b "LParen %d\n", b 0 }
-
 function l $lex_54 (l %ptr, l %len) {
 @start
     %start =l loadl $offset_ptr
@@ -1669,10 +1795,6 @@ function l $lex_LParen (l %ptr, l %len) {
 @fail
     ret 0
 }
-
-
-data $RParen_token_name = { b "RParen", b 0 }
-data $lex_RParen_text = { b "RParen %d\n", b 0 }
 
 function l $lex_56 (l %ptr, l %len) {
 @start
@@ -1947,7 +2069,6 @@ export function :vec $lex(l %ptr, l %len) {
 
 
 @fail
-    call $printf(l $error_token)
     %end =l add %total_offset, 1
     %tok =:token call $new_token(l 14, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
@@ -1960,8 +2081,52 @@ export function :vec $lex(l %ptr, l %len) {
     ret %tokens
 }
 
-data $err_token_name = { b "ERROR", b 0}
-export function :str_slice $name(w %kind) {
+data $select_token_name = { b "select", b 0 }
+data $select_token_name_len = { l 6 }
+
+data $from_token_name = { b "from", b 0 }
+data $from_token_name_len = { l 4 }
+
+data $delete_token_name = { b "delete", b 0 }
+data $delete_token_name_len = { l 6 }
+
+data $NUM_token_name = { b "NUM", b 0 }
+data $NUM_token_name_len = { l 3 }
+
+data $STR_token_name = { b "STR", b 0 }
+data $STR_token_name_len = { l 3 }
+
+data $WHITESPACE_token_name = { b "WHITESPACE", b 0 }
+data $WHITESPACE_token_name_len = { l 10 }
+
+data $IDENT_token_name = { b "IDENT", b 0 }
+data $IDENT_token_name_len = { l 5 }
+
+data $COLON_token_name = { b "COLON", b 0 }
+data $COLON_token_name_len = { l 5 }
+
+data $COMMA_token_name = { b "COMMA", b 0 }
+data $COMMA_token_name_len = { l 5 }
+
+data $SEMI_token_name = { b "SEMI", b 0 }
+data $SEMI_token_name_len = { l 4 }
+
+data $PLUS_token_name = { b "PLUS", b 0 }
+data $PLUS_token_name_len = { l 4 }
+
+data $TIMES_token_name = { b "TIMES", b 0 }
+data $TIMES_token_name_len = { l 5 }
+
+data $LParen_token_name = { b "LParen", b 0 }
+data $LParen_token_name_len = { l 6 }
+
+data $RParen_token_name = { b "RParen", b 0 }
+data $RParen_token_name_len = { l 6 }
+
+data $err_token_name = { b "token_error", b 0}
+
+
+export function :str_slice $token_name(w %kind) {
 @select
     %ptr =l copy $select_token_name
     %len =l copy 6
@@ -2048,6 +2213,822 @@ export function :str_slice $name(w %kind) {
 
 @err
     %ptr =l copy $err_token_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}
+function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {
+
+@check_0
+    %res =l ceql %id, 0
+    jnz %res, @do_0, @check_1
+@do_0
+    %ret =l call $peak_0(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_1
+    %res =l ceql %id, 1
+    jnz %res, @do_1, @check_2
+@do_1
+    %ret =l call $peak_1(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_2
+    %res =l ceql %id, 2
+    jnz %res, @do_2, @check_3
+@do_2
+    %ret =l call $peak_2(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_3
+    %res =l ceql %id, 3
+    jnz %res, @do_3, @check_4
+@do_3
+    %ret =l call $peak_3(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_4
+    %res =l ceql %id, 4
+    jnz %res, @do_4, @check_5
+@do_4
+    %ret =l call $peak_4(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_5
+    %res =l ceql %id, 5
+    jnz %res, @do_5, @check_6
+@do_5
+    %ret =l call $peak_5(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_6
+    %res =l ceql %id, 6
+    jnz %res, @do_6, @check_7
+@do_6
+    %ret =l call $peak_6(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_7
+    %res =l ceql %id, 7
+    jnz %res, @do_7, @check_8
+@do_7
+    %ret =l call $peak_7(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_8
+    %res =l ceql %id, 8
+    jnz %res, @do_8, @check_9
+@do_8
+    %ret =l call $peak_8(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_9
+    %res =l ceql %id, 9
+    jnz %res, @do_9, @check_10
+@do_9
+    %ret =l call $peak_9(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_10
+    %res =l ceql %id, 10
+    jnz %res, @do_10, @check_11
+@do_10
+    %ret =l call $peak_10(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_11
+    %res =l ceql %id, 11
+    jnz %res, @do_11, @check_12
+@do_11
+    %ret =l call $peak_11(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_12
+    %res =l ceql %id, 12
+    jnz %res, @do_12, @err
+@do_12
+    %ret =l call $peak_12(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@err
+    ret 0
+}
+
+
+function w $parse_0(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 4
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_0(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 4
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+function w $parse_1(l %state_ptr, w %recover) {
+@start
+    call $enter_group(l %state_ptr, w 0)
+    %res =l call $parse_0(l %state_ptr, w %recover)
+    jnz %res, @remove_group, @exit
+@exit
+    call $exit_group(l %state_ptr)
+    ret %res
+@remove_group
+    %stack_ptr =l add %state_ptr, 24
+    call $pop(l %stack_ptr, l 32)
+    ret %res
+}
+function l $peak_1(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_0(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+
+function w $parse_2(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 3
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_2(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 3
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+function w $parse_3(l %state_ptr, w %recover) {
+@start
+    call $enter_group(l %state_ptr, w 1)
+    %res =l call $parse_2(l %state_ptr, w %recover)
+    jnz %res, @remove_group, @exit
+@exit
+    call $exit_group(l %state_ptr)
+    ret %res
+@remove_group
+    %stack_ptr =l add %state_ptr, 24
+    call $pop(l %stack_ptr, l 32)
+    ret %res
+}
+function l $peak_3(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_2(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+function w $parse_4(l %state_ptr, w %recover) {
+@check_0
+    %res =l call $parse_3(l %state_ptr, w %recover)
+    jnz %res, @check_1, @ret
+@check_1
+    %res =l call $parse_1(l %state_ptr, w %recover)
+    jnz %res, @ret, @ret
+@ret
+    ret %res
+}
+function w $peak_4(l %state_ptr, l %offset, w %recover) {
+@check_0
+    %res =l call $peak_3(l %state_ptr, l %offset, w %recover)
+    jnz %res, @check_1, @ret
+@check_1
+    %res =l call $peak_1(l %state_ptr, l %offset, w %recover)
+    jnz %res, @ret, @ret
+@ret
+    ret %res
+}
+function w $parse_5(l %state_ptr, w %recover) {
+@start
+    call $enter_group(l %state_ptr, w 2)
+    %res =l call $parse_4(l %state_ptr, w %recover)
+    jnz %res, @remove_group, @exit
+@exit
+    call $exit_group(l %state_ptr)
+    ret %res
+@remove_group
+    %stack_ptr =l add %state_ptr, 24
+    call $pop(l %stack_ptr, l 32)
+    ret %res
+}
+function l $peak_5(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_4(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+
+function w $parse_6(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 0
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_6(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 0
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+
+function w $parse_7(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 1
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_7(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 1
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+
+function w $parse_8(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 6
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_8(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 6
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+function w $parse_9(l %state_ptr, w %recover) {
+@add_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len_ptr =l add %state_ptr, 64
+    %delim_stack_len =l loadl %delim_stack_len_ptr
+    %magic_num =l add %delim_stack_len, 5
+	call $push_long(l %delim_stack_ptr, l 8)
+	call $push_long(l %delim_stack_ptr, l 7)
+	call $push_long(l %delim_stack_ptr, l 5)
+
+@parse_first
+    %res =l call $parse_6(l %state_ptr, w %recover)
+    jnz %res, @ret_err, @remove_delim_1
+
+@remove_delim_1
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_1, @try_parse_1 
+@check_1
+    %break_index =l sub %magic_num, 1
+    %is_me =l ceql %res, %break_index
+    jnz %is_me, @try_parse_1, @remove_delim_2
+
+@try_parse_1
+    %res =l call $parse_5(l %state_ptr, w %recover)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_1, @remove_delim_2
+@bump_err_1
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_1
+
+@remove_delim_2
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_2, @try_parse_2 
+@check_2
+    %break_index =l sub %magic_num, 2
+    %is_me =l ceql %res, %break_index
+    jnz %is_me, @try_parse_2, @remove_delim_3
+
+@try_parse_2
+    %res =l call $parse_7(l %state_ptr, w %recover)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_2, @remove_delim_3
+@bump_err_2
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_2
+
+@remove_delim_3
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_3, @try_parse_3 
+@check_3
+    %break_index =l sub %magic_num, 3
+    %is_me =l ceql %res, %break_index
+    jnz %is_me, @try_parse_3, @ret_ok
+
+@try_parse_3
+    %res =l call $parse_8(l %state_ptr, w %recover)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_3, @ret_ok
+@bump_err_3
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_3
+
+@ret_err
+    ret %res
+@ret_ok
+    ret 0
+}
+function l $peak_9(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_6(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+
+function w $parse_10(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 5
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_10(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 5
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+function w $parse_11(l %state_ptr, w %recover) {
+@start
+    %after_skipped =l call $after_skipped(l %state_ptr)
+    %res =l call $peak_9(l %state_ptr, l %after_skipped, w 1)
+    jnz %res, @ret, @parse
+@parse
+    %skipped =l call $skip(l %state_ptr, l 5)
+    %res =l call $parse_9(l %state_ptr, w %recover)
+    jnz %skipped, @unskip, @ret
+@unskip
+    call $unskip(l %state_ptr, l 5)
+    ret %res
+@ret
+    ret %res
+}
+function l $peak_11(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_9(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+function w $parse_12(l %state_ptr, w %recover) {
+@start
+    call $enter_group(l %state_ptr, w 3)
+    %res =l call $parse_11(l %state_ptr, w %recover)
+    jnz %res, @remove_group, @exit
+@exit
+    call $exit_group(l %state_ptr)
+    ret %res
+@remove_group
+    %stack_ptr =l add %state_ptr, 24
+    call $pop(l %stack_ptr, l 32)
+    ret %res
+}
+function l $peak_12(l %state_ptr, l %offset, w %recover) {
+@start
+    %res =l call $peak_11(l %state_ptr, l %offset, w %recover)
+    ret %res
+}
+
+data $root_group_id = { w 4 }
+
+export function w $parse(l %state_ptr) {
+@start
+    jmp @loop
+@loop
+    %res =l call $parse_11(l %state_ptr, w 1)
+    jnz %res, @check_eof, @end
+@check_eof
+    %is_eof =l ceql %res, 2
+    jnz %is_eof, @end, @bump_err
+@bump_err
+    call $bump_err(l %state_ptr)
+    jmp @loop
+@end
+    ret 1
+}
+
+data $string_group_name = { b "string", b 0 }
+data $string_group_name_len = { l 6 }
+
+data $num_group_name = { b "num", b 0 }
+data $num_group_name_len = { l 3 }
+
+data $literal_group_name = { b "literal", b 0 }
+data $literal_group_name_len = { l 7 }
+
+data $stmt_group_name = { b "stmt", b 0 }
+data $stmt_group_name_len = { l 4 }
+
+data $root_group_name = { b "root", b 0 }
+data $root_group_name_len = { l 4 }
+
+data $err_group_name = { b "group_error", b 0}
+
+
+export function :str_slice $group_name(w %kind) {
+@string
+    %ptr =l copy $string_group_name
+    %len =l copy 6
+    %res =w ceqw %kind, 0
+    jnz %res, @found, @num
+
+@num
+    %ptr =l copy $num_group_name
+    %len =l copy 3
+    %res =w ceqw %kind, 1
+    jnz %res, @found, @literal
+
+@literal
+    %ptr =l copy $literal_group_name
+    %len =l copy 7
+    %res =w ceqw %kind, 2
+    jnz %res, @found, @stmt
+
+@stmt
+    %ptr =l copy $stmt_group_name
+    %len =l copy 4
+    %res =w ceqw %kind, 3
+    jnz %res, @found, @root
+
+@root
+    %ptr =l copy $root_group_name
+    %len =l copy 4
+    %res =w ceqw %kind, 4
+    jnz %res, @found, @err
+
+@err
+    %ptr =l copy $err_group_name
     %len =l copy 5
     jmp @found
 @found

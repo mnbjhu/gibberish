@@ -6,7 +6,7 @@ use crate::{
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Seq<L: Lang>(Vec<ParserIndex<L>>);
+pub struct Seq<L: Lang>(pub Vec<ParserIndex<L>>);
 
 impl<'a, L: Lang> Seq<L> {
     pub fn parse(&self, state: &mut ParserState<L>, recover: bool) -> PRes {

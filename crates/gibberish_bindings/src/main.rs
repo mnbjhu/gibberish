@@ -1,30 +1,29 @@
-use std::fmt::Write;
+use std::fmt::Display;
 
 #[link(name = "qbeslice", kind = "static")]
 unsafe extern "C" {
     // 0 = WS, 1 = INT, 2 = STRING, 3 = ERROR
-    fn test_node() -> NodeData;
-    fn test_state(ptr: *const u8, len: usize) -> StateData;
+    fn test_vec_contains() -> IntVec;
     fn default_state(ptr: *const u8, len: usize) -> StateData;
     fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;
     fn new_vec(size: u32) -> LexemeVec;
-    fn name(id: u32) -> SliceData;
+    fn token_name(id: u32) -> SliceData;
+    fn group_name(id: u32) -> SliceData;
     fn lex(ptr: *const u8, len: usize) -> LexemeVec;
+    fn parse(ptr: *const StateData) -> u32;
     fn bump(ptr: *const StateData);
+    fn bump_err(ptr: *const StateData);
     fn bumpN(ptr: *const StateData, n: usize) -> u32;
     fn enter_group(ptr: *const StateData, name: u32) -> u32;
     fn exit_group(ptr: *const StateData) -> u32;
     fn get_state(ptr: *const StateData) -> StateData;
+    fn kind_at_offset(ptr: *const StateData, offset: usize) -> usize;
 }
 
 #[repr(C)]
 pub struct SliceData {
     ptr: *const u8,
     len: usize,
-}
-
-pub fn do_test() -> Node {
-    unsafe { test_node().into() }
 }
 
 pub fn do_new_vec() -> Vec<Lexeme> {
@@ -43,6 +42,7 @@ pub struct NodeData {
     b: u64,
     c: u64,
 }
+
 impl From<StateData> for State {
     fn from(value: StateData) -> Self {
         unsafe {
@@ -77,8 +77,49 @@ impl From<NodeData> for Node {
                     children: children.into_iter().map(|it| it.into()).collect(),
                 }
             },
+            2 => unsafe {
+                let tokens =
+                    Vec::from_raw_parts(value.a as *mut Lexeme, value.b as usize, value.c as usize);
+                Node::Error { tokens }
+            },
+            3 => unsafe {
+                let expected = Vec::from_raw_parts(
+                    value.a as *mut Expected,
+                    value.b as usize,
+                    value.c as usize,
+                );
+                Node::Missing { expected }
+            },
             id => panic!("Unexpected Node kind {id}"),
         }
+    }
+}
+
+#[repr(C)]
+pub struct MyVec<T> {
+    ptr: *mut T,
+    len: usize,
+    cap: usize,
+}
+
+#[derive(Debug)]
+pub enum Expected {
+    Token(u64),
+    Group(u64),
+    Label(u64),
+}
+
+impl Display for Expected {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name: &str = unsafe {
+            match self {
+                Expected::Token(t) => token_name(*t as u32),
+                Expected::Group(g) => group_name(*g as u32),
+                Expected::Label(_) => todo!(),
+            }
+            .into()
+        };
+        write!(f, "{name}")
     }
 }
 
@@ -86,12 +127,22 @@ impl From<NodeData> for Node {
 pub enum Node {
     Group { kind: u32, children: Vec<Node> },
     Token { kind: u32 },
+    Error { tokens: Vec<Lexeme> },
+    Missing { expected: Vec<Expected> },
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct LexemeVec {
     ptr: *mut Lexeme,
+    len: usize,
+    cap: usize,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct IntVec {
+    ptr: *mut u64,
     len: usize,
     cap: usize,
 }
@@ -122,6 +173,12 @@ pub struct StateData {
     stack_len: usize,
     stack_cap: usize,
     offset: usize,
+    delim_stack_ptr: usize,
+    delim_stack_len: usize,
+    delim_stack_cap: usize,
+    skip_ptr: usize,
+    skip_len: usize,
+    skip_cap: usize,
 }
 
 #[derive(Debug)]
@@ -151,18 +208,13 @@ fn do_lex(text: &str) -> Vec<Lexeme> {
 }
 
 fn main() {
-    // let res = State::test_state("select some from thing;");
-    // println!("{res:#?}")
     unsafe {
-        let text = "select some from thing;";
+        let text = "select 123";
         let state_ptr = default_state_ptr(text.as_ptr(), text.len());
-        bumpN(state_ptr, 3);
-        enter_group(state_ptr, 42);
-        bumpN(state_ptr, 2);
-        exit_group(state_ptr);
-        bumpN(state_ptr, 2);
+        parse(state_ptr);
         let state: State = get_state(state_ptr).into();
-        println!("{state:#?}")
+        assert_eq!(state.stack.len(), 1);
+        state.stack.first().unwrap().debug(text);
     }
 }
 
@@ -172,13 +224,41 @@ impl From<&str> for State {
     }
 }
 
-impl State {
-    fn test_state(value: &str) -> Self {
-        unsafe { test_state(value.as_ptr(), value.len()).into() }
-    }
-}
-
 impl Node {
-    fn debug(&self, text: &str) {}
-    fn debug_inner(&self, text: &str, offset: usize) {}
+    fn debug(&self, text: &str) {
+        self.debug_inner(text, 0);
+    }
+    fn debug_inner(&self, text: &str, offset: usize) {
+        for _ in 0..offset {
+            print!("  ")
+        }
+        unsafe {
+            match self {
+                Node::Group { kind, children } => {
+                    let name: &str = group_name(*kind).into();
+                    println!("{name}");
+                    for child in children {
+                        child.debug_inner(text, offset + 1);
+                    }
+                }
+                Node::Token { kind } => {
+                    let name: &str = token_name(*kind).into();
+                    println!("{name}")
+                }
+                Node::Error { tokens } => {
+                    println!("ERROR");
+                    for token in tokens {
+                        for _ in 0..offset + 1 {
+                            print!("  ")
+                        }
+                        let name: &str = token_name(token.kind as u32).into();
+                        println!("{name}")
+                    }
+                }
+                Node::Missing { expected } => {
+                    println!("MISSING: Expected: {expected:?}");
+                }
+            }
+        }
+    }
 }

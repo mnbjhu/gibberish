@@ -7,7 +7,7 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Choice<L: Lang> {
-    options: Vec<ParserIndex<L>>,
+    pub options: Vec<ParserIndex<L>>,
 }
 
 impl<'a, L: Lang> Choice<L> {

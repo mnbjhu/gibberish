@@ -9,9 +9,9 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Delim<L: Lang> {
-    start: ParserIndex<L>,
-    end: ParserIndex<L>,
-    inner: ParserIndex<L>,
+    pub start: ParserIndex<L>,
+    pub end: ParserIndex<L>,
+    pub inner: ParserIndex<L>,
 }
 
 impl<'a, L: Lang> Delim<L> {

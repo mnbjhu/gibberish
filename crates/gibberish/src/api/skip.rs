@@ -7,8 +7,8 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Skip<L: Lang> {
-    token: L::Token,
-    inner: ParserIndex<L>,
+    pub token: L::Token,
+    pub inner: ParserIndex<L>,
 }
 
 impl<'a, L: Lang> Skip<L> {
