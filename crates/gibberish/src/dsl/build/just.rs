@@ -9,6 +9,7 @@ impl ParserQBEBuilder for Just<RuntimeLang> {
             f,
             "
 
+# Parse Just
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
     jmp @check_eof
@@ -95,9 +96,5 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             self.0
         )
         .unwrap()
-    }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
     }
 }

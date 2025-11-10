@@ -36,8 +36,8 @@ impl<'a, L: Lang> Break<L> {
             .peak(state, recover, offset)
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.inner.clone().get_ref(state.cache).expected(state)
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+        self.inner.clone().get_ref(cache).expected(cache)
     }
 }
 

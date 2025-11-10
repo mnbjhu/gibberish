@@ -8,6 +8,7 @@ impl ParserQBEBuilder for Skip<RuntimeLang> {
         write!(
             f,
             "
+# Parse Skip
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
     %after_skipped =l call $after_skipped(l %state_ptr)
@@ -42,9 +43,5 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             inner = self.inner.index
         )
         .unwrap()
-    }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
     }
 }

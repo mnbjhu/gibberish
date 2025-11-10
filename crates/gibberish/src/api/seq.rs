@@ -86,12 +86,12 @@ impl<'a, L: Lang> Seq<L> {
             .peak(state, recover, offset)
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         self.0
             .first()
             .expect("Seq should have at least one element")
-            .get_ref(state.cache)
-            .expected(state)
+            .get_ref(cache)
+            .expected(cache)
     }
 }
 

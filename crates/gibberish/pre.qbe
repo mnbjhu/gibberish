@@ -37,7 +37,7 @@ function w $is_eof(l %state_ptr) {
 
 data $skipping_token = { b "Skipping token %u\n", b 0 }
 
-function w $skip(l %state_ptr, l %token_kind) {
+export function w $skip(l %state_ptr, l %token_kind) {
 @start
     %skip_ptr =l add %state_ptr, 80
     %already =l call $contains_long(l %skip_ptr, l %token_kind)
@@ -49,7 +49,7 @@ function w $skip(l %state_ptr, l %token_kind) {
     ret 1
 }
 
-function w $unskip(l %state_ptr, l %token_kind) {
+export function w $unskip(l %state_ptr, l %token_kind) {
 @start
     %skip_ptr =l add %state_ptr, 80
     %already =l call $contains_long(l %skip_ptr, l %token_kind)
@@ -228,6 +228,15 @@ export function w $bump(l %state_ptr) {
     ret 1
 }
 
+export function w $missing(l %state_ptr, l %expected) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+    %missing =:node call $new_missing_node(l %expected)
+    call $push(l %children_ptr, l 32, l %missing)
+    ret 1
+}
 
 export function w $bump_err(l %state_ptr) {
 @start
@@ -275,7 +284,7 @@ export function :state $get_state(l %ptr) {
     ret %state
 }
 
-function l $last(l %vec_ptr, l %size) {
+export function l $last(l %vec_ptr, l %size) {
 @start
     %ptr =l loadl %vec_ptr
 
@@ -348,7 +357,7 @@ export function l $get(l %vec_ptr, l %size, l %index) {
 }
 
 data $AHH = { b "AHHH", b 0 }
-function :node $new_token_node(l %kind, l %start, l %end) {
+export function :node $new_token_node(l %kind, l %start, l %end) {
 @start
     %res =l alloc8 32
     %kind_ptr =l add %res, 8
@@ -361,7 +370,16 @@ function :node $new_token_node(l %kind, l %start, l %end) {
     ret %res
 }
 
-function :node $new_group_node(w %kind) {
+export function :node $new_missing_node(l %expected) {
+@start
+    %res =l alloc8 32
+    %expected_ptr =l add 8, %res
+    blit %expected, %expected_ptr, 24
+    storew 3, %res
+    ret %res
+}
+
+export function :node $new_group_node(w %kind) {
 @start
     %res =l alloc8 32
     %group_kind =l add %res, 4
@@ -376,7 +394,7 @@ function :node $new_group_node(w %kind) {
 
 
 
-function :node $new_error_node() {
+export function :node $new_error_node() {
 @start
     %res =l alloc8 32
     %vec =:vec call $new_vec(l 24)
@@ -402,7 +420,7 @@ export function :vec $new_vec(l %item_size) {
 }
 
 
-function :token $new_token(l %kind, l %start, l %end) {
+export function :token $new_token(l %kind, l %start, l %end) {
 @start
     %res =l alloc8 24
     %start_ptr =l add %res, 8
@@ -413,7 +431,7 @@ function :token $new_token(l %kind, l %start, l %end) {
     ret %res
 }
 
-function l $pop(l %vec, l %value_size) {
+export function l $pop(l %vec, l %value_size) {
 @start
   %len_ptr =l add %vec, 8
 
@@ -428,7 +446,7 @@ function l $pop(l %vec, l %value_size) {
   ret %item_ptr
 }
 
-function w $push_long(l %vec, l %value) {
+export function w $push_long(l %vec, l %value) {
 @start
   %len_ptr =l add %vec, 8
   %cap_ptr =l add %vec, 16
@@ -441,14 +459,15 @@ function w $push_long(l %vec, l %value) {
   jnz %full, @alloc, @push
 @alloc
     %cap =l mul %cap, 4
-    %new_ptr =l call $malloc(l %cap)
+    %bytes =l mul %cap, 8
+    %new_ptr =l call $malloc(l %bytes)
     storel %cap, %cap_ptr
     storel %new_ptr, %vec
 
-    call $memcpy(l %new_ptr, l %ptr, l %len)
+    %bytes =l mul %len, 8
+    call $memcpy(l %new_ptr, l %ptr, l %bytes)
     call $free(l %ptr)
     %ptr =l copy %new_ptr
-    jmp @push
 @push
     %offset =l mul %len, 8
     %item_ptr =l add %ptr, %offset
@@ -458,7 +477,7 @@ function w $push_long(l %vec, l %value) {
     ret 1
 }
 
-function w $push(l %vec, l %value_size, l %value_ptr) {
+export function w $push(l %vec, l %value_size, l %value_ptr) {
 @start
   %len_ptr =l add %vec, 8
   %cap_ptr =l add %vec, 16

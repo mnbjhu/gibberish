@@ -1,4 +1,7 @@
-use crate::parser::{err::Expected, lang::Lang, res::PRes, state::ParserState};
+use crate::{
+    api::ptr::ParserCache,
+    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
+};
 
 use super::Parser;
 
@@ -55,14 +58,14 @@ impl<'a> Requirement {
         &self,
         parser: &Parser<L>,
         next: &Parser<L>,
-        state: &ParserState<'a, L>,
+        cache: &ParserCache<L>,
     ) -> Vec<Expected<L>> {
         match self {
-            Requirement::Yes => parser.expected(state),
-            Requirement::No => next.expected(state),
+            Requirement::Yes => parser.expected(cache),
+            Requirement::No => next.expected(cache),
             Requirement::Maybe => {
-                let mut res = parser.expected(state);
-                res.extend(next.expected(state));
+                let mut res = parser.expected(cache);
+                res.extend(next.expected(cache));
                 res
             }
         }

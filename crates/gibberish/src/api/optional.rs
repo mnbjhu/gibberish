@@ -30,8 +30,8 @@ impl<'a, L: Lang> Optional<L> {
         res
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.0.get_ref(state.cache).expected(state)
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+        self.0.get_ref(cache).expected(cache)
     }
 }
 

@@ -8,6 +8,7 @@ impl ParserQBEBuilder for Named<RuntimeLang> {
         write!(
             f,
             "
+# Parse Named
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
     call $enter_group(l %state_ptr, w {name})
@@ -40,9 +41,5 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             inner = self.inner.index
         )
         .unwrap()
-    }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
     }
 }

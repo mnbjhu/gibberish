@@ -1,5 +1,5 @@
 use crate::{
-    api::Parser,
+    api::{Parser, ptr::ParserCache},
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
 
@@ -29,7 +29,7 @@ impl<'a, L: Lang> Recover<L> {
         }
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+    pub fn expected(&self, state: &ParserCache<L>) -> Vec<Expected<L>> {
         self.try_.expected(state)
     }
 }

@@ -24,6 +24,7 @@ impl ParserQBEBuilder for Delim<RuntimeLang> {
         write!(
             f,
             "
+# Parse Delim
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
     %res =l call $parse_{open}(l %state_ptr, w %recover)
@@ -36,19 +37,37 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             close = self.end.index,
         )
         .unwrap();
-        try_parse(self.inner.index, "inner", "@try_parse_close", f);
-        try_parse(self.end.index, "close", "@ret_ok", f);
+        try_parse(self.inner.index, "inner", "@check_missing_item", f);
+        try_parse(self.end.index, "close", "@check_missing_close", f);
         write!(
             f,
             "
+@check_missing_item
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len_ptr =l add %state_ptr, 64
+    %delim_stack_len =l loadl %delim_stack_len_ptr
+    %delim_index =l add %delim_stack_len, 2
+    %missing_item =l ceql %delim_index, %res
+    jnz %missing_item, @missing_item_err, @try_parse_close
+@missing_item_err
+    %expected =:vec call $expected_{item}()
+    call $missing(l %state_ptr, l %expected)
+    jmp @try_parse_close
+@check_missing_close
+    %missing_item =l ceql %delim_index, %res
+    jnz %missing_item, @missing_item_err, @ret_ok
+@missing_close_err
+    %expected =:vec call $expected_{close}()
+    call $missing(l %state_ptr, l %expected)
+    jmp @ret_ok
 @ret_err
     ret %res
 @ret_ok
     call $pop_delim(l %state_ptr)
     ret 0
 }}",
-            // inner = self.inner.index,
-            // close = self.close.index,
+            item = self.inner.index,
+            close = self.end.index,
         )
         .unwrap()
     }
@@ -65,9 +84,5 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             open = self.start.index
         )
         .unwrap()
-    }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
     }
 }

@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Repeated<L: Lang>(ParserIndex<L>);
+pub struct Repeated<L: Lang>(pub ParserIndex<L>);
 
 impl<'a, L: Lang> Repeated<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
@@ -23,7 +23,7 @@ impl<'a, L: Lang> Repeated<L> {
                     continue;
                 }
                 PRes::Err => {
-                    state.bump_err(self.0.get_ref(state.cache).expected(state));
+                    state.bump_err(self.0.get_ref(state.cache).expected(state.cache));
                 }
                 PRes::Break(id) if id == item_index => {
                     panic!("Break at repeated")
@@ -45,8 +45,8 @@ impl<'a, L: Lang> Repeated<L> {
         self.0.get_ref(state.cache).peak(state, recover, offset)
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.0.get_ref(state.cache).expected(state)
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+        self.0.get_ref(cache).expected(cache)
     }
 }
 

@@ -13,8 +13,8 @@ use tracing::debug;
 
 use crate::{
     api::{
-        break_::Break, fold_once::FoldOnce, none_of::NoneOf, repeated::Repeated, tok_seq::TokSeq,
-        unskip::UnSkip,
+        break_::Break, fold_once::FoldOnce, none_of::NoneOf, ptr::ParserCache, repeated::Repeated,
+        tok_seq::TokSeq, unskip::UnSkip,
     },
     parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
 };
@@ -117,27 +117,27 @@ impl<'a, L: Lang> Parser<L> {
         res
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         debug!("Getting expected for {}", self.name());
         match self {
             Parser::Just(just) => just.expected(),
-            Parser::Choice(choice) => choice.expected(state),
-            Parser::Seq(seq) => seq.expected(state),
-            Parser::Sep(sep) => sep.expected(state),
-            Parser::Delim(delim) => delim.expected(state),
-            Parser::Rec(recursive) => recursive.expected(state),
+            Parser::Choice(choice) => choice.expected(cache),
+            Parser::Seq(seq) => seq.expected(cache),
+            Parser::Sep(sep) => sep.expected(cache),
+            Parser::Delim(delim) => delim.expected(cache),
+            Parser::Rec(recursive) => recursive.expected(cache),
             Parser::Named(named) => named.expected(),
-            Parser::Fold(fold) => fold.expected(state),
-            Parser::Skip(skip) => skip.expected(state),
-            Parser::Optional(optional) => optional.expected(state),
-            Parser::Recover(r) => r.expected(state),
-            Parser::UnSkip(un_skip) => un_skip.expected(state),
+            Parser::Fold(fold) => fold.expected(cache),
+            Parser::Skip(skip) => skip.expected(cache),
+            Parser::Optional(optional) => optional.expected(cache),
+            Parser::Recover(r) => r.expected(cache),
+            Parser::UnSkip(un_skip) => un_skip.expected(cache),
             Parser::NoneOf(none_of) => none_of.expected(),
-            Parser::Break(break_) => break_.expected(state),
-            Parser::FoldOnce(fold_once) => fold_once.expected(state),
+            Parser::Break(break_) => break_.expected(cache),
+            Parser::FoldOnce(fold_once) => fold_once.expected(cache),
             Parser::TokSeq(tok_seq) => tok_seq.expected(),
             Parser::Empty => todo!(),
-            Parser::Repeated(repeated) => repeated.expected(state),
+            Parser::Repeated(repeated) => repeated.expected(cache),
         }
     }
 

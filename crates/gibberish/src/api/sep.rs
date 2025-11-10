@@ -40,7 +40,7 @@ impl<'a, L: Lang> Sep<L> {
                     parsing_item = !parsing_item;
                 }
                 PRes::Err => {
-                    state.bump_err(parser.get_ref(state.cache).expected(state));
+                    state.bump_err(parser.get_ref(state.cache).expected(state.cache));
                 }
                 PRes::Break(i) if i == sep_index => {
                     if parsing_item {
@@ -87,12 +87,9 @@ impl<'a, L: Lang> Sep<L> {
         )
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
-        self.leading.expected(
-            self.sep.get_ref(state.cache),
-            self.item.get_ref(state.cache),
-            state,
-        )
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+        self.leading
+            .expected(self.sep.get_ref(cache), self.item.get_ref(cache), cache)
     }
 }
 

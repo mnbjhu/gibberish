@@ -44,10 +44,10 @@ impl<'a, L: Lang> Choice<L> {
         res
     }
 
-    pub fn expected(&self, state: &ParserState<'a, L>) -> Vec<Expected<L>> {
+    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         self.options
             .iter()
-            .flat_map(|it| it.get_ref(state.cache).expected(state))
+            .flat_map(|it| it.get_ref(cache).expected(cache))
             .collect()
     }
 }

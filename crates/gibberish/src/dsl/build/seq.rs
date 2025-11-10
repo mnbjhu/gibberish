@@ -9,13 +9,14 @@ use crate::{
 impl ParserQBEBuilder for Seq<RuntimeLang> {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         let new_delims_len = self.0.len() - 1;
-        let magic = new_delims_len + 2;
+        let magic = new_delims_len + 3;
         let mut iter = self.0.iter();
         let first = iter.next().unwrap();
 
         write!(
             f,
             "
+# Parse Seq
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @add_delims
     %delim_stack_ptr =l add %state_ptr, 56
@@ -51,7 +52,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
                 continue;
             }
             let next = if index + 1 == self.0.len() {
-                "@ret_ok"
+                "@check_eof_last"
             } else {
                 &format!("@remove_delim_{}", index + 1)
             };
@@ -61,12 +62,22 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
                 "
 @remove_delim_{index}
     call $pop_delim(l %state_ptr)
-    jnz %res, @check_{index}, @try_parse_{index} 
+    jnz %res, @check_eof_{index}, @try_parse_{index} 
+@check_eof_{index}
+    %is_eof =l ceql 2, %res
+    jnz %is_eof, @missing_{index}, @check_{index}
 @check_{index}
     %break_index =l sub %magic_num, {index}
     %is_me =l ceql %res, %break_index
+    %expected =:vec call $expected_{last}()
+    call $missing(l %state_ptr, l %expected)
     jnz %is_me, @try_parse_{index}, {next}
+@missing_{index}
+    %expected =:vec call $expected_{last}()
+    call $missing(l %state_ptr, l %expected)
+    jmp @try_parse_{index}
 ",
+                last = self.0[index - 1].index
             )
             .unwrap();
             try_parse(part.index, &format!("{index}"), next, f);
@@ -76,9 +87,22 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             "
 @ret_err
     ret %res
+@check_eof_last
+    %is_eof =l ceql 2, %res
+    jnz %is_eof, @missing_last, @check_last
+@check_last
+    %break_index =l sub %magic_num, {index}
+    %is_me =l ceql %res, %break_index
+    jnz %is_me, @missing_last, @ret_ok
+@missing_last
+    %expected =:vec call $expected_{last}()
+    call $missing(l %state_ptr, l %expected)
+    jmp @ret_ok
 @ret_ok
     ret 0
-}}"
+}}",
+            last = self.0.last().unwrap().index,
+            index = self.0.len() - 1,
         )
         .unwrap();
     }
@@ -93,12 +117,8 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     ret %res
 }}
 ",
-            inner = self.0.first().unwrap().index
+            inner = self.0.first().unwrap().index,
         )
         .unwrap()
-    }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
     }
 }

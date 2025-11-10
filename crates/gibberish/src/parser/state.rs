@@ -156,7 +156,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
             match res {
                 PRes::Err => {
                     bumped = true;
-                    self.bump_err(parser.expected(self));
+                    self.bump_err(parser.expected(self.cache));
                 }
                 PRes::Eof => {
                     return (PRes::Eof, bumped);
@@ -173,7 +173,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
             let res = parser.do_parse(self, recover);
             match res {
                 PRes::Err => {
-                    self.bump_err(parser.expected(self));
+                    self.bump_err(parser.expected(self.cache));
                 }
                 PRes::Eof => {
                     return PRes::Eof;
@@ -235,7 +235,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
 
     pub fn missing_delim(&mut self, parser: &'a Parser<L>, start_delim: Lexeme<L>) {
         let current = self.current();
-        let expected = parser.expected(self);
+        let expected = parser.expected(self.cache);
         if let Some(Node::Err(err)) = self.current_group().children.last()
             && err.expected() == &expected
         {
@@ -259,7 +259,7 @@ impl<'a, L: Lang> ParserState<'a, L> {
     }
 
     pub fn missing(&mut self, parser: &'a Parser<L>) {
-        let expected = parser.expected(self);
+        let expected = parser.expected(self.cache);
         if let Some(Node::Err(err)) = self.current_group().children.last()
             && err.expected() == &expected
         {

@@ -6,12 +6,15 @@ use crate::{
         ptr::{ParserCache, ParserIndex},
     },
     dsl::lexer::RuntimeLang,
+    parser::err::Expected,
 };
 
 pub mod choice;
 pub mod delim_by;
 pub mod just;
 pub mod named;
+pub mod rep0;
+pub mod rep1;
 pub mod seq;
 pub mod skip;
 
@@ -24,6 +27,7 @@ pub fn build_parser_qbe(
     for (index, parser) in cache.parsers.iter().enumerate() {
         parser.build_parse(index, f);
         parser.build_peak(index, f);
+        parser.build_expected(index, f, cache);
     }
 
     write!(
@@ -44,6 +48,12 @@ export function w $parse(l %state_ptr) {{
     call $bump_err(l %state_ptr)
     jmp @loop
 @end
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @ret, @expected_eof
+@expected_eof
+    call $bump_err(l %state_ptr)
+    jmp @end
+@ret
     ret 1
 }}
 ",
@@ -72,10 +82,11 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => todo!(),
-            Parser::Repeated(repeated) => todo!(),
+            Parser::Repeated(repeated) => repeated.build_parse(id, f),
             Parser::Empty => todo!(),
         }
     }
+
     fn build_peak(&self, id: usize, f: &mut impl Write) {
         match self {
             Parser::Just(just) => just.build_peak(id, f),
@@ -94,17 +105,54 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => todo!(),
-            Parser::Repeated(repeated) => todo!(),
+            Parser::Repeated(repeated) => repeated.build_peak(id, f),
             Parser::Empty => todo!(),
         }
     }
-    fn build_expected(&self, id: usize, f: &mut impl Write) {}
+}
+
+impl Parser<RuntimeLang> {
+    fn build_expected(&self, id: usize, f: &mut impl Write, cache: &ParserCache<RuntimeLang>) {
+        let expected = self.expected(cache);
+        write!(f, "\ndata $expected_{id}_data = {{").unwrap();
+        expected.iter().enumerate().for_each(|(index, it)| {
+            if index != 0 {
+                write!(f, ",").unwrap();
+            }
+            let (kind, id) = match it {
+                Expected::Token(id) => (0, id),
+                Expected::Label(id) => (1, id),
+            };
+            write!(f, "l {kind}, l {id}",).unwrap()
+        });
+        writeln!(f, "}}").unwrap();
+        write!(
+            f,
+            "
+function :vec $expected_{id}() {{
+@start
+    %ptr =l call $malloc(l {size})
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_{id}_data, l {size})
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel {len}, %len_ptr
+    storel {len}, %cap_ptr
+    ret %res
+}}
+",
+            size = expected.len() * 16,
+            len = expected.len()
+        )
+        .unwrap();
+    }
 }
 
 pub trait ParserQBEBuilder {
     fn build_parse(&self, id: usize, f: &mut impl Write);
     fn build_peak(&self, id: usize, f: &mut impl Write);
-    fn build_expected(&self, id: usize, f: &mut impl Write);
 }
 
 pub fn build_parse_by_id(cache: &ParserCache<RuntimeLang>, f: &mut impl Write) {

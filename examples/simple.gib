@@ -18,4 +18,5 @@ token RParen = "\)";
 parser string = STR;
 parser num = NUM;
 parser literal = num | string;
-parser stmt = (select + literal + from + IDENT).skip(WHITESPACE)
+parser stmt = (select + literal + from + IDENT + SEMI);
+parser _root = stmt.repeated().skip(WHITESPACE)

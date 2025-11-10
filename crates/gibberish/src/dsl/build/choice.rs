@@ -69,8 +69,4 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{",
         )
         .unwrap();
     }
-
-    fn build_expected(&self, id: usize, f: &mut impl std::fmt::Write) {
-        todo!()
-    }
 }
