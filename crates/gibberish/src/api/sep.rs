@@ -7,11 +7,11 @@ use super::{Parser, maybe::Requirement};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Sep<L: Lang> {
-    sep: ParserIndex<L>,
-    item: ParserIndex<L>,
-    leading: Requirement,
-    trailing: Requirement,
-    at_least: usize,
+    pub sep: ParserIndex<L>,
+    pub item: ParserIndex<L>,
+    pub leading: Requirement,
+    pub trailing: Requirement,
+    pub at_least: usize,
 }
 
 impl<'a, L: Lang> Sep<L> {

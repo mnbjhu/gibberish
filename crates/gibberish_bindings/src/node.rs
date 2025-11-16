@@ -16,7 +16,6 @@ pub enum Node {
     Token { kind: u32 },
     Error { tokens: Vec<Lexeme> },
     Missing { expected: Vec<Expected> },
-    Debug { kind: u32, a: u64, b: u64, c: u64 },
 }
 
 #[repr(C)]
@@ -61,12 +60,7 @@ impl From<NodeData> for Node {
                     expected: expected.into_iter().map(|it| it.into()).collect(),
                 }
             },
-            id => Node::Debug {
-                kind: id,
-                a: value.a,
-                b: value.b,
-                c: value.c,
-            },
+            id => panic!("Unexpected node id '{id}'"),
         }
     }
 }
@@ -112,7 +106,6 @@ impl Node {
                             .join(", ")
                     );
                 }
-                Node::Debug { .. } => println!("$DEBUG$"),
             }
         }
     }

@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Optional<L: Lang>(ParserIndex<L>);
+pub struct Optional<L: Lang>(pub ParserIndex<L>);
 
 impl<'a, L: Lang> Optional<L> {
     pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {

@@ -14,9 +14,11 @@ token PLUS = "\+";
 token TIMES = "\*";
 token LParen = "\(";
 token RParen = "\)";
+token BANG = "!";
 
 parser string = STR;
 parser num = NUM;
-parser literal = num | string;
-parser stmt = (select + literal + from + IDENT + SEMI);
+parser literal = num | string + BANG.or_not();
+parser args = literal.sep_by(COMMA);
+parser stmt = (select + args + from + IDENT + SEMI);
 parser _root = stmt.repeated().skip(WHITESPACE)

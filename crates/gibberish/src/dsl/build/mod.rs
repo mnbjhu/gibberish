@@ -13,8 +13,10 @@ pub mod choice;
 pub mod delim_by;
 pub mod just;
 pub mod named;
+pub mod optional;
 pub mod rep0;
 pub mod rep1;
+pub mod sep_by;
 pub mod seq;
 pub mod skip;
 
@@ -70,14 +72,14 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::TokSeq(tok_seq) => todo!(),
             Parser::Choice(choice) => choice.build_parse(id, f),
             Parser::Seq(seq) => seq.build_parse(id, f),
-            Parser::Sep(sep) => todo!(),
+            Parser::Sep(sep) => sep.build_parse(id, f),
             Parser::Delim(delim) => delim.build_parse(id, f),
             Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_parse(id, f),
             Parser::Fold(fold) => todo!(),
             Parser::Skip(skip) => skip.build_parse(id, f),
             Parser::UnSkip(un_skip) => todo!(),
-            Parser::Optional(optional) => todo!(),
+            Parser::Optional(optional) => optional.build_parse(id, f),
             Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
@@ -93,14 +95,14 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::TokSeq(tok_seq) => todo!(),
             Parser::Choice(choice) => choice.build_peak(id, f),
             Parser::Seq(seq) => seq.build_peak(id, f),
-            Parser::Sep(sep) => todo!(),
+            Parser::Sep(sep) => sep.build_peak(id, f),
             Parser::Delim(delim) => delim.build_peak(id, f),
             Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_peak(id, f),
             Parser::Fold(fold) => todo!(),
             Parser::Skip(skip) => skip.build_peak(id, f),
             Parser::UnSkip(un_skip) => todo!(),
-            Parser::Optional(optional) => todo!(),
+            Parser::Optional(optional) => optional.build_peak(id, f),
             Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),

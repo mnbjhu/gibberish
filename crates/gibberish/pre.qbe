@@ -110,7 +110,7 @@ function l $push_delim(l %state_ptr, l %delim) {
     call $push_long(l %delim_stack_ptr, l %delim)
     %delim_len_ptr =l add %delim_stack_ptr, 8
     %delim_len =l loadl %delim_len_ptr
-    %res =l add 3, %delim_len
+    %res =l add 2, %delim_len
     ret %res
 }
 
