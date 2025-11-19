@@ -52,7 +52,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
                 continue;
             }
             let next = if index + 1 == self.0.len() {
-                "@check_eof_last"
+                "@check_last"
             } else {
                 &format!("@remove_delim_{}", index + 1)
             };
@@ -87,13 +87,15 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             "
 @ret_err
     ret %res
+@check_last
+    jnz %res, @check_eof_last, @ret_ok
 @check_eof_last
     %is_eof =l ceql 2, %res
-    jnz %is_eof, @missing_last, @check_last
-@check_last
+    jnz %is_eof, @missing_last, @check_break_last
+@check_break_last
     %break_index =l sub %magic_num, {index}
     %is_me =l ceql %res, %break_index
-    jnz %is_me, @missing_last, @ret_ok
+    jnz %is_me, @ret_ok, @missing_last
 @missing_last
     %expected =:vec call $expected_{last}()
     call $missing(l %state_ptr, l %expected)

@@ -1,1 +1,1 @@
-select "Something" from thing;
+select "Something" + 123, "another" from thing;

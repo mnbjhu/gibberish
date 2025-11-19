@@ -229,12 +229,17 @@ export function w $bump(l %state_ptr) {
 }
 
 export function w $missing(l %state_ptr, l %expected) {
+@check_zero_expected
+    %ptr =l loadl %expected
+    jnz %ptr, @start, @ret
 @start
     %stack_ptr =l add %state_ptr, 24
     %current_group =l call $last(l %stack_ptr, l 32)
     %children_ptr =l add %current_group, 8
     %missing =:node call $new_missing_node(l %expected)
     call $push(l %children_ptr, l 32, l %missing)
+    ret 1
+@ret
     ret 1
 }
 

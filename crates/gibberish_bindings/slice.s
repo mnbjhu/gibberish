@@ -470,6 +470,12 @@ missing:
 	movq %rsp, %rbp
 	subq $40, %rsp
 	pushq %rbx
+	movq (%rsi), %rax
+	cmpl $0, %eax
+	jnz .Lbb49
+	movl $1, %eax
+	jmp .Lbb50
+.Lbb49:
 	addq $24, %rdi
 	movq %rsi, %rbx
 	movl $32, %esi
@@ -485,6 +491,7 @@ missing:
 	movl $32, %esi
 	callq push
 	movl $1, %eax
+.Lbb50:
 	popq %rbx
 	leave
 	ret
@@ -521,7 +528,7 @@ bump_err:
 	movq %rbx, %rdi
 	movq (%rax), %rcx
 	cmpq $2, %rcx
-	jz .Lbb51
+	jz .Lbb53
 	movq %rdi, %rbx
 	leaq -32(%rbp), %rdi
 	callq new_error_node
@@ -538,15 +545,15 @@ bump_err:
 	movl $32, %esi
 	callq push
 	movl $1, %eax
-	jmp .Lbb53
-.Lbb51:
+	jmp .Lbb55
+.Lbb53:
 	movq %r12, %rdx
 	movq %rax, %rdi
 	addq $8, %rdi
 	movl $24, %esi
 	callq push
 	movl $1, %eax
-.Lbb53:
+.Lbb55:
 	popq %r12
 	popq %rbx
 	leave
@@ -1066,12 +1073,12 @@ push_long:
 	movq 8(%rdi), %r12
 	movq 16(%rdi), %rax
 	cmpq %rax, %r12
-	jz .Lbb84
+	jz .Lbb86
 	movq %r13, %rsi
 	movq %rbx, %r13
 	movq %r15, %rbx
-	jmp .Lbb85
-.Lbb84:
+	jmp .Lbb87
+.Lbb86:
 	imulq $4, %rax, %r14
 	movq %rdi, %rbx
 	imulq $8, %r14, %rdi
@@ -1091,7 +1098,7 @@ push_long:
 	movq %r15, %rdi
 	callq free
 	movq %r14, %rsi
-.Lbb85:
+.Lbb87:
 	movq %r12, %rax
 	addq $1, %rax
 	movq %rax, (%r13)
@@ -1133,11 +1140,11 @@ push:
 	movq 8(%rdi), %r12
 	movq 16(%rdi), %rax
 	cmpq %rax, %r12
-	jz .Lbb89
+	jz .Lbb91
 	movq %r15, %rdx
 	xchgq %r13, %rbx
-	jmp .Lbb90
-.Lbb89:
+	jmp .Lbb92
+.Lbb91:
 	imulq $4, %rax, %r14
 	movq %rdi, %r13
 	movq %r14, %rdi
@@ -1162,7 +1169,7 @@ push:
 	callq free
 	movq %r15, %rdx
 	movq %r14, %rsi
-.Lbb90:
+.Lbb92:
 	movq %r12, %rax
 	imulq %rdx, %rax
 	movq %rax, %rdi
@@ -1242,7 +1249,7 @@ lex_2:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb103
+	jz .Lbb105
 	movl $101, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1252,7 +1259,7 @@ lex_2:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb103
+	jz .Lbb105
 	movl $108, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1262,7 +1269,7 @@ lex_2:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb103
+	jz .Lbb105
 	movl $101, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1272,7 +1279,7 @@ lex_2:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb103
+	jz .Lbb105
 	movl $99, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1282,20 +1289,20 @@ lex_2:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb103
+	jz .Lbb105
 	movl $116, %edx
 	callq cmp_current
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb104
-.Lbb103:
+	jnz .Lbb106
+.Lbb105:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb105
-.Lbb104:
+	jmp .Lbb107
+.Lbb106:
 	movl $1, %eax
-.Lbb105:
+.Lbb107:
 	popq %r14
 	popq %r13
 	popq %r12
@@ -1316,15 +1323,15 @@ lex_1:
 	movq %rbx, offset_ptr(%rip)
 	callq lex_2
 	cmpl $0, %eax
-	jnz .Lbb109
+	jnz .Lbb111
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb110
-.Lbb109:
+	jmp .Lbb112
+.Lbb111:
 	movq offset_ptr(%rip), %rax
 	movq %rax, group_end(%rip)
 	movl $1, %eax
-.Lbb110:
+.Lbb112:
 	popq %rbx
 	leave
 	ret
@@ -1345,13 +1352,13 @@ lex_4:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb113
+	jnz .Lbb115
 	movl $0, %eax
-	jmp .Lbb114
-.Lbb113:
+	jmp .Lbb116
+.Lbb115:
 	callq inc_offset
 	movl $1, %eax
-.Lbb114:
+.Lbb116:
 	leave
 	ret
 .type lex_4, @function
@@ -1371,13 +1378,13 @@ lex_5:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb117
+	jnz .Lbb119
 	movl $0, %eax
-	jmp .Lbb118
-.Lbb117:
+	jmp .Lbb120
+.Lbb119:
 	callq inc_offset
 	movl $1, %eax
-.Lbb118:
+.Lbb120:
 	leave
 	ret
 .type lex_5, @function
@@ -1397,13 +1404,13 @@ lex_6:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb121
+	jnz .Lbb123
 	movl $0, %eax
-	jmp .Lbb122
-.Lbb121:
+	jmp .Lbb124
+.Lbb123:
 	callq inc_offset
 	movl $1, %eax
-.Lbb122:
+.Lbb124:
 	leave
 	ret
 .type lex_6, @function
@@ -1417,13 +1424,13 @@ lex_7:
 	movl $95, %edx
 	callq cmp_current
 	cmpl $0, %eax
-	jnz .Lbb125
+	jnz .Lbb127
 	movl $0, %eax
-	jmp .Lbb126
-.Lbb125:
+	jmp .Lbb128
+.Lbb127:
 	callq inc_offset
 	movl $1, %eax
-.Lbb126:
+.Lbb128:
 	leave
 	ret
 .type lex_7, @function
@@ -1445,31 +1452,31 @@ lex_3:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb133
+	jnz .Lbb135
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_5
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb133
+	jnz .Lbb135
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_6
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb133
+	jnz .Lbb135
 	callq lex_7
 	cmpl $0, %eax
-	jnz .Lbb133
+	jnz .Lbb135
 	callq inc_offset
 	movl $1, %eax
-	jmp .Lbb134
-.Lbb133:
+	jmp .Lbb136
+.Lbb135:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-.Lbb134:
+.Lbb136:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -1494,17 +1501,17 @@ lex_0:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb138
+	jz .Lbb140
 	callq lex_3
 	cmpl $0, %eax
-	jnz .Lbb139
-.Lbb138:
+	jnz .Lbb141
+.Lbb140:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb140
-.Lbb139:
+	jmp .Lbb142
+.Lbb141:
 	movl $1, %eax
-.Lbb140:
+.Lbb142:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -1520,15 +1527,15 @@ lex_select:
 	movq %rsp, %rbp
 	callq lex_0
 	cmpl $0, %eax
-	jnz .Lbb143
+	jnz .Lbb145
 	movl $0, %eax
-	jmp .Lbb145
-.Lbb143:
+	jmp .Lbb147
+.Lbb145:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb145
+	jnz .Lbb147
 	movq offset_ptr(%rip), %rax
-.Lbb145:
+.Lbb147:
 	leave
 	ret
 .type lex_select, @function
@@ -1553,7 +1560,7 @@ lex_10:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb151
+	jz .Lbb153
 	movl $114, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1563,7 +1570,7 @@ lex_10:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb151
+	jz .Lbb153
 	movl $111, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1573,20 +1580,20 @@ lex_10:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb151
+	jz .Lbb153
 	movl $109, %edx
 	callq cmp_current
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb152
-.Lbb151:
+	jnz .Lbb154
+.Lbb153:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb153
-.Lbb152:
+	jmp .Lbb155
+.Lbb154:
 	movl $1, %eax
-.Lbb153:
+.Lbb155:
 	popq %r14
 	popq %r13
 	popq %r12
@@ -1607,15 +1614,15 @@ lex_9:
 	movq %rbx, offset_ptr(%rip)
 	callq lex_10
 	cmpl $0, %eax
-	jnz .Lbb157
+	jnz .Lbb159
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb158
-.Lbb157:
+	jmp .Lbb160
+.Lbb159:
 	movq offset_ptr(%rip), %rax
 	movq %rax, group_end(%rip)
 	movl $1, %eax
-.Lbb158:
+.Lbb160:
 	popq %rbx
 	leave
 	ret
@@ -1636,13 +1643,13 @@ lex_12:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb161
+	jnz .Lbb163
 	movl $0, %eax
-	jmp .Lbb162
-.Lbb161:
+	jmp .Lbb164
+.Lbb163:
 	callq inc_offset
 	movl $1, %eax
-.Lbb162:
+.Lbb164:
 	leave
 	ret
 .type lex_12, @function
@@ -1662,13 +1669,13 @@ lex_13:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb165
+	jnz .Lbb167
 	movl $0, %eax
-	jmp .Lbb166
-.Lbb165:
+	jmp .Lbb168
+.Lbb167:
 	callq inc_offset
 	movl $1, %eax
-.Lbb166:
+.Lbb168:
 	leave
 	ret
 .type lex_13, @function
@@ -1688,13 +1695,13 @@ lex_14:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb169
+	jnz .Lbb171
 	movl $0, %eax
-	jmp .Lbb170
-.Lbb169:
+	jmp .Lbb172
+.Lbb171:
 	callq inc_offset
 	movl $1, %eax
-.Lbb170:
+.Lbb172:
 	leave
 	ret
 .type lex_14, @function
@@ -1708,13 +1715,13 @@ lex_15:
 	movl $95, %edx
 	callq cmp_current
 	cmpl $0, %eax
-	jnz .Lbb173
+	jnz .Lbb175
 	movl $0, %eax
-	jmp .Lbb174
-.Lbb173:
+	jmp .Lbb176
+.Lbb175:
 	callq inc_offset
 	movl $1, %eax
-.Lbb174:
+.Lbb176:
 	leave
 	ret
 .type lex_15, @function
@@ -1736,31 +1743,31 @@ lex_11:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb181
+	jnz .Lbb183
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_13
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb181
+	jnz .Lbb183
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_14
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb181
+	jnz .Lbb183
 	callq lex_15
 	cmpl $0, %eax
-	jnz .Lbb181
+	jnz .Lbb183
 	callq inc_offset
 	movl $1, %eax
-	jmp .Lbb182
-.Lbb181:
+	jmp .Lbb184
+.Lbb183:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-.Lbb182:
+.Lbb184:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -1785,17 +1792,17 @@ lex_8:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb186
+	jz .Lbb188
 	callq lex_11
 	cmpl $0, %eax
-	jnz .Lbb187
-.Lbb186:
+	jnz .Lbb189
+.Lbb188:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb188
-.Lbb187:
+	jmp .Lbb190
+.Lbb189:
 	movl $1, %eax
-.Lbb188:
+.Lbb190:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -1811,15 +1818,15 @@ lex_from:
 	movq %rsp, %rbp
 	callq lex_8
 	cmpl $0, %eax
-	jnz .Lbb191
+	jnz .Lbb193
 	movl $0, %eax
-	jmp .Lbb193
-.Lbb191:
+	jmp .Lbb195
+.Lbb193:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb193
+	jnz .Lbb195
 	movq offset_ptr(%rip), %rax
-.Lbb193:
+.Lbb195:
 	leave
 	ret
 .type lex_from, @function
@@ -1844,7 +1851,7 @@ lex_18:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb201
+	jz .Lbb203
 	movl $101, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1854,7 +1861,7 @@ lex_18:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb201
+	jz .Lbb203
 	movl $108, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1864,7 +1871,7 @@ lex_18:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb201
+	jz .Lbb203
 	movl $101, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1874,7 +1881,7 @@ lex_18:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb201
+	jz .Lbb203
 	movl $116, %edx
 	movq %rsi, %r14
 	movq %rdi, %r13
@@ -1884,20 +1891,20 @@ lex_18:
 	movq %r14, %rsi
 	movq %r13, %rdi
 	cmpl $0, %r12d
-	jz .Lbb201
+	jz .Lbb203
 	movl $101, %edx
 	callq cmp_current
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb202
-.Lbb201:
+	jnz .Lbb204
+.Lbb203:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb203
-.Lbb202:
+	jmp .Lbb205
+.Lbb204:
 	movl $1, %eax
-.Lbb203:
+.Lbb205:
 	popq %r14
 	popq %r13
 	popq %r12
@@ -1918,15 +1925,15 @@ lex_17:
 	movq %rbx, offset_ptr(%rip)
 	callq lex_18
 	cmpl $0, %eax
-	jnz .Lbb207
+	jnz .Lbb209
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb208
-.Lbb207:
+	jmp .Lbb210
+.Lbb209:
 	movq offset_ptr(%rip), %rax
 	movq %rax, group_end(%rip)
 	movl $1, %eax
-.Lbb208:
+.Lbb210:
 	popq %rbx
 	leave
 	ret
@@ -1947,13 +1954,13 @@ lex_20:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb211
+	jnz .Lbb213
 	movl $0, %eax
-	jmp .Lbb212
-.Lbb211:
+	jmp .Lbb214
+.Lbb213:
 	callq inc_offset
 	movl $1, %eax
-.Lbb212:
+.Lbb214:
 	leave
 	ret
 .type lex_20, @function
@@ -1973,13 +1980,13 @@ lex_21:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb215
+	jnz .Lbb217
 	movl $0, %eax
-	jmp .Lbb216
-.Lbb215:
+	jmp .Lbb218
+.Lbb217:
 	callq inc_offset
 	movl $1, %eax
-.Lbb216:
+.Lbb218:
 	leave
 	ret
 .type lex_21, @function
@@ -1999,13 +2006,13 @@ lex_22:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb219
+	jnz .Lbb221
 	movl $0, %eax
-	jmp .Lbb220
-.Lbb219:
+	jmp .Lbb222
+.Lbb221:
 	callq inc_offset
 	movl $1, %eax
-.Lbb220:
+.Lbb222:
 	leave
 	ret
 .type lex_22, @function
@@ -2019,13 +2026,13 @@ lex_23:
 	movl $95, %edx
 	callq cmp_current
 	cmpl $0, %eax
-	jnz .Lbb223
+	jnz .Lbb225
 	movl $0, %eax
-	jmp .Lbb224
-.Lbb223:
+	jmp .Lbb226
+.Lbb225:
 	callq inc_offset
 	movl $1, %eax
-.Lbb224:
+.Lbb226:
 	leave
 	ret
 .type lex_23, @function
@@ -2047,31 +2054,31 @@ lex_19:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb231
+	jnz .Lbb233
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_21
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb231
+	jnz .Lbb233
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_22
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb231
+	jnz .Lbb233
 	callq lex_23
 	cmpl $0, %eax
-	jnz .Lbb231
+	jnz .Lbb233
 	callq inc_offset
 	movl $1, %eax
-	jmp .Lbb232
-.Lbb231:
+	jmp .Lbb234
+.Lbb233:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-.Lbb232:
+.Lbb234:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -2096,17 +2103,17 @@ lex_16:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb236
+	jz .Lbb238
 	callq lex_19
 	cmpl $0, %eax
-	jnz .Lbb237
-.Lbb236:
+	jnz .Lbb239
+.Lbb238:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb238
-.Lbb237:
+	jmp .Lbb240
+.Lbb239:
 	movl $1, %eax
-.Lbb238:
+.Lbb240:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -2122,15 +2129,15 @@ lex_delete:
 	movq %rsp, %rbp
 	callq lex_16
 	cmpl $0, %eax
-	jnz .Lbb241
+	jnz .Lbb243
 	movl $0, %eax
-	jmp .Lbb243
-.Lbb241:
+	jmp .Lbb245
+.Lbb243:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb243
+	jnz .Lbb245
 	movq offset_ptr(%rip), %rax
-.Lbb243:
+.Lbb245:
 	leave
 	ret
 .type lex_delete, @function
@@ -2150,13 +2157,13 @@ lex_26:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb246
+	jnz .Lbb248
 	movl $0, %eax
-	jmp .Lbb247
-.Lbb246:
+	jmp .Lbb249
+.Lbb248:
 	callq inc_offset
 	movl $1, %eax
-.Lbb247:
+.Lbb249:
 	leave
 	ret
 .type lex_26, @function
@@ -2173,13 +2180,13 @@ lex_25:
 	movq %rbx, offset_ptr(%rip)
 	callq lex_26
 	cmpl $0, %eax
-	jnz .Lbb251
+	jnz .Lbb253
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb252
-.Lbb251:
+	jmp .Lbb254
+.Lbb253:
 	movl $1, %eax
-.Lbb252:
+.Lbb254:
 	popq %rbx
 	leave
 	ret
@@ -2195,31 +2202,31 @@ lex_27:
 	pushq %r12
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb258
+	jz .Lbb260
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_25
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb258
-.Lbb255:
+	jz .Lbb260
+.Lbb257:
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb257
+	jz .Lbb259
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_25
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb255
-.Lbb257:
-	movl $1, %eax
-	jmp .Lbb259
-.Lbb258:
-	movl $0, %eax
+	jnz .Lbb257
 .Lbb259:
+	movl $1, %eax
+	jmp .Lbb261
+.Lbb260:
+	movl $0, %eax
+.Lbb261:
 	popq %r12
 	popq %rbx
 	leave
@@ -2237,13 +2244,13 @@ lex_24:
 	movq offset_ptr(%rip), %rbx
 	callq lex_27
 	cmpl $0, %eax
-	jnz .Lbb263
+	jnz .Lbb265
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb264
-.Lbb263:
+	jmp .Lbb266
+.Lbb265:
 	movl $1, %eax
-.Lbb264:
+.Lbb266:
 	popq %rbx
 	leave
 	ret
@@ -2257,15 +2264,15 @@ lex_NUM:
 	movq %rsp, %rbp
 	callq lex_24
 	cmpl $0, %eax
-	jnz .Lbb267
+	jnz .Lbb269
 	movl $0, %eax
-	jmp .Lbb269
-.Lbb267:
+	jmp .Lbb271
+.Lbb269:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb269
+	jnz .Lbb271
 	movq offset_ptr(%rip), %rax
-.Lbb269:
+.Lbb271:
 	leave
 	ret
 .type lex_NUM, @function
@@ -2284,13 +2291,13 @@ lex_29:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb273
+	jnz .Lbb275
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb274
-.Lbb273:
+	jmp .Lbb276
+.Lbb275:
 	movl $1, %eax
-.Lbb274:
+.Lbb276:
 	popq %r12
 	popq %rbx
 	leave
@@ -2306,13 +2313,13 @@ lex_31:
 	movl $34, %edx
 	callq cmp_current
 	cmpl $0, %eax
-	jnz .Lbb277
+	jnz .Lbb279
 	movl $0, %eax
-	jmp .Lbb278
-.Lbb277:
+	jmp .Lbb280
+.Lbb279:
 	callq inc_offset
 	movl $1, %eax
-.Lbb278:
+.Lbb280:
 	leave
 	ret
 .type lex_31, @function
@@ -2328,14 +2335,14 @@ lex_30:
 	movq offset_ptr(%rip), %rbx
 	callq lex_31
 	cmpl $0, %eax
-	jnz .Lbb282
+	jnz .Lbb284
 	callq inc_offset
 	movl $1, %eax
-	jmp .Lbb283
-.Lbb282:
+	jmp .Lbb285
+.Lbb284:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-.Lbb283:
+.Lbb285:
 	popq %rbx
 	leave
 	ret
@@ -2349,18 +2356,18 @@ lex_32:
 	movq %rsp, %rbp
 	pushq %rbx
 	pushq %r12
-.Lbb285:
+.Lbb287:
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_30
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb287
+	jz .Lbb289
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jnz .Lbb285
-.Lbb287:
+	jnz .Lbb287
+.Lbb289:
 	movl $1, %eax
 	popq %r12
 	popq %rbx
@@ -2382,13 +2389,13 @@ lex_33:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb292
+	jnz .Lbb294
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb293
-.Lbb292:
+	jmp .Lbb295
+.Lbb294:
 	movl $1, %eax
-.Lbb293:
+.Lbb295:
 	popq %r12
 	popq %rbx
 	leave
@@ -2412,24 +2419,24 @@ lex_28:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb298
+	jz .Lbb300
 	movq %rsi, %r13
 	movq %rdi, %r12
 	callq lex_32
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb298
+	jz .Lbb300
 	callq lex_33
 	cmpl $0, %eax
-	jnz .Lbb299
-.Lbb298:
+	jnz .Lbb301
+.Lbb300:
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb300
-.Lbb299:
+	jmp .Lbb302
+.Lbb301:
 	movl $1, %eax
-.Lbb300:
+.Lbb302:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -2445,15 +2452,15 @@ lex_STR:
 	movq %rsp, %rbp
 	callq lex_28
 	cmpl $0, %eax
-	jnz .Lbb303
+	jnz .Lbb305
 	movl $0, %eax
-	jmp .Lbb305
-.Lbb303:
+	jmp .Lbb307
+.Lbb305:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb305
+	jnz .Lbb307
 	movq offset_ptr(%rip), %rax
-.Lbb305:
+.Lbb307:
 	leave
 	ret
 .type lex_STR, @function
@@ -2477,13 +2484,13 @@ lex_35:
 	movzbl %dl, %edx
 	andl %edx, %eax
 	orl %ecx, %eax
-	jnz .Lbb308
+	jnz .Lbb310
 	movl $0, %eax
-	jmp .Lbb309
-.Lbb308:
+	jmp .Lbb311
+.Lbb310:
 	callq inc_offset
 	movl $1, %eax
-.Lbb309:
+.Lbb311:
 	leave
 	ret
 .type lex_35, @function
@@ -2498,31 +2505,31 @@ lex_36:
 	pushq %r12
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb315
+	jz .Lbb317
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_35
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb315
-.Lbb312:
+	jz .Lbb317
+.Lbb314:
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb314
+	jz .Lbb316
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_35
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb312
-.Lbb314:
-	movl $1, %eax
-	jmp .Lbb316
-.Lbb315:
-	movl $0, %eax
+	jnz .Lbb314
 .Lbb316:
+	movl $1, %eax
+	jmp .Lbb318
+.Lbb317:
+	movl $0, %eax
+.Lbb318:
 	popq %r12
 	popq %rbx
 	leave
@@ -2540,13 +2547,13 @@ lex_34:
 	movq offset_ptr(%rip), %rbx
 	callq lex_36
 	cmpl $0, %eax
-	jnz .Lbb320
+	jnz .Lbb322
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb321
-.Lbb320:
+	jmp .Lbb323
+.Lbb322:
 	movl $1, %eax
-.Lbb321:
+.Lbb323:
 	popq %rbx
 	leave
 	ret
@@ -2560,15 +2567,15 @@ lex_WHITESPACE:
 	movq %rsp, %rbp
 	callq lex_34
 	cmpl $0, %eax
-	jnz .Lbb324
+	jnz .Lbb326
 	movl $0, %eax
-	jmp .Lbb326
-.Lbb324:
+	jmp .Lbb328
+.Lbb326:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb326
+	jnz .Lbb328
 	movq offset_ptr(%rip), %rax
-.Lbb326:
+.Lbb328:
 	leave
 	ret
 .type lex_WHITESPACE, @function
@@ -2582,13 +2589,13 @@ lex_39:
 	movl $95, %edx
 	callq cmp_current
 	cmpl $0, %eax
-	jnz .Lbb329
+	jnz .Lbb331
 	movl $0, %eax
-	jmp .Lbb330
-.Lbb329:
+	jmp .Lbb332
+.Lbb331:
 	callq inc_offset
 	movl $1, %eax
-.Lbb330:
+.Lbb332:
 	leave
 	ret
 .type lex_39, @function
@@ -2608,13 +2615,13 @@ lex_40:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb333
+	jnz .Lbb335
 	movl $0, %eax
-	jmp .Lbb334
-.Lbb333:
+	jmp .Lbb336
+.Lbb335:
 	callq inc_offset
 	movl $1, %eax
-.Lbb334:
+.Lbb336:
 	leave
 	ret
 .type lex_40, @function
@@ -2634,13 +2641,13 @@ lex_41:
 	setbe %cl
 	movzbl %cl, %ecx
 	testl %eax, %ecx
-	jnz .Lbb337
+	jnz .Lbb339
 	movl $0, %eax
-	jmp .Lbb338
-.Lbb337:
+	jmp .Lbb340
+.Lbb339:
 	callq inc_offset
 	movl $1, %eax
-.Lbb338:
+.Lbb340:
 	leave
 	ret
 .type lex_41, @function
@@ -2663,7 +2670,7 @@ lex_38:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb344
+	jnz .Lbb346
 	movq %rbx, offset_ptr(%rip)
 	movq %rsi, %r13
 	movq %rdi, %r12
@@ -2671,17 +2678,17 @@ lex_38:
 	movq %r13, %rsi
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jnz .Lbb344
+	jnz .Lbb346
 	movq %rbx, offset_ptr(%rip)
 	callq lex_41
 	cmpl $0, %eax
-	jnz .Lbb344
+	jnz .Lbb346
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb345
-.Lbb344:
+	jmp .Lbb347
+.Lbb346:
 	movl $1, %eax
-.Lbb345:
+.Lbb347:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -2699,31 +2706,31 @@ lex_42:
 	pushq %r12
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb351
+	jz .Lbb353
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_38
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb351
-.Lbb348:
+	jz .Lbb353
+.Lbb350:
 	movq offset_ptr(%rip), %rax
 	cmpq %rsi, %rax
-	jz .Lbb350
+	jz .Lbb352
 	movq %rsi, %r12
 	movq %rdi, %rbx
 	callq lex_38
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb348
-.Lbb350:
-	movl $1, %eax
-	jmp .Lbb352
-.Lbb351:
-	movl $0, %eax
+	jnz .Lbb350
 .Lbb352:
+	movl $1, %eax
+	jmp .Lbb354
+.Lbb353:
+	movl $0, %eax
+.Lbb354:
 	popq %r12
 	popq %rbx
 	leave
@@ -2741,13 +2748,13 @@ lex_37:
 	movq offset_ptr(%rip), %rbx
 	callq lex_42
 	cmpl $0, %eax
-	jnz .Lbb356
+	jnz .Lbb358
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb357
-.Lbb356:
+	jmp .Lbb359
+.Lbb358:
 	movl $1, %eax
-.Lbb357:
+.Lbb359:
 	popq %rbx
 	leave
 	ret
@@ -2761,15 +2768,15 @@ lex_IDENT:
 	movq %rsp, %rbp
 	callq lex_37
 	cmpl $0, %eax
-	jnz .Lbb360
+	jnz .Lbb362
 	movl $0, %eax
-	jmp .Lbb362
-.Lbb360:
+	jmp .Lbb364
+.Lbb362:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb362
+	jnz .Lbb364
 	movq offset_ptr(%rip), %rax
-.Lbb362:
+.Lbb364:
 	leave
 	ret
 .type lex_IDENT, @function
@@ -2788,13 +2795,13 @@ lex_44:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb366
+	jnz .Lbb368
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb367
-.Lbb366:
+	jmp .Lbb369
+.Lbb368:
 	movl $1, %eax
-.Lbb367:
+.Lbb369:
 	popq %r12
 	popq %rbx
 	leave
@@ -2812,13 +2819,13 @@ lex_43:
 	movq offset_ptr(%rip), %rbx
 	callq lex_44
 	cmpl $0, %eax
-	jnz .Lbb371
+	jnz .Lbb373
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb372
-.Lbb371:
+	jmp .Lbb374
+.Lbb373:
 	movl $1, %eax
-.Lbb372:
+.Lbb374:
 	popq %rbx
 	leave
 	ret
@@ -2832,15 +2839,15 @@ lex_COLON:
 	movq %rsp, %rbp
 	callq lex_43
 	cmpl $0, %eax
-	jnz .Lbb375
+	jnz .Lbb377
 	movl $0, %eax
-	jmp .Lbb377
-.Lbb375:
+	jmp .Lbb379
+.Lbb377:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb377
+	jnz .Lbb379
 	movq offset_ptr(%rip), %rax
-.Lbb377:
+.Lbb379:
 	leave
 	ret
 .type lex_COLON, @function
@@ -2859,13 +2866,13 @@ lex_46:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb381
+	jnz .Lbb383
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb382
-.Lbb381:
+	jmp .Lbb384
+.Lbb383:
 	movl $1, %eax
-.Lbb382:
+.Lbb384:
 	popq %r12
 	popq %rbx
 	leave
@@ -2883,13 +2890,13 @@ lex_45:
 	movq offset_ptr(%rip), %rbx
 	callq lex_46
 	cmpl $0, %eax
-	jnz .Lbb386
+	jnz .Lbb388
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb387
-.Lbb386:
+	jmp .Lbb389
+.Lbb388:
 	movl $1, %eax
-.Lbb387:
+.Lbb389:
 	popq %rbx
 	leave
 	ret
@@ -2903,15 +2910,15 @@ lex_COMMA:
 	movq %rsp, %rbp
 	callq lex_45
 	cmpl $0, %eax
-	jnz .Lbb390
+	jnz .Lbb392
 	movl $0, %eax
-	jmp .Lbb392
-.Lbb390:
+	jmp .Lbb394
+.Lbb392:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb392
+	jnz .Lbb394
 	movq offset_ptr(%rip), %rax
-.Lbb392:
+.Lbb394:
 	leave
 	ret
 .type lex_COMMA, @function
@@ -2930,13 +2937,13 @@ lex_48:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb396
+	jnz .Lbb398
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb397
-.Lbb396:
+	jmp .Lbb399
+.Lbb398:
 	movl $1, %eax
-.Lbb397:
+.Lbb399:
 	popq %r12
 	popq %rbx
 	leave
@@ -2954,13 +2961,13 @@ lex_47:
 	movq offset_ptr(%rip), %rbx
 	callq lex_48
 	cmpl $0, %eax
-	jnz .Lbb401
+	jnz .Lbb403
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb402
-.Lbb401:
+	jmp .Lbb404
+.Lbb403:
 	movl $1, %eax
-.Lbb402:
+.Lbb404:
 	popq %rbx
 	leave
 	ret
@@ -2974,15 +2981,15 @@ lex_SEMI:
 	movq %rsp, %rbp
 	callq lex_47
 	cmpl $0, %eax
-	jnz .Lbb405
+	jnz .Lbb407
 	movl $0, %eax
-	jmp .Lbb407
-.Lbb405:
+	jmp .Lbb409
+.Lbb407:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb407
+	jnz .Lbb409
 	movq offset_ptr(%rip), %rax
-.Lbb407:
+.Lbb409:
 	leave
 	ret
 .type lex_SEMI, @function
@@ -3001,13 +3008,13 @@ lex_50:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb411
+	jnz .Lbb413
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb412
-.Lbb411:
+	jmp .Lbb414
+.Lbb413:
 	movl $1, %eax
-.Lbb412:
+.Lbb414:
 	popq %r12
 	popq %rbx
 	leave
@@ -3025,13 +3032,13 @@ lex_49:
 	movq offset_ptr(%rip), %rbx
 	callq lex_50
 	cmpl $0, %eax
-	jnz .Lbb416
+	jnz .Lbb418
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb417
-.Lbb416:
+	jmp .Lbb419
+.Lbb418:
 	movl $1, %eax
-.Lbb417:
+.Lbb419:
 	popq %rbx
 	leave
 	ret
@@ -3045,15 +3052,15 @@ lex_PLUS:
 	movq %rsp, %rbp
 	callq lex_49
 	cmpl $0, %eax
-	jnz .Lbb420
+	jnz .Lbb422
 	movl $0, %eax
-	jmp .Lbb422
-.Lbb420:
+	jmp .Lbb424
+.Lbb422:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb422
+	jnz .Lbb424
 	movq offset_ptr(%rip), %rax
-.Lbb422:
+.Lbb424:
 	leave
 	ret
 .type lex_PLUS, @function
@@ -3072,13 +3079,13 @@ lex_52:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb426
+	jnz .Lbb428
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb427
-.Lbb426:
+	jmp .Lbb429
+.Lbb428:
 	movl $1, %eax
-.Lbb427:
+.Lbb429:
 	popq %r12
 	popq %rbx
 	leave
@@ -3096,13 +3103,13 @@ lex_51:
 	movq offset_ptr(%rip), %rbx
 	callq lex_52
 	cmpl $0, %eax
-	jnz .Lbb431
+	jnz .Lbb433
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb432
-.Lbb431:
+	jmp .Lbb434
+.Lbb433:
 	movl $1, %eax
-.Lbb432:
+.Lbb434:
 	popq %rbx
 	leave
 	ret
@@ -3116,15 +3123,15 @@ lex_TIMES:
 	movq %rsp, %rbp
 	callq lex_51
 	cmpl $0, %eax
-	jnz .Lbb435
+	jnz .Lbb437
 	movl $0, %eax
-	jmp .Lbb437
-.Lbb435:
+	jmp .Lbb439
+.Lbb437:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb437
+	jnz .Lbb439
 	movq offset_ptr(%rip), %rax
-.Lbb437:
+.Lbb439:
 	leave
 	ret
 .type lex_TIMES, @function
@@ -3143,13 +3150,13 @@ lex_54:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb441
+	jnz .Lbb443
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb442
-.Lbb441:
+	jmp .Lbb444
+.Lbb443:
 	movl $1, %eax
-.Lbb442:
+.Lbb444:
 	popq %r12
 	popq %rbx
 	leave
@@ -3167,13 +3174,13 @@ lex_53:
 	movq offset_ptr(%rip), %rbx
 	callq lex_54
 	cmpl $0, %eax
-	jnz .Lbb446
+	jnz .Lbb448
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb447
-.Lbb446:
+	jmp .Lbb449
+.Lbb448:
 	movl $1, %eax
-.Lbb447:
+.Lbb449:
 	popq %rbx
 	leave
 	ret
@@ -3187,15 +3194,15 @@ lex_LParen:
 	movq %rsp, %rbp
 	callq lex_53
 	cmpl $0, %eax
-	jnz .Lbb450
+	jnz .Lbb452
 	movl $0, %eax
-	jmp .Lbb452
-.Lbb450:
+	jmp .Lbb454
+.Lbb452:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb452
+	jnz .Lbb454
 	movq offset_ptr(%rip), %rax
-.Lbb452:
+.Lbb454:
 	leave
 	ret
 .type lex_LParen, @function
@@ -3214,13 +3221,13 @@ lex_56:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb456
+	jnz .Lbb458
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb457
-.Lbb456:
+	jmp .Lbb459
+.Lbb458:
 	movl $1, %eax
-.Lbb457:
+.Lbb459:
 	popq %r12
 	popq %rbx
 	leave
@@ -3238,13 +3245,13 @@ lex_55:
 	movq offset_ptr(%rip), %rbx
 	callq lex_56
 	cmpl $0, %eax
-	jnz .Lbb461
+	jnz .Lbb463
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb462
-.Lbb461:
+	jmp .Lbb464
+.Lbb463:
 	movl $1, %eax
-.Lbb462:
+.Lbb464:
 	popq %rbx
 	leave
 	ret
@@ -3258,15 +3265,15 @@ lex_RParen:
 	movq %rsp, %rbp
 	callq lex_55
 	cmpl $0, %eax
-	jnz .Lbb465
+	jnz .Lbb467
 	movl $0, %eax
-	jmp .Lbb467
-.Lbb465:
+	jmp .Lbb469
+.Lbb467:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb467
+	jnz .Lbb469
 	movq offset_ptr(%rip), %rax
-.Lbb467:
+.Lbb469:
 	leave
 	ret
 .type lex_RParen, @function
@@ -3285,13 +3292,13 @@ lex_58:
 	movl %eax, %r12d
 	callq inc_offset
 	cmpl $0, %r12d
-	jnz .Lbb471
+	jnz .Lbb473
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb472
-.Lbb471:
+	jmp .Lbb474
+.Lbb473:
 	movl $1, %eax
-.Lbb472:
+.Lbb474:
 	popq %r12
 	popq %rbx
 	leave
@@ -3309,13 +3316,13 @@ lex_57:
 	movq offset_ptr(%rip), %rbx
 	callq lex_58
 	cmpl $0, %eax
-	jnz .Lbb476
+	jnz .Lbb478
 	movq %rbx, offset_ptr(%rip)
 	movl $0, %eax
-	jmp .Lbb477
-.Lbb476:
+	jmp .Lbb479
+.Lbb478:
 	movl $1, %eax
-.Lbb477:
+.Lbb479:
 	popq %rbx
 	leave
 	ret
@@ -3329,15 +3336,15 @@ lex_BANG:
 	movq %rsp, %rbp
 	callq lex_57
 	cmpl $0, %eax
-	jnz .Lbb480
+	jnz .Lbb482
 	movl $0, %eax
-	jmp .Lbb482
-.Lbb480:
+	jmp .Lbb484
+.Lbb482:
 	movq group_end(%rip), %rax
 	cmpl $0, %eax
-	jnz .Lbb482
+	jnz .Lbb484
 	movq offset_ptr(%rip), %rax
-.Lbb482:
+.Lbb484:
 	leave
 	ret
 .type lex_BANG, @function
@@ -3365,11 +3372,11 @@ lex:
 	movq %rbx, %rsi
 	movq %rax, %rbx
 	movl $0, %r12d
-.Lbb485:
+.Lbb487:
 	movq %rdx, %r14
 	movq offset_ptr(%rip), %rax
 	cmpq %r14, %rax
-	jz .Lbb532
+	jz .Lbb534
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3377,7 +3384,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb530
+	jnz .Lbb532
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3385,7 +3392,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb528
+	jnz .Lbb530
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3393,7 +3400,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb526
+	jnz .Lbb528
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3401,7 +3408,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb524
+	jnz .Lbb526
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3409,7 +3416,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb522
+	jnz .Lbb524
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3417,7 +3424,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb520
+	jnz .Lbb522
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3425,7 +3432,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb518
+	jnz .Lbb520
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3433,7 +3440,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb516
+	jnz .Lbb518
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3441,7 +3448,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb514
+	jnz .Lbb516
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3449,7 +3456,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb512
+	jnz .Lbb514
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3457,7 +3464,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb510
+	jnz .Lbb512
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3465,7 +3472,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb508
+	jnz .Lbb510
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3473,7 +3480,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb506
+	jnz .Lbb508
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3481,7 +3488,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jnz .Lbb504
+	jnz .Lbb506
 	movq %rsi, %r13
 	movq %r14, %rsi
 	movq %r13, %rdi
@@ -3490,7 +3497,7 @@ lex:
 	movq %r13, %rsi
 	movq %rax, %r13
 	cmpl $0, %r13d
-	jz .Lbb502
+	jz .Lbb504
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
 	addq %rax, %r12
@@ -3513,8 +3520,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb502:
+	jmp .Lbb487
+.Lbb504:
 	movq %r12, %rdx
 	movq -16(%rbp), %r12
 	movq %rdx, %rcx
@@ -3529,8 +3536,8 @@ lex:
 	movq %r12, %rax
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb533
-.Lbb504:
+	jmp .Lbb535
+.Lbb506:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3554,8 +3561,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb506:
+	jmp .Lbb487
+.Lbb508:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3579,8 +3586,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb508:
+	jmp .Lbb487
+.Lbb510:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3604,8 +3611,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb510:
+	jmp .Lbb487
+.Lbb512:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3629,8 +3636,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb512:
+	jmp .Lbb487
+.Lbb514:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3654,8 +3661,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb514:
+	jmp .Lbb487
+.Lbb516:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3679,8 +3686,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb516:
+	jmp .Lbb487
+.Lbb518:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3704,8 +3711,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb518:
+	jmp .Lbb487
+.Lbb520:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3729,8 +3736,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb520:
+	jmp .Lbb487
+.Lbb522:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3754,8 +3761,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb522:
+	jmp .Lbb487
+.Lbb524:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3779,8 +3786,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb524:
+	jmp .Lbb487
+.Lbb526:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3804,8 +3811,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb526:
+	jmp .Lbb487
+.Lbb528:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3829,8 +3836,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb528:
+	jmp .Lbb487
+.Lbb530:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3854,8 +3861,8 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb530:
+	jmp .Lbb487
+.Lbb532:
 	movq %r14, %rdx
 	movq offset_ptr(%rip), %rax
 	movq %r12, %r14
@@ -3879,10 +3886,10 @@ lex:
 	subq %r13, %rdx
 	movq $0, offset_ptr(%rip)
 	movq $0, group_end(%rip)
-	jmp .Lbb485
-.Lbb532:
+	jmp .Lbb487
+.Lbb534:
 	movq -16(%rbp), %rax
-.Lbb533:
+.Lbb535:
 	movq 0(%rbx), %rcx
 	movq %rcx, 0(%rax)
 	movq 8(%rbx), %rcx
@@ -4109,113 +4116,113 @@ token_name:
 	movq %rsp, %rbp
 	cmpl $0, %edi
 	leaq select_token_name(%rip), %rax
-	jz .Lbb566
+	jz .Lbb568
 	cmpl $1, %edi
 	leaq from_token_name(%rip), %rax
-	jz .Lbb565
+	jz .Lbb567
 	cmpl $2, %edi
 	leaq delete_token_name(%rip), %rax
-	jz .Lbb564
+	jz .Lbb566
 	cmpl $3, %edi
 	leaq NUM_token_name(%rip), %rax
-	jz .Lbb563
+	jz .Lbb565
 	cmpl $4, %edi
 	leaq STR_token_name(%rip), %rax
-	jz .Lbb562
+	jz .Lbb564
 	cmpl $5, %edi
 	leaq WHITESPACE_token_name(%rip), %rax
-	jz .Lbb561
+	jz .Lbb563
 	cmpl $6, %edi
 	leaq IDENT_token_name(%rip), %rax
-	jz .Lbb560
+	jz .Lbb562
 	cmpl $7, %edi
 	leaq COLON_token_name(%rip), %rax
-	jz .Lbb559
+	jz .Lbb561
 	cmpl $8, %edi
 	leaq COMMA_token_name(%rip), %rax
-	jz .Lbb558
+	jz .Lbb560
 	cmpl $9, %edi
 	leaq SEMI_token_name(%rip), %rax
-	jz .Lbb557
+	jz .Lbb559
 	cmpl $10, %edi
 	leaq PLUS_token_name(%rip), %rax
-	jz .Lbb556
+	jz .Lbb558
 	cmpl $11, %edi
 	leaq TIMES_token_name(%rip), %rax
-	jz .Lbb555
+	jz .Lbb557
 	cmpl $12, %edi
 	leaq LParen_token_name(%rip), %rax
-	jz .Lbb554
+	jz .Lbb556
 	cmpl $13, %edi
 	leaq RParen_token_name(%rip), %rax
-	jz .Lbb553
+	jz .Lbb555
 	cmpl $14, %edi
 	leaq BANG_token_name(%rip), %rax
-	jz .Lbb552
+	jz .Lbb554
 	leaq err_token_name(%rip), %rax
 	movq %rax, %rdx
 	movl $5, %eax
-	jmp .Lbb567
-.Lbb552:
-	movq %rax, %rdx
-	movl $4, %eax
-	jmp .Lbb567
-.Lbb553:
-	movq %rax, %rdx
-	movl $6, %eax
-	jmp .Lbb567
+	jmp .Lbb569
 .Lbb554:
 	movq %rax, %rdx
-	movl $6, %eax
-	jmp .Lbb567
+	movl $4, %eax
+	jmp .Lbb569
 .Lbb555:
 	movq %rax, %rdx
-	movl $5, %eax
-	jmp .Lbb567
+	movl $6, %eax
+	jmp .Lbb569
 .Lbb556:
 	movq %rax, %rdx
-	movl $4, %eax
-	jmp .Lbb567
+	movl $6, %eax
+	jmp .Lbb569
 .Lbb557:
 	movq %rax, %rdx
-	movl $4, %eax
-	jmp .Lbb567
+	movl $5, %eax
+	jmp .Lbb569
 .Lbb558:
 	movq %rax, %rdx
-	movl $5, %eax
-	jmp .Lbb567
+	movl $4, %eax
+	jmp .Lbb569
 .Lbb559:
 	movq %rax, %rdx
-	movl $5, %eax
-	jmp .Lbb567
+	movl $4, %eax
+	jmp .Lbb569
 .Lbb560:
 	movq %rax, %rdx
 	movl $5, %eax
-	jmp .Lbb567
+	jmp .Lbb569
 .Lbb561:
 	movq %rax, %rdx
-	movl $10, %eax
-	jmp .Lbb567
+	movl $5, %eax
+	jmp .Lbb569
 .Lbb562:
 	movq %rax, %rdx
-	movl $3, %eax
-	jmp .Lbb567
+	movl $5, %eax
+	jmp .Lbb569
 .Lbb563:
 	movq %rax, %rdx
-	movl $3, %eax
-	jmp .Lbb567
+	movl $10, %eax
+	jmp .Lbb569
 .Lbb564:
 	movq %rax, %rdx
-	movl $6, %eax
-	jmp .Lbb567
+	movl $3, %eax
+	jmp .Lbb569
 .Lbb565:
 	movq %rax, %rdx
-	movl $4, %eax
-	jmp .Lbb567
+	movl $3, %eax
+	jmp .Lbb569
 .Lbb566:
 	movq %rax, %rdx
 	movl $6, %eax
+	jmp .Lbb569
 .Lbb567:
+	movq %rax, %rdx
+	movl $4, %eax
+	jmp .Lbb569
+.Lbb568:
+	movq %rax, %rdx
+	movl $6, %eax
+.Lbb569:
 	subq $16, %rsp
 	movq %rsp, %rcx
 	movq %rdx, (%rcx)
@@ -4235,112 +4242,132 @@ peak_by_id:
 	pushq %rbp
 	movq %rsp, %rbp
 	cmpq $0, %rcx
-	jz .Lbb611
+	jz .Lbb621
 	cmpq $1, %rcx
-	jz .Lbb610
+	jz .Lbb620
 	cmpq $2, %rcx
-	jz .Lbb609
+	jz .Lbb619
 	cmpq $3, %rcx
-	jz .Lbb608
+	jz .Lbb618
 	cmpq $4, %rcx
-	jz .Lbb607
+	jz .Lbb617
 	cmpq $5, %rcx
-	jz .Lbb606
+	jz .Lbb616
 	cmpq $6, %rcx
-	jz .Lbb605
+	jz .Lbb615
 	cmpq $7, %rcx
-	jz .Lbb604
+	jz .Lbb614
 	cmpq $8, %rcx
-	jz .Lbb603
+	jz .Lbb613
 	cmpq $9, %rcx
-	jz .Lbb602
+	jz .Lbb612
 	cmpq $10, %rcx
-	jz .Lbb601
+	jz .Lbb611
 	cmpq $11, %rcx
-	jz .Lbb600
+	jz .Lbb610
 	cmpq $12, %rcx
-	jz .Lbb599
+	jz .Lbb609
 	cmpq $13, %rcx
-	jz .Lbb598
+	jz .Lbb608
 	cmpq $14, %rcx
-	jz .Lbb597
+	jz .Lbb607
 	cmpq $15, %rcx
-	jz .Lbb596
+	jz .Lbb606
 	cmpq $16, %rcx
-	jz .Lbb595
+	jz .Lbb605
 	cmpq $17, %rcx
-	jz .Lbb594
+	jz .Lbb604
 	cmpq $18, %rcx
-	jz .Lbb593
+	jz .Lbb603
 	cmpq $19, %rcx
-	jz .Lbb592
+	jz .Lbb602
 	cmpq $20, %rcx
-	jz .Lbb591
+	jz .Lbb601
+	cmpq $21, %rcx
+	jz .Lbb600
+	cmpq $22, %rcx
+	jz .Lbb599
+	cmpq $23, %rcx
+	jz .Lbb598
+	cmpq $24, %rcx
+	jz .Lbb597
 	movl $0, %eax
-	jmp .Lbb612
-.Lbb591:
-	callq peak_20
-	jmp .Lbb612
-.Lbb592:
-	callq peak_19
-	jmp .Lbb612
-.Lbb593:
-	callq peak_18
-	jmp .Lbb612
-.Lbb594:
-	callq peak_17
-	jmp .Lbb612
-.Lbb595:
-	callq peak_16
-	jmp .Lbb612
-.Lbb596:
-	callq peak_15
-	jmp .Lbb612
+	jmp .Lbb622
 .Lbb597:
-	callq peak_14
-	jmp .Lbb612
+	callq peak_24
+	jmp .Lbb622
 .Lbb598:
-	callq peak_13
-	jmp .Lbb612
+	callq peak_23
+	jmp .Lbb622
 .Lbb599:
-	callq peak_12
-	jmp .Lbb612
+	callq peak_22
+	jmp .Lbb622
 .Lbb600:
-	callq peak_11
-	jmp .Lbb612
+	callq peak_21
+	jmp .Lbb622
 .Lbb601:
-	callq peak_10
-	jmp .Lbb612
+	callq peak_20
+	jmp .Lbb622
 .Lbb602:
-	callq peak_9
-	jmp .Lbb612
+	callq peak_19
+	jmp .Lbb622
 .Lbb603:
-	callq peak_8
-	jmp .Lbb612
+	callq peak_18
+	jmp .Lbb622
 .Lbb604:
-	callq peak_7
-	jmp .Lbb612
+	callq peak_17
+	jmp .Lbb622
 .Lbb605:
-	callq peak_6
-	jmp .Lbb612
+	callq peak_16
+	jmp .Lbb622
 .Lbb606:
-	callq peak_5
-	jmp .Lbb612
+	callq peak_15
+	jmp .Lbb622
 .Lbb607:
-	callq peak_4
-	jmp .Lbb612
+	callq peak_14
+	jmp .Lbb622
 .Lbb608:
-	callq peak_3
-	jmp .Lbb612
+	callq peak_13
+	jmp .Lbb622
 .Lbb609:
-	callq peak_2
-	jmp .Lbb612
+	callq peak_12
+	jmp .Lbb622
 .Lbb610:
-	callq peak_1
-	jmp .Lbb612
+	callq peak_11
+	jmp .Lbb622
 .Lbb611:
-	callq peak_0
+	callq peak_10
+	jmp .Lbb622
 .Lbb612:
+	callq peak_9
+	jmp .Lbb622
+.Lbb613:
+	callq peak_8
+	jmp .Lbb622
+.Lbb614:
+	callq peak_7
+	jmp .Lbb622
+.Lbb615:
+	callq peak_6
+	jmp .Lbb622
+.Lbb616:
+	callq peak_5
+	jmp .Lbb622
+.Lbb617:
+	callq peak_4
+	jmp .Lbb622
+.Lbb618:
+	callq peak_3
+	jmp .Lbb622
+.Lbb619:
+	callq peak_2
+	jmp .Lbb622
+.Lbb620:
+	callq peak_1
+	jmp .Lbb622
+.Lbb621:
+	callq peak_0
+.Lbb622:
 	leave
 	ret
 .type peak_by_id, @function
@@ -4356,39 +4383,39 @@ parse_0:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb614:
+.Lbb624:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb626
+	jnz .Lbb636
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
 	cmpq $4, %rsi
-	jz .Lbb625
+	jz .Lbb635
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb619
+	jz .Lbb629
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb614
-.Lbb619:
+	jmp .Lbb624
+.Lbb629:
 	cmpl $0, %r12d
-	jz .Lbb624
+	jz .Lbb634
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb624
-.Lbb621:
+	jz .Lbb634
+.Lbb631:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -4403,24 +4430,24 @@ parse_0:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb623
+	jz .Lbb633
 	cmpl $0, %ebx
-	jz .Lbb624
-	jmp .Lbb621
-.Lbb623:
+	jz .Lbb634
+	jmp .Lbb631
+.Lbb633:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb627
-.Lbb624:
+	jmp .Lbb637
+.Lbb634:
 	movl $1, %eax
-	jmp .Lbb627
-.Lbb625:
+	jmp .Lbb637
+.Lbb635:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb627
-.Lbb626:
+	jmp .Lbb637
+.Lbb636:
 	movl $2, %eax
-.Lbb627:
+.Lbb637:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -4445,19 +4472,19 @@ peak_0:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb637
+	jnz .Lbb647
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
 	cmpq $4, %rax
-	jz .Lbb636
+	jz .Lbb646
 	cmpl $0, %edx
-	jz .Lbb635
+	jz .Lbb645
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb635
-.Lbb632:
+	jz .Lbb645
+.Lbb642:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -4466,23 +4493,23 @@ peak_0:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb634
+	jz .Lbb644
 	cmpl $0, %ebx
-	jz .Lbb635
-	jmp .Lbb632
-.Lbb634:
+	jz .Lbb645
+	jmp .Lbb642
+.Lbb644:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb638
-.Lbb635:
+	jmp .Lbb648
+.Lbb645:
 	movl $1, %eax
-	jmp .Lbb638
-.Lbb636:
+	jmp .Lbb648
+.Lbb646:
 	movl $0, %eax
-	jmp .Lbb638
-.Lbb637:
+	jmp .Lbb648
+.Lbb647:
 	movl $2, %eax
-.Lbb638:
+.Lbb648:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -4549,17 +4576,17 @@ parse_1:
 	movq %rbx, %rdi
 	movq %rax, %rbx
 	cmpl $0, %ebx
-	jnz .Lbb643
+	jnz .Lbb653
 	callq exit_group
 	movq %rbx, %rax
 	movq %rax, %rbx
-	jmp .Lbb644
-.Lbb643:
+	jmp .Lbb654
+.Lbb653:
 	addq $24, %rdi
 	movl $32, %esi
 	callq pop
 	movq %rbx, %rax
-.Lbb644:
+.Lbb654:
 	popq %r12
 	popq %rbx
 	leave
@@ -4628,39 +4655,39 @@ parse_2:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb650:
+.Lbb660:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb662
+	jnz .Lbb672
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
 	cmpq $3, %rsi
-	jz .Lbb661
+	jz .Lbb671
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb655
+	jz .Lbb665
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb650
-.Lbb655:
+	jmp .Lbb660
+.Lbb665:
 	cmpl $0, %r12d
-	jz .Lbb660
+	jz .Lbb670
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb660
-.Lbb657:
+	jz .Lbb670
+.Lbb667:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -4675,24 +4702,24 @@ parse_2:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb659
+	jz .Lbb669
 	cmpl $0, %ebx
-	jz .Lbb660
-	jmp .Lbb657
-.Lbb659:
+	jz .Lbb670
+	jmp .Lbb667
+.Lbb669:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb663
-.Lbb660:
+	jmp .Lbb673
+.Lbb670:
 	movl $1, %eax
-	jmp .Lbb663
-.Lbb661:
+	jmp .Lbb673
+.Lbb671:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb663
-.Lbb662:
+	jmp .Lbb673
+.Lbb672:
 	movl $2, %eax
-.Lbb663:
+.Lbb673:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -4717,19 +4744,19 @@ peak_2:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb673
+	jnz .Lbb683
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
 	cmpq $3, %rax
-	jz .Lbb672
+	jz .Lbb682
 	cmpl $0, %edx
-	jz .Lbb671
+	jz .Lbb681
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb671
-.Lbb668:
+	jz .Lbb681
+.Lbb678:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -4738,23 +4765,23 @@ peak_2:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb670
+	jz .Lbb680
 	cmpl $0, %ebx
-	jz .Lbb671
-	jmp .Lbb668
-.Lbb670:
+	jz .Lbb681
+	jmp .Lbb678
+.Lbb680:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb674
-.Lbb671:
+	jmp .Lbb684
+.Lbb681:
 	movl $1, %eax
-	jmp .Lbb674
-.Lbb672:
+	jmp .Lbb684
+.Lbb682:
 	movl $0, %eax
-	jmp .Lbb674
-.Lbb673:
+	jmp .Lbb684
+.Lbb683:
 	movl $2, %eax
-.Lbb674:
+.Lbb684:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -4821,17 +4848,17 @@ parse_3:
 	movq %rbx, %rdi
 	movq %rax, %rbx
 	cmpl $0, %ebx
-	jnz .Lbb679
+	jnz .Lbb689
 	callq exit_group
 	movq %rbx, %rax
 	movq %rax, %rbx
-	jmp .Lbb680
-.Lbb679:
+	jmp .Lbb690
+.Lbb689:
 	addq $24, %rdi
 	movl $32, %esi
 	callq pop
 	movq %rbx, %rax
-.Lbb680:
+.Lbb690:
 	popq %r12
 	popq %rbx
 	leave
@@ -4900,39 +4927,39 @@ parse_4:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb686:
+.Lbb696:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb698
+	jnz .Lbb708
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
 	cmpq $14, %rsi
-	jz .Lbb697
+	jz .Lbb707
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb691
+	jz .Lbb701
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb686
-.Lbb691:
+	jmp .Lbb696
+.Lbb701:
 	cmpl $0, %r12d
-	jz .Lbb696
+	jz .Lbb706
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb696
-.Lbb693:
+	jz .Lbb706
+.Lbb703:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -4947,24 +4974,24 @@ parse_4:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb695
+	jz .Lbb705
 	cmpl $0, %ebx
-	jz .Lbb696
-	jmp .Lbb693
-.Lbb695:
+	jz .Lbb706
+	jmp .Lbb703
+.Lbb705:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb699
-.Lbb696:
+	jmp .Lbb709
+.Lbb706:
 	movl $1, %eax
-	jmp .Lbb699
-.Lbb697:
+	jmp .Lbb709
+.Lbb707:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb699
-.Lbb698:
+	jmp .Lbb709
+.Lbb708:
 	movl $2, %eax
-.Lbb699:
+.Lbb709:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -4989,19 +5016,19 @@ peak_4:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb709
+	jnz .Lbb719
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
 	cmpq $14, %rax
-	jz .Lbb708
+	jz .Lbb718
 	cmpl $0, %edx
-	jz .Lbb707
+	jz .Lbb717
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb707
-.Lbb704:
+	jz .Lbb717
+.Lbb714:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -5010,23 +5037,23 @@ peak_4:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb706
+	jz .Lbb716
 	cmpl $0, %ebx
-	jz .Lbb707
-	jmp .Lbb704
-.Lbb706:
+	jz .Lbb717
+	jmp .Lbb714
+.Lbb716:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb710
-.Lbb707:
+	jmp .Lbb720
+.Lbb717:
 	movl $1, %eax
-	jmp .Lbb710
-.Lbb708:
+	jmp .Lbb720
+.Lbb718:
 	movl $0, %eax
-	jmp .Lbb710
-.Lbb709:
+	jmp .Lbb720
+.Lbb719:
 	movl $2, %eax
-.Lbb710:
+.Lbb720:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -5099,40 +5126,19 @@ peak_5:
 .size peak_5, .-peak_5
 /* end function peak_5 */
 
-.data
-.balign 8
-expected_5_data:
-	.quad 0
-	.quad 14
-/* end data */
-
 .text
 expected_5:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $32, %rsp
-	pushq %rbx
-	pushq %r12
-	movq %rdi, %r12
-	movl $16, %edi
-	callq malloc
-	movq %rax, %rbx
-	movl $16, %edx
-	leaq expected_5_data(%rip), %rsi
-	movq %rbx, %rdi
-	callq memcpy
-	movq %r12, %rax
-	movq %rbx, -24(%rbp)
-	movq $1, -16(%rbp)
-	movq $1, -8(%rbp)
+	movq %rdi, %rax
+	movq $0, -24(%rbp)
 	movq -24(%rbp), %rcx
 	movq %rcx, 0(%rax)
 	movq -16(%rbp), %rcx
 	movq %rcx, 8(%rax)
 	movq -8(%rbp), %rcx
 	movq %rcx, 16(%rax)
-	popq %r12
-	popq %rbx
 	leave
 	ret
 .type expected_5, @function
@@ -5165,18 +5171,18 @@ parse_6:
 	movq %r12, %rdi
 	movq %rax, %r12
 	cmpl $0, %r12d
-	jnz .Lbb734
+	jnz .Lbb745
 	movq %rdi, %r14
 	callq pop_delim
 	movq %r14, %rdi
 	movq %r12, %rax
 	cmpl $0, %eax
-	jnz .Lbb723
+	jnz .Lbb733
 	movl %r13d, %esi
-	jmp .Lbb727
-.Lbb723:
+	jmp .Lbb737
+.Lbb733:
 	cmpq $2, %rax
-	jz .Lbb726
+	jz .Lbb736
 	movq %rax, %r14
 	movq %rbx, %rax
 	subq $1, %rax
@@ -5193,10 +5199,10 @@ parse_6:
 	movq %r15, %rdi
 	movq %r14, %rax
 	cmpl $0, %r12d
-	jz .Lbb730
+	jz .Lbb740
 	movl %r13d, %esi
-	jmp .Lbb727
-.Lbb726:
+	jmp .Lbb737
+.Lbb736:
 	movq %rdi, %r12
 	leaq -48(%rbp), %rdi
 	callq expected_1
@@ -5206,41 +5212,43 @@ parse_6:
 	callq missing
 	movl %r13d, %esi
 	movq %r12, %rdi
-.Lbb727:
+.Lbb737:
 	movl %esi, %r13d
 	movq %rdi, %r12
 	callq parse_5
 	movq %r12, %rdi
 	movq %rax, %r12
 	cmpq $1, %r12
-	jnz .Lbb729
+	jnz .Lbb739
 	movq %rdi, %r12
 	callq bump_err
 	movl %r13d, %esi
 	movq %r12, %rdi
-	jmp .Lbb727
-.Lbb729:
+	jmp .Lbb737
+.Lbb739:
 	movq %r12, %rax
-.Lbb730:
+.Lbb740:
+	cmpl $0, %eax
+	jz .Lbb744
 	cmpq $2, %rax
-	jz .Lbb732
+	jz .Lbb743
 	movq %rbx, %rcx
 	subq $1, %rcx
 	cmpq %rcx, %rax
-	jnz .Lbb733
-.Lbb732:
+	jz .Lbb744
+.Lbb743:
 	movq %rdi, %rbx
 	leaq -24(%rbp), %rdi
 	callq expected_5
 	movq %rbx, %rdi
 	movq %rax, %rsi
 	callq missing
-.Lbb733:
+.Lbb744:
 	movl $0, %eax
-	jmp .Lbb735
-.Lbb734:
+	jmp .Lbb746
+.Lbb745:
 	movq %r12, %rax
-.Lbb735:
+.Lbb746:
 	popq %r15
 	popq %r14
 	popq %r13
@@ -5315,9 +5323,9 @@ parse_7:
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb742
+	jz .Lbb753
 	callq parse_6
-.Lbb742:
+.Lbb753:
 	popq %r12
 	popq %rbx
 	leave
@@ -5342,9 +5350,9 @@ peak_7:
 	movq %r12, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb745
+	jz .Lbb756
 	callq peak_6
-.Lbb745:
+.Lbb756:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -5413,17 +5421,17 @@ parse_8:
 	movq %rbx, %rdi
 	movq %rax, %rbx
 	cmpl $0, %ebx
-	jnz .Lbb750
+	jnz .Lbb761
 	callq exit_group
 	movq %rbx, %rax
 	movq %rax, %rbx
-	jmp .Lbb751
-.Lbb750:
+	jmp .Lbb762
+.Lbb761:
 	addq $24, %rdi
 	movl $32, %esi
 	callq pop
 	movq %rbx, %rax
-.Lbb751:
+.Lbb762:
 	popq %r12
 	popq %rbx
 	leave
@@ -5492,39 +5500,39 @@ parse_9:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb757:
+.Lbb768:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb769
+	jnz .Lbb780
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
-	cmpq $8, %rsi
-	jz .Lbb768
+	cmpq $10, %rsi
+	jz .Lbb779
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb762
+	jz .Lbb773
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb757
-.Lbb762:
+	jmp .Lbb768
+.Lbb773:
 	cmpl $0, %r12d
-	jz .Lbb767
+	jz .Lbb778
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb767
-.Lbb764:
+	jz .Lbb778
+.Lbb775:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -5539,24 +5547,24 @@ parse_9:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb766
+	jz .Lbb777
 	cmpl $0, %ebx
-	jz .Lbb767
-	jmp .Lbb764
-.Lbb766:
+	jz .Lbb778
+	jmp .Lbb775
+.Lbb777:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb770
-.Lbb767:
+	jmp .Lbb781
+.Lbb778:
 	movl $1, %eax
-	jmp .Lbb770
-.Lbb768:
+	jmp .Lbb781
+.Lbb779:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb770
-.Lbb769:
+	jmp .Lbb781
+.Lbb780:
 	movl $2, %eax
-.Lbb770:
+.Lbb781:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -5581,19 +5589,19 @@ peak_9:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb780
+	jnz .Lbb791
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
-	cmpq $8, %rax
-	jz .Lbb779
+	cmpq $10, %rax
+	jz .Lbb790
 	cmpl $0, %edx
-	jz .Lbb778
+	jz .Lbb789
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb778
-.Lbb775:
+	jz .Lbb789
+.Lbb786:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -5602,23 +5610,23 @@ peak_9:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb777
+	jz .Lbb788
 	cmpl $0, %ebx
-	jz .Lbb778
-	jmp .Lbb775
-.Lbb777:
+	jz .Lbb789
+	jmp .Lbb786
+.Lbb788:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb781
-.Lbb778:
+	jmp .Lbb792
+.Lbb789:
 	movl $1, %eax
-	jmp .Lbb781
-.Lbb779:
+	jmp .Lbb792
+.Lbb790:
 	movl $0, %eax
-	jmp .Lbb781
-.Lbb780:
+	jmp .Lbb792
+.Lbb791:
 	movl $2, %eax
-.Lbb781:
+.Lbb792:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -5632,7 +5640,7 @@ peak_9:
 .balign 8
 expected_9_data:
 	.quad 0
-	.quad 8
+	.quad 10
 /* end data */
 
 .text
@@ -5672,106 +5680,106 @@ expected_9:
 parse_10:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $56, %rsp
+	subq $88, %rsp
 	pushq %rbx
 	pushq %r12
 	pushq %r13
 	pushq %r14
 	pushq %r15
-	movl %esi, %r12d
-	movl $8, %esi
-	movq %rdi, %rbx
-	callq push_delim
-	movl %r12d, %esi
-	movq %rbx, %rdi
-	movq %rax, %rbx
-	movl %esi, %r13d
-	movl $9, %esi
 	movq %rdi, %r12
-	callq push_delim
+	addq $56, %rdi
+	movq 64(%r12), %rax
+	movq %rax, %rbx
+	addq $4, %rbx
+	movl %esi, %r13d
+	movl $8, %esi
+	callq push_long
 	movl %r13d, %esi
 	movq %r12, %rdi
-	movq %rax, %r12
-	movl %esi, %r14d
-	movq %rdi, %r13
-	callq parse_8
-	movl %r14d, %esi
-	movq %r13, %rdi
-	cmpl $0, %eax
-	jnz .Lbb801
-.Lbb785:
-	movl %esi, %r14d
-	movq %rdi, %r13
+	movl %esi, %r13d
+	movq %rdi, %r12
 	callq parse_9
-	movq %r13, %rdi
-	cmpq $1, %rax
-	jz .Lbb800
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpl $0, %r12d
+	jnz .Lbb811
+	movq %rdi, %r14
+	callq pop_delim
+	movq %r14, %rdi
+	movq %r12, %rax
 	cmpl $0, %eax
-	jnz .Lbb788
-	movl %r14d, %esi
-	jmp .Lbb792
-.Lbb788:
-	cmpq $2, %rax
-	jz .Lbb799
-	cmpq %rax, %rbx
 	jnz .Lbb799
-	movq %rdi, %r13
+	movl %r13d, %esi
+	jmp .Lbb803
+.Lbb799:
+	cmpq $2, %rax
+	jz .Lbb802
+	movq %rax, %r14
+	movq %rbx, %rax
+	subq $1, %rax
+	cmpq %rax, %r14
+	setz %r12b
+	movzbq %r12b, %r12
+	movq %rdi, %r15
+	leaq -72(%rbp), %rdi
+	callq expected_9
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	movq %r14, %rax
+	cmpl $0, %r12d
+	jz .Lbb806
+	movl %r13d, %esi
+	jmp .Lbb803
+.Lbb802:
+	movq %rdi, %r12
 	leaq -48(%rbp), %rdi
 	callq expected_9
-	movq %r13, %rdi
+	movq %r12, %rdi
 	movq %rax, %rsi
-	movq %rdi, %r13
+	movq %rdi, %r12
 	callq missing
-	movq %r13, %rdi
-	movl %r14d, %esi
-.Lbb792:
-	movl %esi, %r14d
-	movq %rdi, %r13
+	movl %r13d, %esi
+	movq %r12, %rdi
+.Lbb803:
+	movl %esi, %r13d
+	movq %rdi, %r12
 	callq parse_8
-	movq %r13, %rdi
-	movq %rax, %r13
-	cmpq $1, %r13
-	jnz .Lbb794
-	movq %rdi, %r13
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpq $1, %r12
+	jnz .Lbb805
+	movq %rdi, %r12
 	callq bump_err
-	movl %r14d, %esi
-	movq %r13, %rdi
-	jmp .Lbb792
-.Lbb794:
-	cmpl $0, %r13d
-	jnz .Lbb796
-	movl %r14d, %esi
-	jmp .Lbb785
-.Lbb796:
-	movq %rdi, %r15
+	movl %r13d, %esi
+	movq %r12, %rdi
+	jmp .Lbb803
+.Lbb805:
+	movq %r12, %rax
+.Lbb806:
+	cmpl $0, %eax
+	jz .Lbb810
+	cmpq $2, %rax
+	jz .Lbb809
+	movq %rbx, %rcx
+	subq $1, %rcx
+	cmpq %rcx, %rax
+	jz .Lbb810
+.Lbb809:
+	movq %rdi, %rbx
 	leaq -24(%rbp), %rdi
 	callq expected_8
-	movq %r15, %rdi
+	movq %rbx, %rdi
 	movq %rax, %rsi
-	movq %rdi, %r15
 	callq missing
-	movq %r15, %rdi
-	cmpq $2, %r13
-	jz .Lbb799
-	cmpq %r13, %r12
-	jnz .Lbb799
-	movl %r14d, %esi
-	jmp .Lbb785
-.Lbb799:
-	callq pop_delim
+.Lbb810:
 	movl $0, %eax
-	jmp .Lbb803
-.Lbb800:
-	movq %rdi, %r13
-	callq bump_err
-	movl %r14d, %esi
-	movq %r13, %rdi
-	jmp .Lbb785
-.Lbb801:
-	movq %rax, %rbx
-	callq pop_delim
-	movq %rbx, %rax
-.Lbb803:
+	jmp .Lbb812
+.Lbb811:
+	movq %r12, %rax
+.Lbb812:
 	popq %r15
 	popq %r14
 	popq %r13
@@ -5787,7 +5795,7 @@ parse_10:
 peak_10:
 	pushq %rbp
 	movq %rsp, %rbp
-	callq peak_8
+	callq peak_9
 	leave
 	ret
 .type peak_10, @function
@@ -5797,8 +5805,8 @@ peak_10:
 .data
 .balign 8
 expected_10_data:
-	.quad 1
-	.quad 2
+	.quad 0
+	.quad 10
 /* end data */
 
 .text
@@ -5841,27 +5849,49 @@ parse_11:
 	pushq %rbx
 	pushq %r12
 	movl %esi, %r12d
-	movl $3, %esi
+	movl $10, %esi
 	movq %rdi, %rbx
-	callq enter_group
+	callq push_delim
 	movl %r12d, %esi
 	movq %rbx, %rdi
+	movl %esi, %r12d
 	movq %rdi, %rbx
 	callq parse_10
 	movq %rbx, %rdi
 	movq %rax, %rbx
 	cmpl $0, %ebx
-	jnz .Lbb810
-	callq exit_group
+	jnz .Lbb824
+	movq %rdi, %rbx
+	callq is_eof
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb823
+.Lbb819:
+	movl %esi, %r12d
+	movq %rdi, %rbx
+	callq parse_10
+	movq %rbx, %rdi
+	cmpq $1, %rax
+	jz .Lbb822
+	cmpl $0, %eax
+	jnz .Lbb823
+	movl %r12d, %esi
+	jmp .Lbb819
+.Lbb822:
+	movq %rdi, %rbx
+	callq bump_err
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	jmp .Lbb819
+.Lbb823:
+	callq pop_delim
+	movl $0, %eax
+	jmp .Lbb825
+.Lbb824:
+	callq pop_delim
 	movq %rbx, %rax
-	movq %rax, %rbx
-	jmp .Lbb811
-.Lbb810:
-	addq $24, %rdi
-	movl $32, %esi
-	callq pop
-	movq %rbx, %rax
-.Lbb811:
+.Lbb825:
 	popq %r12
 	popq %rbx
 	leave
@@ -5884,8 +5914,8 @@ peak_11:
 .data
 .balign 8
 expected_11_data:
-	.quad 1
-	.quad 3
+	.quad 0
+	.quad 10
 /* end data */
 
 .text
@@ -5925,76 +5955,97 @@ expected_11:
 parse_12:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
+	subq $40, %rsp
 	pushq %rbx
 	pushq %r12
 	pushq %r13
+	pushq %r14
+	pushq %r15
 	movl %esi, %r12d
-.Lbb817:
+	movl $3, %esi
 	movq %rdi, %rbx
-	callq is_eof
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jnz .Lbb829
-	movq %rdi, %rbx
-	callq current_kind
-	movq %rbx, %rdi
-	movq %rax, %rsi
-	cmpq $0, %rsi
-	jz .Lbb828
-	movq %rdi, %rbx
-	addq $80, %rdi
-	callq contains_long
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jz .Lbb822
-	movq %rdi, %rbx
-	callq bump
+	callq enter_group
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb817
-.Lbb822:
-	cmpl $0, %r12d
-	jz .Lbb827
-	movq %rdi, %r12
-	addq $56, %r12
-	movq 64(%rdi), %rbx
+	movq %rdi, %rbx
+	callq parse_8
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movq %rax, %rbx
 	cmpl $0, %ebx
-	jz .Lbb827
-.Lbb824:
-	subq $1, %rbx
-	movq %rbx, %rdx
-	movl $8, %esi
-	movq %rdi, %r13
-	movq %r12, %rdi
-	callq get
-	movq %r13, %rdi
-	movq (%rax), %rcx
-	movl $0, %edx
-	movl $0, %esi
-	movq %rdi, %r13
-	callq peak_by_id
-	movq %r13, %rdi
-	cmpl $0, %eax
-	jz .Lbb826
+	jnz .Lbb834
+	movq %rdi, %rbx
+	callq parse_11
+	movq %rbx, %rdi
+	movq %rax, %rbx
 	cmpl $0, %ebx
-	jz .Lbb827
-	jmp .Lbb824
-.Lbb826:
+	jnz .Lbb833
+	callq exit_group
 	movq %rbx, %rax
-	addq $3, %rax
-	jmp .Lbb830
-.Lbb827:
-	movl $1, %eax
-	jmp .Lbb830
-.Lbb828:
-	callq bump
+	jmp .Lbb835
+.Lbb833:
+	addq $24, %rdi
+	movl $32, %esi
+	movq %rdi, %rbx
+	callq last
+	movq %rbx, %rdi
+	movq %rax, %rbx
+	movl $32, %esi
+	movq %rdi, %r12
+	callq pop
+	movq %r12, %rdi
+	movl $32, %esi
+	callq last
+	movq %rax, %r12
+	movq 16(%rbx), %rax
+	movq 8(%rbx), %r15
+	imulq $32, %rax, %rdx
+	movq %rdx, -24(%rbp)
+	movq 16(%r12), %rcx
+	movq 8(%r12), %rdi
+	imulq $32, %rcx, %r14
+	movq %rax, %r13
+	addq %rcx, %r13
+	imulq $2, %r13, %rbx
+	movq %rbx, -32(%rbp)
+	movq %rdi, %rbx
+	imulq $32, %r13, %rdi
+	callq malloc
+	movq %r14, %rdx
+	movq %rbx, %rdi
+	movq %rax, %r14
+	movq %r14, %rax
+	addq %rdx, %rax
+	movq %rax, -16(%rbp)
+	movq %rdi, %rsi
+	movq %rdi, %rbx
+	movq %r14, %rdi
+	callq memcpy
+	movq %rbx, %rdi
+	movq %rdi, %rbx
+	movq -16(%rbp), %rdi
+	movq -24(%rbp), %rdx
+	movq %r15, %rsi
+	callq memcpy
+	movq %rbx, %rdi
+	movq -32(%rbp), %rbx
+	callq free
+	movq %r15, %rdi
+	callq free
+	movq %r14, 8(%r12)
+	movq %r13, 16(%r12)
+	movq %rbx, 24(%r12)
 	movl $0, %eax
-	jmp .Lbb830
-.Lbb829:
-	movl $2, %eax
-.Lbb830:
+	jmp .Lbb835
+.Lbb834:
+	addq $24, %rdi
+	movl $32, %esi
+	callq pop
+	movq %rbx, %rax
+.Lbb835:
+	popq %r15
+	popq %r14
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -6008,58 +6059,7 @@ parse_12:
 peak_12:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
-	pushq %rbx
-	pushq %r12
-	pushq %r13
-	movl %edx, %r12d
-	movq %rsi, %r13
-	movq %rdi, %rbx
-	callq is_eof
-	movq %r13, %rsi
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jnz .Lbb840
-	movq %rdi, %rbx
-	callq kind_at_offset
-	movl %r12d, %edx
-	movq %rbx, %rdi
-	cmpq $0, %rax
-	jz .Lbb839
-	cmpl $0, %edx
-	jz .Lbb838
-	movq 64(%rdi), %rbx
-	cmpl $0, %ebx
-	jz .Lbb838
-.Lbb835:
-	subq $1, %rbx
-	movq %rbx, %rcx
-	movl $0, %edx
-	movl $0, %esi
-	movq %rdi, %r12
-	callq peak_by_id
-	movq %r12, %rdi
-	cmpl $0, %eax
-	jz .Lbb837
-	cmpl $0, %ebx
-	jz .Lbb838
-	jmp .Lbb835
-.Lbb837:
-	movq %rbx, %rax
-	addq $3, %rax
-	jmp .Lbb841
-.Lbb838:
-	movl $1, %eax
-	jmp .Lbb841
-.Lbb839:
-	movl $0, %eax
-	jmp .Lbb841
-.Lbb840:
-	movl $2, %eax
-.Lbb841:
-	popq %r13
-	popq %r12
-	popq %rbx
+	callq peak_8
 	leave
 	ret
 .type peak_12, @function
@@ -6069,8 +6069,8 @@ peak_12:
 .data
 .balign 8
 expected_12_data:
-	.quad 0
-	.quad 0
+	.quad 1
+	.quad 2
 /* end data */
 
 .text
@@ -6115,39 +6115,39 @@ parse_13:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb845:
+.Lbb841:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb857
+	jnz .Lbb853
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
-	cmpq $1, %rsi
-	jz .Lbb856
+	cmpq $8, %rsi
+	jz .Lbb852
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb850
+	jz .Lbb846
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb845
-.Lbb850:
+	jmp .Lbb841
+.Lbb846:
 	cmpl $0, %r12d
-	jz .Lbb855
+	jz .Lbb851
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb855
-.Lbb852:
+	jz .Lbb851
+.Lbb848:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -6162,24 +6162,24 @@ parse_13:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb854
+	jz .Lbb850
 	cmpl $0, %ebx
-	jz .Lbb855
-	jmp .Lbb852
-.Lbb854:
+	jz .Lbb851
+	jmp .Lbb848
+.Lbb850:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb858
-.Lbb855:
+	jmp .Lbb854
+.Lbb851:
 	movl $1, %eax
-	jmp .Lbb858
-.Lbb856:
+	jmp .Lbb854
+.Lbb852:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb858
-.Lbb857:
+	jmp .Lbb854
+.Lbb853:
 	movl $2, %eax
-.Lbb858:
+.Lbb854:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -6204,19 +6204,19 @@ peak_13:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb868
+	jnz .Lbb864
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
-	cmpq $1, %rax
-	jz .Lbb867
+	cmpq $8, %rax
+	jz .Lbb863
 	cmpl $0, %edx
-	jz .Lbb866
+	jz .Lbb862
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb866
-.Lbb863:
+	jz .Lbb862
+.Lbb859:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -6225,23 +6225,23 @@ peak_13:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb865
+	jz .Lbb861
 	cmpl $0, %ebx
-	jz .Lbb866
-	jmp .Lbb863
-.Lbb865:
+	jz .Lbb862
+	jmp .Lbb859
+.Lbb861:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb869
-.Lbb866:
+	jmp .Lbb865
+.Lbb862:
 	movl $1, %eax
-	jmp .Lbb869
-.Lbb867:
+	jmp .Lbb865
+.Lbb863:
 	movl $0, %eax
-	jmp .Lbb869
-.Lbb868:
+	jmp .Lbb865
+.Lbb864:
 	movl $2, %eax
-.Lbb869:
+.Lbb865:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -6255,7 +6255,7 @@ peak_13:
 .balign 8
 expected_13_data:
 	.quad 0
-	.quad 1
+	.quad 8
 /* end data */
 
 .text
@@ -6295,76 +6295,108 @@ expected_13:
 parse_14:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
+	subq $56, %rsp
 	pushq %rbx
 	pushq %r12
 	pushq %r13
+	pushq %r14
+	pushq %r15
 	movl %esi, %r12d
-.Lbb873:
+	movl $12, %esi
 	movq %rdi, %rbx
-	callq is_eof
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jnz .Lbb885
-	movq %rdi, %rbx
-	callq current_kind
-	movq %rbx, %rdi
-	movq %rax, %rsi
-	cmpq $6, %rsi
-	jz .Lbb884
-	movq %rdi, %rbx
-	addq $80, %rdi
-	callq contains_long
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jz .Lbb878
-	movq %rdi, %rbx
-	callq bump
+	callq push_delim
 	movl %r12d, %esi
 	movq %rbx, %rdi
-	movl %esi, %r12d
-	jmp .Lbb873
-.Lbb878:
-	cmpl $0, %r12d
-	jz .Lbb883
+	movq %rax, %rbx
+	movl %esi, %r13d
+	movl $13, %esi
 	movq %rdi, %r12
-	addq $56, %r12
-	movq 64(%rdi), %rbx
-	cmpl $0, %ebx
-	jz .Lbb883
-.Lbb880:
-	subq $1, %rbx
-	movq %rbx, %rdx
-	movl $8, %esi
-	movq %rdi, %r13
+	callq push_delim
+	movl %r13d, %esi
 	movq %r12, %rdi
-	callq get
-	movq %r13, %rdi
-	movq (%rax), %rcx
-	movl $0, %edx
-	movl $0, %esi
+	movq %rax, %r12
+	movl %esi, %r14d
 	movq %rdi, %r13
-	callq peak_by_id
+	callq parse_12
+	movl %r14d, %esi
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb882
-	cmpl $0, %ebx
+	jnz .Lbb885
+.Lbb869:
+	movl %esi, %r14d
+	movq %rdi, %r13
+	callq parse_13
+	movq %r13, %rdi
+	cmpq $1, %rax
+	jz .Lbb884
+	cmpl $0, %eax
+	jnz .Lbb872
+	movl %r14d, %esi
+	jmp .Lbb876
+.Lbb872:
+	cmpq $2, %rax
 	jz .Lbb883
-	jmp .Lbb880
-.Lbb882:
-	movq %rbx, %rax
-	addq $3, %rax
-	jmp .Lbb886
+	cmpq %rax, %rbx
+	jnz .Lbb883
+	movq %rdi, %r13
+	leaq -48(%rbp), %rdi
+	callq expected_13
+	movq %r13, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r13
+	callq missing
+	movq %r13, %rdi
+	movl %r14d, %esi
+.Lbb876:
+	movl %esi, %r14d
+	movq %rdi, %r13
+	callq parse_12
+	movq %r13, %rdi
+	movq %rax, %r13
+	cmpq $1, %r13
+	jnz .Lbb878
+	movq %rdi, %r13
+	callq bump_err
+	movl %r14d, %esi
+	movq %r13, %rdi
+	jmp .Lbb876
+.Lbb878:
+	cmpl $0, %r13d
+	jnz .Lbb880
+	movl %r14d, %esi
+	jmp .Lbb869
+.Lbb880:
+	movq %rdi, %r15
+	leaq -24(%rbp), %rdi
+	callq expected_12
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	cmpq $2, %r13
+	jz .Lbb883
+	cmpq %r13, %r12
+	jnz .Lbb883
+	movl %r14d, %esi
+	jmp .Lbb869
 .Lbb883:
-	movl $1, %eax
-	jmp .Lbb886
-.Lbb884:
-	callq bump
+	callq pop_delim
 	movl $0, %eax
-	jmp .Lbb886
+	jmp .Lbb887
+.Lbb884:
+	movq %rdi, %r13
+	callq bump_err
+	movl %r14d, %esi
+	movq %r13, %rdi
+	jmp .Lbb869
 .Lbb885:
-	movl $2, %eax
-.Lbb886:
+	movq %rax, %rbx
+	callq pop_delim
+	movq %rbx, %rax
+.Lbb887:
+	popq %r15
+	popq %r14
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -6378,58 +6410,7 @@ parse_14:
 peak_14:
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $8, %rsp
-	pushq %rbx
-	pushq %r12
-	pushq %r13
-	movl %edx, %r12d
-	movq %rsi, %r13
-	movq %rdi, %rbx
-	callq is_eof
-	movq %r13, %rsi
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jnz .Lbb896
-	movq %rdi, %rbx
-	callq kind_at_offset
-	movl %r12d, %edx
-	movq %rbx, %rdi
-	cmpq $6, %rax
-	jz .Lbb895
-	cmpl $0, %edx
-	jz .Lbb894
-	movq 64(%rdi), %rbx
-	cmpl $0, %ebx
-	jz .Lbb894
-.Lbb891:
-	subq $1, %rbx
-	movq %rbx, %rcx
-	movl $0, %edx
-	movl $0, %esi
-	movq %rdi, %r12
-	callq peak_by_id
-	movq %r12, %rdi
-	cmpl $0, %eax
-	jz .Lbb893
-	cmpl $0, %ebx
-	jz .Lbb894
-	jmp .Lbb891
-.Lbb893:
-	movq %rbx, %rax
-	addq $3, %rax
-	jmp .Lbb897
-.Lbb894:
-	movl $1, %eax
-	jmp .Lbb897
-.Lbb895:
-	movl $0, %eax
-	jmp .Lbb897
-.Lbb896:
-	movl $2, %eax
-.Lbb897:
-	popq %r13
-	popq %r12
-	popq %rbx
+	callq peak_12
 	leave
 	ret
 .type peak_14, @function
@@ -6439,8 +6420,8 @@ peak_14:
 .data
 .balign 8
 expected_14_data:
-	.quad 0
-	.quad 6
+	.quad 1
+	.quad 2
 /* end data */
 
 .text
@@ -6480,6 +6461,93 @@ expected_14:
 parse_15:
 	pushq %rbp
 	movq %rsp, %rbp
+	pushq %rbx
+	pushq %r12
+	movl %esi, %r12d
+	movl $4, %esi
+	movq %rdi, %rbx
+	callq enter_group
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movq %rdi, %rbx
+	callq parse_14
+	movq %rbx, %rdi
+	movq %rax, %rbx
+	cmpl $0, %ebx
+	jnz .Lbb894
+	callq exit_group
+	movq %rbx, %rax
+	movq %rax, %rbx
+	jmp .Lbb895
+.Lbb894:
+	addq $24, %rdi
+	movl $32, %esi
+	callq pop
+	movq %rbx, %rax
+.Lbb895:
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type parse_15, @function
+.size parse_15, .-parse_15
+/* end function parse_15 */
+
+.text
+peak_15:
+	pushq %rbp
+	movq %rsp, %rbp
+	callq peak_14
+	leave
+	ret
+.type peak_15, @function
+.size peak_15, .-peak_15
+/* end function peak_15 */
+
+.data
+.balign 8
+expected_15_data:
+	.quad 1
+	.quad 4
+/* end data */
+
+.text
+expected_15:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $32, %rsp
+	pushq %rbx
+	pushq %r12
+	movq %rdi, %r12
+	movl $16, %edi
+	callq malloc
+	movq %rax, %rbx
+	movl $16, %edx
+	leaq expected_15_data(%rip), %rsi
+	movq %rbx, %rdi
+	callq memcpy
+	movq %r12, %rax
+	movq %rbx, -24(%rbp)
+	movq $1, -16(%rbp)
+	movq $1, -8(%rbp)
+	movq -24(%rbp), %rcx
+	movq %rcx, 0(%rax)
+	movq -16(%rbp), %rcx
+	movq %rcx, 8(%rax)
+	movq -8(%rbp), %rcx
+	movq %rcx, 16(%rax)
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type expected_15, @function
+.size expected_15, .-expected_15
+/* end function expected_15 */
+
+.text
+parse_16:
+	pushq %rbp
+	movq %rsp, %rbp
 	subq $8, %rsp
 	pushq %rbx
 	pushq %r12
@@ -6495,7 +6563,7 @@ parse_15:
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
-	cmpq $9, %rsi
+	cmpq $0, %rsi
 	jz .Lbb912
 	movq %rdi, %rbx
 	addq $80, %rdi
@@ -6555,12 +6623,12 @@ parse_15:
 	popq %rbx
 	leave
 	ret
-.type parse_15, @function
-.size parse_15, .-parse_15
-/* end function parse_15 */
+.type parse_16, @function
+.size parse_16, .-parse_16
+/* end function parse_16 */
 
 .text
-peak_15:
+peak_16:
 	pushq %rbp
 	movq %rsp, %rbp
 	subq $8, %rsp
@@ -6579,7 +6647,7 @@ peak_15:
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
-	cmpq $9, %rax
+	cmpq $0, %rax
 	jz .Lbb923
 	cmpl $0, %edx
 	jz .Lbb922
@@ -6615,358 +6683,6 @@ peak_15:
 	popq %r13
 	popq %r12
 	popq %rbx
-	leave
-	ret
-.type peak_15, @function
-.size peak_15, .-peak_15
-/* end function peak_15 */
-
-.data
-.balign 8
-expected_15_data:
-	.quad 0
-	.quad 9
-/* end data */
-
-.text
-expected_15:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $32, %rsp
-	pushq %rbx
-	pushq %r12
-	movq %rdi, %r12
-	movl $16, %edi
-	callq malloc
-	movq %rax, %rbx
-	movl $16, %edx
-	leaq expected_15_data(%rip), %rsi
-	movq %rbx, %rdi
-	callq memcpy
-	movq %r12, %rax
-	movq %rbx, -24(%rbp)
-	movq $1, -16(%rbp)
-	movq $1, -8(%rbp)
-	movq -24(%rbp), %rcx
-	movq %rcx, 0(%rax)
-	movq -16(%rbp), %rcx
-	movq %rcx, 8(%rax)
-	movq -8(%rbp), %rcx
-	movq %rcx, 16(%rax)
-	popq %r12
-	popq %rbx
-	leave
-	ret
-.type expected_15, @function
-.size expected_15, .-expected_15
-/* end function expected_15 */
-
-.text
-parse_16:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $232, %rsp
-	pushq %rbx
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
-	movq %rdi, %r12
-	movq %r12, %rdi
-	addq $56, %rdi
-	movq 64(%r12), %rax
-	movq %rax, %rbx
-	addq $7, %rbx
-	movl %esi, %r14d
-	movl $15, %esi
-	movq %rdi, %r13
-	callq push_long
-	movl %r14d, %esi
-	movq %r13, %rdi
-	movl %esi, %r14d
-	movl $14, %esi
-	movq %rdi, %r13
-	callq push_long
-	movl %r14d, %esi
-	movq %r13, %rdi
-	movl %esi, %r14d
-	movl $13, %esi
-	movq %rdi, %r13
-	callq push_long
-	movl %r14d, %esi
-	movq %r13, %rdi
-	movl %esi, %r13d
-	movl $11, %esi
-	callq push_long
-	movl %r13d, %esi
-	movq %r12, %rdi
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq parse_12
-	movq %r12, %rdi
-	movq %rax, %r12
-	cmpl $0, %r12d
-	jnz .Lbb974
-	movq %rdi, %r14
-	callq pop_delim
-	movq %r14, %rdi
-	movq %r12, %rax
-	cmpl $0, %eax
-	jnz .Lbb932
-	movl %r13d, %esi
-	jmp .Lbb938
-.Lbb932:
-	cmpq $2, %rax
-	jz .Lbb936
-	movq %rax, %r14
-	movq %rbx, %rax
-	subq $1, %rax
-	cmpq %rax, %r14
-	setz %r12b
-	movzbq %r12b, %r12
-	movq %rdi, %r15
-	leaq -216(%rbp), %rdi
-	callq expected_12
-	movq %r15, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r15
-	callq missing
-	movq %r15, %rdi
-	movq %r14, %rax
-	cmpl $0, %r12d
-	jz .Lbb935
-	movl %r13d, %esi
-	jmp .Lbb938
-.Lbb935:
-	movq %rax, %r12
-	jmp .Lbb942
-.Lbb936:
-	movq %rdi, %r12
-	leaq -192(%rbp), %rdi
-	callq expected_12
-	movq %r12, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r12
-	callq missing
-	movq %r12, %rdi
-	movl %r13d, %esi
-.Lbb938:
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq parse_11
-	movl %r13d, %esi
-	movq %r12, %rdi
-	movq %rax, %r12
-	cmpq $1, %r12
-	jnz .Lbb941
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq bump_err
-	movl %r13d, %esi
-	movq %r12, %rdi
-	jmp .Lbb938
-.Lbb941:
-	movl %esi, %r13d
-.Lbb942:
-	movq %rdi, %r14
-	callq pop_delim
-	movq %r14, %rdi
-	movq %r12, %rax
-	cmpl $0, %eax
-	jz .Lbb947
-	cmpq $2, %rax
-	jz .Lbb946
-	movq %rax, %r14
-	movq %rbx, %rax
-	subq $2, %rax
-	cmpq %rax, %r14
-	setz %r12b
-	movzbq %r12b, %r12
-	movq %rdi, %r15
-	leaq -168(%rbp), %rdi
-	callq expected_11
-	movq %r15, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r15
-	callq missing
-	movq %r15, %rdi
-	movq %r14, %rax
-	cmpl $0, %r12d
-	jnz .Lbb947
-	movq %rax, %r12
-	jmp .Lbb951
-.Lbb946:
-	movq %rdi, %r12
-	leaq -144(%rbp), %rdi
-	callq expected_11
-	movq %r12, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r12
-	callq missing
-	movq %r12, %rdi
-.Lbb947:
-	movl %r13d, %esi
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq parse_13
-	movl %r13d, %esi
-	movq %r12, %rdi
-	movq %rax, %r12
-	cmpq $1, %r12
-	jnz .Lbb950
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq bump_err
-	movq %r12, %rdi
-	jmp .Lbb947
-.Lbb950:
-	movl %esi, %r13d
-.Lbb951:
-	movq %rdi, %r14
-	callq pop_delim
-	movq %r14, %rdi
-	movq %r12, %rax
-	cmpl $0, %eax
-	jz .Lbb956
-	cmpq $2, %rax
-	jz .Lbb955
-	movq %rax, %r14
-	movq %rbx, %rax
-	subq $3, %rax
-	cmpq %rax, %r14
-	setz %r12b
-	movzbq %r12b, %r12
-	movq %rdi, %r15
-	leaq -120(%rbp), %rdi
-	callq expected_13
-	movq %r15, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r15
-	callq missing
-	movq %r15, %rdi
-	movq %r14, %rax
-	cmpl $0, %r12d
-	jnz .Lbb956
-	movq %rax, %r12
-	jmp .Lbb960
-.Lbb955:
-	movq %rdi, %r12
-	leaq -96(%rbp), %rdi
-	callq expected_13
-	movq %r12, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r12
-	callq missing
-	movq %r12, %rdi
-.Lbb956:
-	movl %r13d, %esi
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq parse_14
-	movl %r13d, %esi
-	movq %r12, %rdi
-	movq %rax, %r12
-	cmpq $1, %r12
-	jnz .Lbb959
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq bump_err
-	movq %r12, %rdi
-	jmp .Lbb956
-.Lbb959:
-	movl %esi, %r13d
-.Lbb960:
-	movq %rdi, %r14
-	callq pop_delim
-	movq %r14, %rdi
-	movq %r12, %rax
-	cmpl $0, %eax
-	jnz .Lbb962
-	movl %r13d, %esi
-	jmp .Lbb966
-.Lbb962:
-	cmpq $2, %rax
-	jz .Lbb965
-	movq %rax, %r14
-	movq %rbx, %rax
-	subq $4, %rax
-	cmpq %rax, %r14
-	setz %r12b
-	movzbq %r12b, %r12
-	movq %rdi, %r15
-	leaq -72(%rbp), %rdi
-	callq expected_14
-	movq %r15, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r15
-	callq missing
-	movq %r15, %rdi
-	movq %r14, %rax
-	cmpl $0, %r12d
-	jz .Lbb970
-	movl %r13d, %esi
-	jmp .Lbb966
-.Lbb965:
-	movq %rdi, %r12
-	leaq -48(%rbp), %rdi
-	callq expected_14
-	movq %r12, %rdi
-	movq %rax, %rsi
-	movq %rdi, %r12
-	callq missing
-	movl %r13d, %esi
-	movq %r12, %rdi
-.Lbb966:
-	movl %esi, %r13d
-	movq %rdi, %r12
-	callq parse_15
-	movq %r12, %rdi
-	movq %rax, %r12
-	cmpq $1, %r12
-	jnz .Lbb969
-	movq %rdi, %r12
-	callq bump_err
-	movq %r12, %rdi
-	movl %r13d, %esi
-	jmp .Lbb966
-.Lbb969:
-	movq %r12, %rax
-.Lbb970:
-	cmpq $2, %rax
-	jz .Lbb972
-	movq %rbx, %rcx
-	subq $4, %rcx
-	cmpq %rcx, %rax
-	jnz .Lbb973
-.Lbb972:
-	movq %rdi, %rbx
-	leaq -24(%rbp), %rdi
-	callq expected_15
-	movq %rbx, %rdi
-	movq %rax, %rsi
-	callq missing
-.Lbb973:
-	movl $0, %eax
-	jmp .Lbb975
-.Lbb974:
-	movq %r12, %rax
-.Lbb975:
-	popq %r15
-	popq %r14
-	popq %r13
-	popq %r12
-	popq %rbx
-	leave
-	ret
-.type parse_16, @function
-.size parse_16, .-parse_16
-/* end function parse_16 */
-
-.text
-peak_16:
-	pushq %rbp
-	movq %rsp, %rbp
-	callq peak_12
 	leave
 	ret
 .type peak_16, @function
@@ -7017,30 +6733,77 @@ expected_16:
 parse_17:
 	pushq %rbp
 	movq %rsp, %rbp
+	subq $8, %rsp
 	pushq %rbx
 	pushq %r12
+	pushq %r13
 	movl %esi, %r12d
-	movl $4, %esi
+.Lbb929:
 	movq %rdi, %rbx
-	callq enter_group
+	callq is_eof
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb941
+	movq %rdi, %rbx
+	callq current_kind
+	movq %rbx, %rdi
+	movq %rax, %rsi
+	cmpq $1, %rsi
+	jz .Lbb940
+	movq %rdi, %rbx
+	addq $80, %rdi
+	callq contains_long
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jz .Lbb934
+	movq %rdi, %rbx
+	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
-	movq %rdi, %rbx
-	callq parse_16
-	movq %rbx, %rdi
-	movq %rax, %rbx
+	movl %esi, %r12d
+	jmp .Lbb929
+.Lbb934:
+	cmpl $0, %r12d
+	jz .Lbb939
+	movq %rdi, %r12
+	addq $56, %r12
+	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jnz .Lbb982
-	callq exit_group
+	jz .Lbb939
+.Lbb936:
+	subq $1, %rbx
+	movq %rbx, %rdx
+	movl $8, %esi
+	movq %rdi, %r13
+	movq %r12, %rdi
+	callq get
+	movq %r13, %rdi
+	movq (%rax), %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r13
+	callq peak_by_id
+	movq %r13, %rdi
+	cmpl $0, %eax
+	jz .Lbb938
+	cmpl $0, %ebx
+	jz .Lbb939
+	jmp .Lbb936
+.Lbb938:
 	movq %rbx, %rax
-	movq %rax, %rbx
-	jmp .Lbb983
-.Lbb982:
-	addq $24, %rdi
-	movl $32, %esi
-	callq pop
-	movq %rbx, %rax
-.Lbb983:
+	addq $3, %rax
+	jmp .Lbb942
+.Lbb939:
+	movl $1, %eax
+	jmp .Lbb942
+.Lbb940:
+	callq bump
+	movl $0, %eax
+	jmp .Lbb942
+.Lbb941:
+	movl $2, %eax
+.Lbb942:
+	popq %r13
 	popq %r12
 	popq %rbx
 	leave
@@ -7053,7 +6816,58 @@ parse_17:
 peak_17:
 	pushq %rbp
 	movq %rsp, %rbp
-	callq peak_16
+	subq $8, %rsp
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	movl %edx, %r12d
+	movq %rsi, %r13
+	movq %rdi, %rbx
+	callq is_eof
+	movq %r13, %rsi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb952
+	movq %rdi, %rbx
+	callq kind_at_offset
+	movl %r12d, %edx
+	movq %rbx, %rdi
+	cmpq $1, %rax
+	jz .Lbb951
+	cmpl $0, %edx
+	jz .Lbb950
+	movq 64(%rdi), %rbx
+	cmpl $0, %ebx
+	jz .Lbb950
+.Lbb947:
+	subq $1, %rbx
+	movq %rbx, %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r12
+	callq peak_by_id
+	movq %r12, %rdi
+	cmpl $0, %eax
+	jz .Lbb949
+	cmpl $0, %ebx
+	jz .Lbb950
+	jmp .Lbb947
+.Lbb949:
+	movq %rbx, %rax
+	addq $3, %rax
+	jmp .Lbb953
+.Lbb950:
+	movl $1, %eax
+	jmp .Lbb953
+.Lbb951:
+	movl $0, %eax
+	jmp .Lbb953
+.Lbb952:
+	movl $2, %eax
+.Lbb953:
+	popq %r13
+	popq %r12
+	popq %rbx
 	leave
 	ret
 .type peak_17, @function
@@ -7063,8 +6877,8 @@ peak_17:
 .data
 .balign 8
 expected_17_data:
+	.quad 0
 	.quad 1
-	.quad 4
 /* end data */
 
 .text
@@ -7104,52 +6918,77 @@ expected_17:
 parse_18:
 	pushq %rbp
 	movq %rsp, %rbp
+	subq $8, %rsp
 	pushq %rbx
 	pushq %r12
+	pushq %r13
 	movl %esi, %r12d
-	movl $17, %esi
-	movq %rdi, %rbx
-	callq push_delim
-	movl %r12d, %esi
-	movq %rbx, %rdi
-	movl %esi, %r12d
-	movq %rdi, %rbx
-	callq parse_17
-	movq %rbx, %rdi
-	movq %rax, %rbx
-	cmpl $0, %ebx
-	jnz .Lbb995
+.Lbb957:
 	movq %rdi, %rbx
 	callq is_eof
-	movl %r12d, %esi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb994
-.Lbb990:
+	jnz .Lbb969
+	movq %rdi, %rbx
+	callq current_kind
+	movq %rbx, %rdi
+	movq %rax, %rsi
+	cmpq $6, %rsi
+	jz .Lbb968
+	movq %rdi, %rbx
+	addq $80, %rdi
+	callq contains_long
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jz .Lbb962
+	movq %rdi, %rbx
+	callq bump
+	movl %r12d, %esi
+	movq %rbx, %rdi
 	movl %esi, %r12d
-	movq %rdi, %rbx
-	callq parse_17
-	movq %rbx, %rdi
-	cmpq $1, %rax
-	jz .Lbb993
+	jmp .Lbb957
+.Lbb962:
+	cmpl $0, %r12d
+	jz .Lbb967
+	movq %rdi, %r12
+	addq $56, %r12
+	movq 64(%rdi), %rbx
+	cmpl $0, %ebx
+	jz .Lbb967
+.Lbb964:
+	subq $1, %rbx
+	movq %rbx, %rdx
+	movl $8, %esi
+	movq %rdi, %r13
+	movq %r12, %rdi
+	callq get
+	movq %r13, %rdi
+	movq (%rax), %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r13
+	callq peak_by_id
+	movq %r13, %rdi
 	cmpl $0, %eax
-	jnz .Lbb994
-	movl %r12d, %esi
-	jmp .Lbb990
-.Lbb993:
-	movq %rdi, %rbx
-	callq bump_err
-	movl %r12d, %esi
-	movq %rbx, %rdi
-	jmp .Lbb990
-.Lbb994:
-	callq pop_delim
-	movl $0, %eax
-	jmp .Lbb996
-.Lbb995:
-	callq pop_delim
+	jz .Lbb966
+	cmpl $0, %ebx
+	jz .Lbb967
+	jmp .Lbb964
+.Lbb966:
 	movq %rbx, %rax
-.Lbb996:
+	addq $3, %rax
+	jmp .Lbb970
+.Lbb967:
+	movl $1, %eax
+	jmp .Lbb970
+.Lbb968:
+	callq bump
+	movl $0, %eax
+	jmp .Lbb970
+.Lbb969:
+	movl $2, %eax
+.Lbb970:
+	popq %r13
 	popq %r12
 	popq %rbx
 	leave
@@ -7162,7 +7001,58 @@ parse_18:
 peak_18:
 	pushq %rbp
 	movq %rsp, %rbp
-	callq peak_17
+	subq $8, %rsp
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	movl %edx, %r12d
+	movq %rsi, %r13
+	movq %rdi, %rbx
+	callq is_eof
+	movq %r13, %rsi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb980
+	movq %rdi, %rbx
+	callq kind_at_offset
+	movl %r12d, %edx
+	movq %rbx, %rdi
+	cmpq $6, %rax
+	jz .Lbb979
+	cmpl $0, %edx
+	jz .Lbb978
+	movq 64(%rdi), %rbx
+	cmpl $0, %ebx
+	jz .Lbb978
+.Lbb975:
+	subq $1, %rbx
+	movq %rbx, %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r12
+	callq peak_by_id
+	movq %r12, %rdi
+	cmpl $0, %eax
+	jz .Lbb977
+	cmpl $0, %ebx
+	jz .Lbb978
+	jmp .Lbb975
+.Lbb977:
+	movq %rbx, %rax
+	addq $3, %rax
+	jmp .Lbb981
+.Lbb978:
+	movl $1, %eax
+	jmp .Lbb981
+.Lbb979:
+	movl $0, %eax
+	jmp .Lbb981
+.Lbb980:
+	movl $2, %eax
+.Lbb981:
+	popq %r13
+	popq %r12
+	popq %rbx
 	leave
 	ret
 .type peak_18, @function
@@ -7172,8 +7062,8 @@ peak_18:
 .data
 .balign 8
 expected_18_data:
-	.quad 1
-	.quad 4
+	.quad 0
+	.quad 6
 /* end data */
 
 .text
@@ -7218,39 +7108,39 @@ parse_19:
 	pushq %r12
 	pushq %r13
 	movl %esi, %r12d
-.Lbb1002:
+.Lbb985:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb1014
+	jnz .Lbb997
 	movq %rdi, %rbx
 	callq current_kind
 	movq %rbx, %rdi
 	movq %rax, %rsi
-	cmpq $5, %rsi
-	jz .Lbb1013
+	cmpq $9, %rsi
+	jz .Lbb996
 	movq %rdi, %rbx
 	addq $80, %rdi
 	callq contains_long
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb1007
+	jz .Lbb990
 	movq %rdi, %rbx
 	callq bump
 	movl %r12d, %esi
 	movq %rbx, %rdi
 	movl %esi, %r12d
-	jmp .Lbb1002
-.Lbb1007:
+	jmp .Lbb985
+.Lbb990:
 	cmpl $0, %r12d
-	jz .Lbb1012
+	jz .Lbb995
 	movq %rdi, %r12
 	addq $56, %r12
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb1012
-.Lbb1009:
+	jz .Lbb995
+.Lbb992:
 	subq $1, %rbx
 	movq %rbx, %rdx
 	movl $8, %esi
@@ -7265,24 +7155,24 @@ parse_19:
 	callq peak_by_id
 	movq %r13, %rdi
 	cmpl $0, %eax
-	jz .Lbb1011
+	jz .Lbb994
 	cmpl $0, %ebx
-	jz .Lbb1012
-	jmp .Lbb1009
-.Lbb1011:
+	jz .Lbb995
+	jmp .Lbb992
+.Lbb994:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb1015
-.Lbb1012:
+	jmp .Lbb998
+.Lbb995:
 	movl $1, %eax
-	jmp .Lbb1015
-.Lbb1013:
+	jmp .Lbb998
+.Lbb996:
 	callq bump
 	movl $0, %eax
-	jmp .Lbb1015
-.Lbb1014:
+	jmp .Lbb998
+.Lbb997:
 	movl $2, %eax
-.Lbb1015:
+.Lbb998:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -7307,19 +7197,19 @@ peak_19:
 	movq %r13, %rsi
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb1025
+	jnz .Lbb1008
 	movq %rdi, %rbx
 	callq kind_at_offset
 	movl %r12d, %edx
 	movq %rbx, %rdi
-	cmpq $5, %rax
-	jz .Lbb1024
+	cmpq $9, %rax
+	jz .Lbb1007
 	cmpl $0, %edx
-	jz .Lbb1023
+	jz .Lbb1006
 	movq 64(%rdi), %rbx
 	cmpl $0, %ebx
-	jz .Lbb1023
-.Lbb1020:
+	jz .Lbb1006
+.Lbb1003:
 	subq $1, %rbx
 	movq %rbx, %rcx
 	movl $0, %edx
@@ -7328,23 +7218,23 @@ peak_19:
 	callq peak_by_id
 	movq %r12, %rdi
 	cmpl $0, %eax
-	jz .Lbb1022
+	jz .Lbb1005
 	cmpl $0, %ebx
-	jz .Lbb1023
-	jmp .Lbb1020
-.Lbb1022:
+	jz .Lbb1006
+	jmp .Lbb1003
+.Lbb1005:
 	movq %rbx, %rax
 	addq $3, %rax
-	jmp .Lbb1026
-.Lbb1023:
+	jmp .Lbb1009
+.Lbb1006:
 	movl $1, %eax
-	jmp .Lbb1026
-.Lbb1024:
+	jmp .Lbb1009
+.Lbb1007:
 	movl $0, %eax
-	jmp .Lbb1026
-.Lbb1025:
+	jmp .Lbb1009
+.Lbb1008:
 	movl $2, %eax
-.Lbb1026:
+.Lbb1009:
 	popq %r13
 	popq %r12
 	popq %rbx
@@ -7358,7 +7248,7 @@ peak_19:
 .balign 8
 expected_19_data:
 	.quad 0
-	.quad 5
+	.quad 9
 /* end data */
 
 .text
@@ -7398,40 +7288,297 @@ expected_19:
 parse_20:
 	pushq %rbp
 	movq %rsp, %rbp
+	subq $232, %rsp
 	pushq %rbx
 	pushq %r12
-	movl %esi, %r12d
+	pushq %r13
+	pushq %r14
+	pushq %r15
+	movq %rdi, %r12
+	movq %r12, %rdi
+	addq $56, %rdi
+	movq 64(%r12), %rax
+	movq %rax, %rbx
+	addq $7, %rbx
+	movl %esi, %r14d
+	movl $19, %esi
+	movq %rdi, %r13
+	callq push_long
+	movl %r14d, %esi
+	movq %r13, %rdi
+	movl %esi, %r14d
+	movl $18, %esi
+	movq %rdi, %r13
+	callq push_long
+	movl %r14d, %esi
+	movq %r13, %rdi
+	movl %esi, %r14d
+	movl $17, %esi
+	movq %rdi, %r13
+	callq push_long
+	movl %r14d, %esi
+	movq %r13, %rdi
+	movl %esi, %r13d
+	movl $15, %esi
+	callq push_long
+	movl %r13d, %esi
+	movq %r12, %rdi
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq parse_16
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpl $0, %r12d
+	jnz .Lbb1059
+	movq %rdi, %r14
+	callq pop_delim
+	movq %r14, %rdi
+	movq %r12, %rax
+	cmpl $0, %eax
+	jnz .Lbb1016
+	movl %r13d, %esi
+	jmp .Lbb1022
+.Lbb1016:
+	cmpq $2, %rax
+	jz .Lbb1020
+	movq %rax, %r14
+	movq %rbx, %rax
+	subq $1, %rax
+	cmpq %rax, %r14
+	setz %r12b
+	movzbq %r12b, %r12
+	movq %rdi, %r15
+	leaq -216(%rbp), %rdi
+	callq expected_16
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	movq %r14, %rax
+	cmpl $0, %r12d
+	jz .Lbb1019
+	movl %r13d, %esi
+	jmp .Lbb1022
+.Lbb1019:
+	movq %rax, %r12
+	jmp .Lbb1026
+.Lbb1020:
+	movq %rdi, %r12
+	leaq -192(%rbp), %rdi
+	callq expected_16
+	movq %r12, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r12
+	callq missing
+	movq %r12, %rdi
+	movl %r13d, %esi
+.Lbb1022:
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq parse_15
+	movl %r13d, %esi
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpq $1, %r12
+	jnz .Lbb1025
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq bump_err
+	movl %r13d, %esi
+	movq %r12, %rdi
+	jmp .Lbb1022
+.Lbb1025:
+	movl %esi, %r13d
+.Lbb1026:
+	movq %rdi, %r14
+	callq pop_delim
+	movq %r14, %rdi
+	movq %r12, %rax
+	cmpl $0, %eax
+	jz .Lbb1031
+	cmpq $2, %rax
+	jz .Lbb1030
+	movq %rax, %r14
+	movq %rbx, %rax
+	subq $2, %rax
+	cmpq %rax, %r14
+	setz %r12b
+	movzbq %r12b, %r12
+	movq %rdi, %r15
+	leaq -168(%rbp), %rdi
+	callq expected_15
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	movq %r14, %rax
+	cmpl $0, %r12d
+	jnz .Lbb1031
+	movq %rax, %r12
+	jmp .Lbb1035
+.Lbb1030:
+	movq %rdi, %r12
+	leaq -144(%rbp), %rdi
+	callq expected_15
+	movq %r12, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r12
+	callq missing
+	movq %r12, %rdi
+.Lbb1031:
+	movl %r13d, %esi
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq parse_17
+	movl %r13d, %esi
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpq $1, %r12
+	jnz .Lbb1034
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq bump_err
+	movq %r12, %rdi
+	jmp .Lbb1031
+.Lbb1034:
+	movl %esi, %r13d
+.Lbb1035:
+	movq %rdi, %r14
+	callq pop_delim
+	movq %r14, %rdi
+	movq %r12, %rax
+	cmpl $0, %eax
+	jz .Lbb1040
+	cmpq $2, %rax
+	jz .Lbb1039
+	movq %rax, %r14
+	movq %rbx, %rax
+	subq $3, %rax
+	cmpq %rax, %r14
+	setz %r12b
+	movzbq %r12b, %r12
+	movq %rdi, %r15
+	leaq -120(%rbp), %rdi
+	callq expected_17
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	movq %r14, %rax
+	cmpl $0, %r12d
+	jnz .Lbb1040
+	movq %rax, %r12
+	jmp .Lbb1044
+.Lbb1039:
+	movq %rdi, %r12
+	leaq -96(%rbp), %rdi
+	callq expected_17
+	movq %r12, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r12
+	callq missing
+	movq %r12, %rdi
+.Lbb1040:
+	movl %r13d, %esi
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq parse_18
+	movl %r13d, %esi
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpq $1, %r12
+	jnz .Lbb1043
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq bump_err
+	movq %r12, %rdi
+	jmp .Lbb1040
+.Lbb1043:
+	movl %esi, %r13d
+.Lbb1044:
+	movq %rdi, %r14
+	callq pop_delim
+	movq %r14, %rdi
+	movq %r12, %rax
+	cmpl $0, %eax
+	jnz .Lbb1046
+	movl %r13d, %esi
+	jmp .Lbb1050
+.Lbb1046:
+	cmpq $2, %rax
+	jz .Lbb1049
+	movq %rax, %r14
+	movq %rbx, %rax
+	subq $4, %rax
+	cmpq %rax, %r14
+	setz %r12b
+	movzbq %r12b, %r12
+	movq %rdi, %r15
+	leaq -72(%rbp), %rdi
+	callq expected_18
+	movq %r15, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r15
+	callq missing
+	movq %r15, %rdi
+	movq %r14, %rax
+	cmpl $0, %r12d
+	jz .Lbb1054
+	movl %r13d, %esi
+	jmp .Lbb1050
+.Lbb1049:
+	movq %rdi, %r12
+	leaq -48(%rbp), %rdi
+	callq expected_18
+	movq %r12, %rdi
+	movq %rax, %rsi
+	movq %rdi, %r12
+	callq missing
+	movl %r13d, %esi
+	movq %r12, %rdi
+.Lbb1050:
+	movl %esi, %r13d
+	movq %rdi, %r12
+	callq parse_19
+	movq %r12, %rdi
+	movq %rax, %r12
+	cmpq $1, %r12
+	jnz .Lbb1053
+	movq %rdi, %r12
+	callq bump_err
+	movq %r12, %rdi
+	movl %r13d, %esi
+	jmp .Lbb1050
+.Lbb1053:
+	movq %r12, %rax
+.Lbb1054:
+	cmpl $0, %eax
+	jz .Lbb1058
+	cmpq $2, %rax
+	jz .Lbb1057
+	movq %rbx, %rcx
+	subq $4, %rcx
+	cmpq %rcx, %rax
+	jz .Lbb1058
+.Lbb1057:
 	movq %rdi, %rbx
-	callq after_skipped
+	leaq -24(%rbp), %rdi
+	callq expected_19
 	movq %rbx, %rdi
 	movq %rax, %rsi
-	movl $1, %edx
-	movq %rdi, %rbx
-	callq peak_18
-	movl %r12d, %esi
-	movq %rbx, %rdi
-	cmpl $0, %eax
-	jnz .Lbb1033
-	movl %esi, %r12d
-	movl $5, %esi
-	movq %rdi, %rbx
-	callq skip
-	movl %r12d, %esi
-	movq %rbx, %rdi
-	movq %rax, %r12
-	movq %rdi, %rbx
-	callq parse_18
-	movq %rbx, %rdi
-	movq %rax, %rbx
-	cmpl $0, %r12d
-	jnz .Lbb1032
-	movq %rbx, %rax
-	jmp .Lbb1033
-.Lbb1032:
-	movl $5, %esi
-	callq unskip
-	movq %rbx, %rax
-.Lbb1033:
+	callq missing
+.Lbb1058:
+	movl $0, %eax
+	jmp .Lbb1060
+.Lbb1059:
+	movq %r12, %rax
+.Lbb1060:
+	popq %r15
+	popq %r14
+	popq %r13
 	popq %r12
 	popq %rbx
 	leave
@@ -7444,7 +7591,7 @@ parse_20:
 peak_20:
 	pushq %rbp
 	movq %rsp, %rbp
-	callq peak_18
+	callq peak_16
 	leave
 	ret
 .type peak_20, @function
@@ -7454,8 +7601,8 @@ peak_20:
 .data
 .balign 8
 expected_20_data:
-	.quad 1
-	.quad 4
+	.quad 0
+	.quad 0
 /* end data */
 
 .text
@@ -7491,10 +7638,488 @@ expected_20:
 .size expected_20, .-expected_20
 /* end function expected_20 */
 
+.text
+parse_21:
+	pushq %rbp
+	movq %rsp, %rbp
+	pushq %rbx
+	pushq %r12
+	movl %esi, %r12d
+	movl $5, %esi
+	movq %rdi, %rbx
+	callq enter_group
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movq %rdi, %rbx
+	callq parse_20
+	movq %rbx, %rdi
+	movq %rax, %rbx
+	cmpl $0, %ebx
+	jnz .Lbb1067
+	callq exit_group
+	movq %rbx, %rax
+	movq %rax, %rbx
+	jmp .Lbb1068
+.Lbb1067:
+	addq $24, %rdi
+	movl $32, %esi
+	callq pop
+	movq %rbx, %rax
+.Lbb1068:
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type parse_21, @function
+.size parse_21, .-parse_21
+/* end function parse_21 */
+
+.text
+peak_21:
+	pushq %rbp
+	movq %rsp, %rbp
+	callq peak_20
+	leave
+	ret
+.type peak_21, @function
+.size peak_21, .-peak_21
+/* end function peak_21 */
+
+.data
+.balign 8
+expected_21_data:
+	.quad 1
+	.quad 5
+/* end data */
+
+.text
+expected_21:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $32, %rsp
+	pushq %rbx
+	pushq %r12
+	movq %rdi, %r12
+	movl $16, %edi
+	callq malloc
+	movq %rax, %rbx
+	movl $16, %edx
+	leaq expected_21_data(%rip), %rsi
+	movq %rbx, %rdi
+	callq memcpy
+	movq %r12, %rax
+	movq %rbx, -24(%rbp)
+	movq $1, -16(%rbp)
+	movq $1, -8(%rbp)
+	movq -24(%rbp), %rcx
+	movq %rcx, 0(%rax)
+	movq -16(%rbp), %rcx
+	movq %rcx, 8(%rax)
+	movq -8(%rbp), %rcx
+	movq %rcx, 16(%rax)
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type expected_21, @function
+.size expected_21, .-expected_21
+/* end function expected_21 */
+
+.text
+parse_22:
+	pushq %rbp
+	movq %rsp, %rbp
+	pushq %rbx
+	pushq %r12
+	movl %esi, %r12d
+	movl $21, %esi
+	movq %rdi, %rbx
+	callq push_delim
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movl %esi, %r12d
+	movq %rdi, %rbx
+	callq parse_21
+	movq %rbx, %rdi
+	movq %rax, %rbx
+	cmpl $0, %ebx
+	jnz .Lbb1080
+	movq %rdi, %rbx
+	callq is_eof
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb1079
+.Lbb1075:
+	movl %esi, %r12d
+	movq %rdi, %rbx
+	callq parse_21
+	movq %rbx, %rdi
+	cmpq $1, %rax
+	jz .Lbb1078
+	cmpl $0, %eax
+	jnz .Lbb1079
+	movl %r12d, %esi
+	jmp .Lbb1075
+.Lbb1078:
+	movq %rdi, %rbx
+	callq bump_err
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	jmp .Lbb1075
+.Lbb1079:
+	callq pop_delim
+	movl $0, %eax
+	jmp .Lbb1081
+.Lbb1080:
+	callq pop_delim
+	movq %rbx, %rax
+.Lbb1081:
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type parse_22, @function
+.size parse_22, .-parse_22
+/* end function parse_22 */
+
+.text
+peak_22:
+	pushq %rbp
+	movq %rsp, %rbp
+	callq peak_21
+	leave
+	ret
+.type peak_22, @function
+.size peak_22, .-peak_22
+/* end function peak_22 */
+
+.data
+.balign 8
+expected_22_data:
+	.quad 1
+	.quad 5
+/* end data */
+
+.text
+expected_22:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $32, %rsp
+	pushq %rbx
+	pushq %r12
+	movq %rdi, %r12
+	movl $16, %edi
+	callq malloc
+	movq %rax, %rbx
+	movl $16, %edx
+	leaq expected_22_data(%rip), %rsi
+	movq %rbx, %rdi
+	callq memcpy
+	movq %r12, %rax
+	movq %rbx, -24(%rbp)
+	movq $1, -16(%rbp)
+	movq $1, -8(%rbp)
+	movq -24(%rbp), %rcx
+	movq %rcx, 0(%rax)
+	movq -16(%rbp), %rcx
+	movq %rcx, 8(%rax)
+	movq -8(%rbp), %rcx
+	movq %rcx, 16(%rax)
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type expected_22, @function
+.size expected_22, .-expected_22
+/* end function expected_22 */
+
+.text
+parse_23:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $8, %rsp
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	movl %esi, %r12d
+.Lbb1087:
+	movq %rdi, %rbx
+	callq is_eof
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb1099
+	movq %rdi, %rbx
+	callq current_kind
+	movq %rbx, %rdi
+	movq %rax, %rsi
+	cmpq $5, %rsi
+	jz .Lbb1098
+	movq %rdi, %rbx
+	addq $80, %rdi
+	callq contains_long
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jz .Lbb1092
+	movq %rdi, %rbx
+	callq bump
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movl %esi, %r12d
+	jmp .Lbb1087
+.Lbb1092:
+	cmpl $0, %r12d
+	jz .Lbb1097
+	movq %rdi, %r12
+	addq $56, %r12
+	movq 64(%rdi), %rbx
+	cmpl $0, %ebx
+	jz .Lbb1097
+.Lbb1094:
+	subq $1, %rbx
+	movq %rbx, %rdx
+	movl $8, %esi
+	movq %rdi, %r13
+	movq %r12, %rdi
+	callq get
+	movq %r13, %rdi
+	movq (%rax), %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r13
+	callq peak_by_id
+	movq %r13, %rdi
+	cmpl $0, %eax
+	jz .Lbb1096
+	cmpl $0, %ebx
+	jz .Lbb1097
+	jmp .Lbb1094
+.Lbb1096:
+	movq %rbx, %rax
+	addq $3, %rax
+	jmp .Lbb1100
+.Lbb1097:
+	movl $1, %eax
+	jmp .Lbb1100
+.Lbb1098:
+	callq bump
+	movl $0, %eax
+	jmp .Lbb1100
+.Lbb1099:
+	movl $2, %eax
+.Lbb1100:
+	popq %r13
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type parse_23, @function
+.size parse_23, .-parse_23
+/* end function parse_23 */
+
+.text
+peak_23:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $8, %rsp
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	movl %edx, %r12d
+	movq %rsi, %r13
+	movq %rdi, %rbx
+	callq is_eof
+	movq %r13, %rsi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb1110
+	movq %rdi, %rbx
+	callq kind_at_offset
+	movl %r12d, %edx
+	movq %rbx, %rdi
+	cmpq $5, %rax
+	jz .Lbb1109
+	cmpl $0, %edx
+	jz .Lbb1108
+	movq 64(%rdi), %rbx
+	cmpl $0, %ebx
+	jz .Lbb1108
+.Lbb1105:
+	subq $1, %rbx
+	movq %rbx, %rcx
+	movl $0, %edx
+	movl $0, %esi
+	movq %rdi, %r12
+	callq peak_by_id
+	movq %r12, %rdi
+	cmpl $0, %eax
+	jz .Lbb1107
+	cmpl $0, %ebx
+	jz .Lbb1108
+	jmp .Lbb1105
+.Lbb1107:
+	movq %rbx, %rax
+	addq $3, %rax
+	jmp .Lbb1111
+.Lbb1108:
+	movl $1, %eax
+	jmp .Lbb1111
+.Lbb1109:
+	movl $0, %eax
+	jmp .Lbb1111
+.Lbb1110:
+	movl $2, %eax
+.Lbb1111:
+	popq %r13
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type peak_23, @function
+.size peak_23, .-peak_23
+/* end function peak_23 */
+
+.data
+.balign 8
+expected_23_data:
+	.quad 0
+	.quad 5
+/* end data */
+
+.text
+expected_23:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $32, %rsp
+	pushq %rbx
+	pushq %r12
+	movq %rdi, %r12
+	movl $16, %edi
+	callq malloc
+	movq %rax, %rbx
+	movl $16, %edx
+	leaq expected_23_data(%rip), %rsi
+	movq %rbx, %rdi
+	callq memcpy
+	movq %r12, %rax
+	movq %rbx, -24(%rbp)
+	movq $1, -16(%rbp)
+	movq $1, -8(%rbp)
+	movq -24(%rbp), %rcx
+	movq %rcx, 0(%rax)
+	movq -16(%rbp), %rcx
+	movq %rcx, 8(%rax)
+	movq -8(%rbp), %rcx
+	movq %rcx, 16(%rax)
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type expected_23, @function
+.size expected_23, .-expected_23
+/* end function expected_23 */
+
+.text
+parse_24:
+	pushq %rbp
+	movq %rsp, %rbp
+	pushq %rbx
+	pushq %r12
+	movl %esi, %r12d
+	movq %rdi, %rbx
+	callq after_skipped
+	movq %rbx, %rdi
+	movq %rax, %rsi
+	movl $1, %edx
+	movq %rdi, %rbx
+	callq peak_22
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	cmpl $0, %eax
+	jnz .Lbb1118
+	movl %esi, %r12d
+	movl $5, %esi
+	movq %rdi, %rbx
+	callq skip
+	movl %r12d, %esi
+	movq %rbx, %rdi
+	movq %rax, %r12
+	movq %rdi, %rbx
+	callq parse_22
+	movq %rbx, %rdi
+	movq %rax, %rbx
+	cmpl $0, %r12d
+	jnz .Lbb1117
+	movq %rbx, %rax
+	jmp .Lbb1118
+.Lbb1117:
+	movl $5, %esi
+	callq unskip
+	movq %rbx, %rax
+.Lbb1118:
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type parse_24, @function
+.size parse_24, .-parse_24
+/* end function parse_24 */
+
+.text
+peak_24:
+	pushq %rbp
+	movq %rsp, %rbp
+	callq peak_22
+	leave
+	ret
+.type peak_24, @function
+.size peak_24, .-peak_24
+/* end function peak_24 */
+
+.data
+.balign 8
+expected_24_data:
+	.quad 1
+	.quad 5
+/* end data */
+
+.text
+expected_24:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $32, %rsp
+	pushq %rbx
+	pushq %r12
+	movq %rdi, %r12
+	movl $16, %edi
+	callq malloc
+	movq %rax, %rbx
+	movl $16, %edx
+	leaq expected_24_data(%rip), %rsi
+	movq %rbx, %rdi
+	callq memcpy
+	movq %r12, %rax
+	movq %rbx, -24(%rbp)
+	movq $1, -16(%rbp)
+	movq $1, -8(%rbp)
+	movq -24(%rbp), %rcx
+	movq %rcx, 0(%rax)
+	movq -16(%rbp), %rcx
+	movq %rcx, 8(%rax)
+	movq -8(%rbp), %rcx
+	movq %rcx, 16(%rax)
+	popq %r12
+	popq %rbx
+	leave
+	ret
+.type expected_24, @function
+.size expected_24, .-expected_24
+/* end function expected_24 */
+
 .data
 .balign 8
 root_group_id:
-	.int 6
+	.int 7
 /* end data */
 
 .text
@@ -7504,30 +8129,30 @@ parse:
 	movq %rsp, %rbp
 	subq $8, %rsp
 	pushq %rbx
-.Lbb1039:
+.Lbb1124:
 	movl $1, %esi
 	movq %rdi, %rbx
-	callq parse_20
+	callq parse_24
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jz .Lbb1042
+	jz .Lbb1127
 	cmpq $2, %rax
-	jz .Lbb1042
+	jz .Lbb1127
 	movq %rdi, %rbx
 	callq bump_err
 	movq %rbx, %rdi
-	jmp .Lbb1039
-.Lbb1042:
+	jmp .Lbb1124
+.Lbb1127:
 	movq %rdi, %rbx
 	callq is_eof
 	movq %rbx, %rdi
 	cmpl $0, %eax
-	jnz .Lbb1044
+	jnz .Lbb1129
 	movq %rdi, %rbx
 	callq bump_err
 	movq %rbx, %rdi
-	jmp .Lbb1042
-.Lbb1044:
+	jmp .Lbb1127
+.Lbb1129:
 	movl $1, %eax
 	popq %rbx
 	leave
@@ -7573,6 +8198,19 @@ literal_group_name:
 .balign 8
 literal_group_name_len:
 	.quad 7
+/* end data */
+
+.data
+.balign 8
+sum_group_name:
+	.ascii "sum"
+	.byte 0
+/* end data */
+
+.data
+.balign 8
+sum_group_name_len:
+	.quad 3
 /* end data */
 
 .data
@@ -7641,57 +8279,64 @@ group_name:
 	movq %rsp, %rbp
 	cmpl $0, %edi
 	leaq string_group_name(%rip), %rax
-	jz .Lbb1061
+	jz .Lbb1148
 	cmpl $1, %edi
 	leaq num_group_name(%rip), %rax
-	jz .Lbb1060
+	jz .Lbb1147
 	cmpl $2, %edi
 	leaq literal_group_name(%rip), %rax
-	jz .Lbb1059
+	jz .Lbb1146
 	cmpl $3, %edi
-	leaq args_group_name(%rip), %rax
-	jz .Lbb1058
+	leaq sum_group_name(%rip), %rax
+	jz .Lbb1145
 	cmpl $4, %edi
-	leaq stmt_group_name(%rip), %rax
-	jz .Lbb1057
+	leaq args_group_name(%rip), %rax
+	jz .Lbb1144
 	cmpl $5, %edi
-	leaq _root_group_name(%rip), %rax
-	jz .Lbb1056
+	leaq stmt_group_name(%rip), %rax
+	jz .Lbb1143
 	cmpl $6, %edi
+	leaq _root_group_name(%rip), %rax
+	jz .Lbb1142
+	cmpl $7, %edi
 	leaq root_group_name(%rip), %rax
-	jz .Lbb1055
+	jz .Lbb1141
 	leaq err_group_name(%rip), %rax
 	movq %rax, %rdx
 	movl $5, %eax
-	jmp .Lbb1062
-.Lbb1055:
+	jmp .Lbb1149
+.Lbb1141:
 	movq %rax, %rdx
 	movl $4, %eax
-	jmp .Lbb1062
-.Lbb1056:
+	jmp .Lbb1149
+.Lbb1142:
 	movq %rax, %rdx
 	movl $5, %eax
-	jmp .Lbb1062
-.Lbb1057:
+	jmp .Lbb1149
+.Lbb1143:
 	movq %rax, %rdx
 	movl $4, %eax
-	jmp .Lbb1062
-.Lbb1058:
+	jmp .Lbb1149
+.Lbb1144:
 	movq %rax, %rdx
 	movl $4, %eax
-	jmp .Lbb1062
-.Lbb1059:
-	movq %rax, %rdx
-	movl $7, %eax
-	jmp .Lbb1062
-.Lbb1060:
+	jmp .Lbb1149
+.Lbb1145:
 	movq %rax, %rdx
 	movl $3, %eax
-	jmp .Lbb1062
-.Lbb1061:
+	jmp .Lbb1149
+.Lbb1146:
+	movq %rax, %rdx
+	movl $7, %eax
+	jmp .Lbb1149
+.Lbb1147:
+	movq %rax, %rdx
+	movl $3, %eax
+	jmp .Lbb1149
+.Lbb1148:
 	movq %rax, %rdx
 	movl $6, %eax
-.Lbb1062:
+.Lbb1149:
 	subq $16, %rsp
 	movq %rsp, %rcx
 	movq %rdx, (%rcx)

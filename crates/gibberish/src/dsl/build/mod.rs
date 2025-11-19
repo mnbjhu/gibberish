@@ -11,6 +11,7 @@ use crate::{
 
 pub mod choice;
 pub mod delim_by;
+pub mod fold;
 pub mod just;
 pub mod named;
 pub mod optional;
@@ -76,7 +77,7 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Delim(delim) => delim.build_parse(id, f),
             Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_parse(id, f),
-            Parser::Fold(fold) => todo!(),
+            Parser::Fold(fold) => fold.build_parse(id, f),
             Parser::Skip(skip) => skip.build_parse(id, f),
             Parser::UnSkip(un_skip) => todo!(),
             Parser::Optional(optional) => optional.build_parse(id, f),
@@ -99,7 +100,7 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Delim(delim) => delim.build_peak(id, f),
             Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_peak(id, f),
-            Parser::Fold(fold) => todo!(),
+            Parser::Fold(fold) => fold.build_peak(id, f),
             Parser::Skip(skip) => skip.build_peak(id, f),
             Parser::UnSkip(un_skip) => todo!(),
             Parser::Optional(optional) => optional.build_peak(id, f),
@@ -115,6 +116,21 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
 
 impl Parser<RuntimeLang> {
     fn build_expected(&self, id: usize, f: &mut impl Write, cache: &ParserCache<RuntimeLang>) {
+        if let Parser::Optional(op) = self {
+            write!(
+                f,
+                "
+function :vec $expected_{id}() {{
+@start
+    %res =l alloc8 24
+    storel 0, %res
+    ret %res
+}}
+",
+            )
+            .unwrap();
+            return;
+        }
         let expected = self.expected(cache);
         write!(f, "\ndata $expected_{id}_data = {{").unwrap();
         expected.iter().enumerate().for_each(|(index, it)| {
