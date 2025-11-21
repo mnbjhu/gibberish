@@ -39,7 +39,9 @@ pub fn build(parser_file: &Path, output: Option<&Path>) {
         .collect::<Vec<_>>();
     group_names.push("root");
     let mut res = String::new();
+    println!("Building lexer");
     build_lexer_qbe(dsl_ast, &parser_text, parser_filename, &mut res);
+    println!("Building parser");
     build_parser_qbe(&parser, &builder.cache, &mut res);
     create_name_function(&mut res, "group", &group_names);
     if let Some(out) = output {

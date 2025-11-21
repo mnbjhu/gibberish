@@ -7,9 +7,9 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FoldOnce<L: Lang> {
-    name: L::Syntax,
-    first: ParserIndex<L>,
-    next: ParserIndex<L>,
+    pub name: L::Syntax,
+    pub first: ParserIndex<L>,
+    pub next: ParserIndex<L>,
 }
 
 impl<'a, L: Lang> FoldOnce<L> {

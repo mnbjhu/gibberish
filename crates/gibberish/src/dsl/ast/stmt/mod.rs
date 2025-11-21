@@ -40,3 +40,15 @@ impl<'a> From<&'a Group<DslLang>> for StmtAst<'a> {
         }
     }
 }
+
+impl<'a> StmtAst<'a> {
+    pub fn name(&self) -> &'a str {
+        match self {
+            StmtAst::Token(token_def_ast) => &token_def_ast.name().text,
+            StmtAst::Keyword(keyword_def_ast) => &keyword_def_ast.name().text,
+            StmtAst::Parser(parser_def_ast) => &parser_def_ast.name().text,
+            StmtAst::Fold(fold_def_ast) => &fold_def_ast.name().text,
+            StmtAst::Highlight(_) => "highlight",
+        }
+    }
+}

@@ -56,7 +56,20 @@ function w $lex_{id}(l %ptr, l %len) {{
 "
             )
             .unwrap(),
-            OptionAst::Regex(regex_ast) => todo!(),
+            OptionAst::Regex(regex_ast) => {
+                let inner_id = regex_ast.build(state, f);
+                write!(
+                    f,
+                    "
+function w $lex_{id}(l %ptr, l %len) {{
+@start
+    %res =w call $lex_{inner_id}(l %ptr, l %len)
+    ret %res
+}}
+"
+                )
+                .unwrap()
+            }
         }
         id
     }

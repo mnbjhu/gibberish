@@ -42,7 +42,7 @@ impl<'a> RegexAst<'a> {
                     build_choice_regex(state, f, options)
                 }
             }
-            RegexAst::Group { options } => build_group_regex(state, f, options),
+            RegexAst::Group { options, capture } => build_group_regex(state, f, options, *capture),
             RegexAst::Rep0(regex_ast) => {
                 let inner = regex_ast.build(state, f);
                 let id = state.id();
@@ -127,7 +127,22 @@ function w $lex_{id} (l %ptr, l %len) {{
                 .unwrap();
                 id
             }
-            RegexAst::Any => todo!(),
+            RegexAst::Any => {
+                let id = state.id();
+                write!(
+                    f,
+                    "
+
+function w $lex_{id} (l %ptr, l %len) {{
+@pass
+    call $inc_offset()
+    ret 1
+}}
+"
+                )
+                .unwrap();
+                id
+            }
         }
     }
 }
@@ -165,6 +180,7 @@ function w $inc_offset() {{
     let mut state = LexerBuilderState::new();
     let mut names = vec![];
     for stmt in ast.iter() {
+        println!("Building: {}", stmt.name());
         match stmt {
             StmtAst::Token(token_def_ast) => {
                 let name = &token_def_ast.name().text;
@@ -319,9 +335,12 @@ impl<'a> TokenDefAst<'a> {
         text = text.replace("\\\"", "\"");
         text = text.replace("\\n", "\n");
         text = text.replace("\\t", "\t");
+        text = text.replace("\\f", "\x0C");
+        println!("Generating Regex for {text}");
         let Some(regex) = parse_seq(&text, &mut 0) else {
             panic!("Failed to parse regex {text}");
         };
+        println!("Parsed Regex: {regex:?}");
         build_token_parser(&self.name().text, &regex, state, f)
     }
 }
@@ -333,6 +352,7 @@ impl<'a> KeywordDefAst<'a> {
         let regex = RegexAst::Seq(vec![
             RegexAst::Group {
                 options: vec![RegexAst::Exact(text)],
+                capture: true,
             },
             RegexAst::Choice {
                 negate: true,

@@ -9,7 +9,6 @@ use crate::{
         stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
     },
     parser::{lang::Lang, node::Lexeme},
-    report::simple::report_simple_error,
 };
 
 pub mod build;
@@ -48,24 +47,29 @@ impl<'a> TokenDefAst<'a> {
         text = text.replace("\\\"", "\"");
         text = text.replace("\\n", "\n");
         text = text.replace("\\t", "\t");
+        text = text.replace("\\f", "\x0C");
         println!("Creating regex {text:?}");
-        match Regex::new(&text) {
-            Ok(regex) => {
-                lexer.tokens.push((self.name().text.clone(), regex));
-            }
-            Err(err) => {
-                report_simple_error(
-                    &format!("Regex error: {err}"),
-                    value.span.clone(),
-                    src,
-                    filename,
-                );
-                lexer.tokens.push((
-                    self.name().text.clone(),
-                    Regex::new("TODO: SOME ACTUAL REGEX").unwrap(),
-                ));
-            }
-        }
+        // match Regex::new(&text) {
+        //     Ok(regex) => {
+        //         lexer.tokens.push((self.name().text.clone(), regex));
+        //     }
+        //     Err(err) => {
+        //         report_simple_error(
+        //             &format!("Regex error: {err}"),
+        //             value.span.clone(),
+        //             src,
+        //             filename,
+        //         );
+        //         lexer.tokens.push((
+        //             self.name().text.clone(),
+        //             Regex::new("TODO: SOME ACTUAL REGEX").unwrap(),
+        //         ));
+        //     }
+        // }
+        lexer.tokens.push((
+            self.name().text.clone(),
+            Regex::new("TODO: SOME ACTUAL REGEX").unwrap(),
+        ));
     }
 }
 

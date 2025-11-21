@@ -2,17 +2,23 @@ use core::panic;
 
 use crate::{
     api::{
-        choice::choice, just::just, maybe::Requirement, named::Named, ptr::{ParserCache, ParserIndex}, seq::seq, Parser
+        Parser,
+        choice::choice,
+        just::just,
+        maybe::Requirement,
+        named::Named,
+        ptr::{ParserCache, ParserIndex},
+        seq::seq,
     },
     dsl::{
         ast::{
-            expr::ExprAst, stmt::{fold::FoldDefAst, highlight::HighlightAst, parser::ParserDefAst, StmtAst}, RootAst
+            RootAst,
+            expr::ExprAst,
+            stmt::{StmtAst, fold::FoldDefAst, parser::ParserDefAst},
         },
         lexer::RuntimeLang,
     },
-    lsp::semantic_tokens::TokenKind,
     parser::node::Span,
-    query::Query,
     report::simple::report_simple_error,
 };
 
@@ -108,7 +114,7 @@ impl<'a> FoldDefAst<'a> {
         let name_index = builder.vars.len();
         let first = self.first().build(builder);
         let next = self.next().unwrap().build(builder);
-        let p = first.fold(name_index as u32, next, &mut builder.cache);
+        let p = first.fold_once(name_index as u32, next, &mut builder.cache);
         builder.vars.push((name.to_string(), p.clone()));
         p
     }
@@ -184,9 +190,17 @@ impl<'a> ExprAst<'a> {
                                 .map(|it| it.build(builder))
                                 .collect::<Vec<_>>();
                             if args.len() != 1 {
-                                panic!("'sep_by_padded' expected one arg but {} were found", args.len())
+                                panic!(
+                                    "'sep_by_padded' expected one arg but {} were found",
+                                    args.len()
+                                )
                             }
-                            expr = expr.sep_by_extra(args[0].clone(), Requirement::Maybe,Requirement::Maybe, &mut builder.cache)
+                            expr = expr.sep_by_extra(
+                                args[0].clone(),
+                                Requirement::Maybe,
+                                Requirement::Maybe,
+                                &mut builder.cache,
+                            )
                         }
                         "delim_by" => {
                             let args = member

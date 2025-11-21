@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cargo run --bin gibberish -- build examples/simple.gib --output crates/gibberish_bindings/slice.qbe
+cargo run --bin gibberish -- build examples/self.gib --output crates/gibberish_bindings/slice.qbe
 
 # QBE IR -> target assembly
 qbe -o crates/gibberish_bindings/slice.s crates/gibberish_bindings/slice.qbe             

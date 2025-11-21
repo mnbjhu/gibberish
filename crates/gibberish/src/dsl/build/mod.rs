@@ -12,6 +12,7 @@ use crate::{
 pub mod choice;
 pub mod delim_by;
 pub mod fold;
+pub mod fold_once;
 pub mod just;
 pub mod named;
 pub mod optional;
@@ -84,7 +85,7 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
-            Parser::FoldOnce(fold_once) => todo!(),
+            Parser::FoldOnce(fold_once) => fold_once.build_parse(id, f),
             Parser::Repeated(repeated) => repeated.build_parse(id, f),
             Parser::Empty => todo!(),
         }
@@ -107,7 +108,7 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
-            Parser::FoldOnce(fold_once) => todo!(),
+            Parser::FoldOnce(fold_once) => fold_once.build_peak(id, f),
             Parser::Repeated(repeated) => repeated.build_peak(id, f),
             Parser::Empty => todo!(),
         }

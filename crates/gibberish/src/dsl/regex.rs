@@ -12,6 +12,7 @@ pub enum RegexAst<'a> {
     },
     Group {
         options: Vec<RegexAst<'a>>,
+        capture: bool,
     },
     Rep0(Box<RegexAst<'a>>),
     Rep1(Box<RegexAst<'a>>),
@@ -48,6 +49,7 @@ pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
 pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     let current = regex.chars().nth(*offset);
     if let Some('.') = current {
+        *offset += 1;
         return Some(RegexAst::Any);
     };
     if let Some('\\') = current {
@@ -97,7 +99,15 @@ pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
 pub fn parse_seq<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     let mut res = vec![];
     loop {
-        if matches!(regex.chars().nth(*offset), None | Some(')')) {
+        println!(
+            "Parsing Seq char {}",
+            regex
+                .chars()
+                .nth(*offset)
+                .map(|it| it.to_string())
+                .unwrap_or("EOF".to_string())
+        );
+        if matches!(regex.chars().nth(*offset), None | Some('|') | Some(')')) {
             return Some(RegexAst::Seq(res));
         }
         let mut item = parse_regex(regex, offset)?;
@@ -158,11 +168,23 @@ fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst<'a>>
     }
 }
 
+fn parse_capture<'a>(regex: &'a str, offset: &mut usize) -> bool {
+    if !matches!(regex.chars().nth(*offset), Some('?')) {
+        return true;
+    }
+    if !matches!(regex.chars().nth(*offset + 1), Some(':')) {
+        return true;
+    }
+    *offset += 2;
+    false
+}
+
 fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     if !matches!(regex.chars().nth(*offset), Some('(')) {
         return None;
     }
     *offset += 1;
+    let capture = parse_capture(regex, offset);
     let mut options = vec![];
     loop {
         options.push(parse_seq(regex, offset)?);
@@ -172,11 +194,12 @@ fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
             break;
         }
         if current == '|' {
+            *offset += 1;
             continue;
         } else {
             return None;
         }
     }
     assert_ne!(options.len(), 0);
-    Some(RegexAst::Group { options })
+    Some(RegexAst::Group { options, capture })
 }

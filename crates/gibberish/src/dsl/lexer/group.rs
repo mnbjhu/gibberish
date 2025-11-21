@@ -6,6 +6,7 @@ pub fn build_group_regex<'a>(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
     options: &[RegexAst<'a>],
+    capture: bool,
 ) -> usize {
     let id = state.id();
     let parts = options
@@ -45,9 +46,22 @@ function l $lex_{id} (l %ptr, l %len) {{
         "
 @pass
     %offset =l loadl $offset_ptr
+"
+    )
+    .unwrap();
+    if capture {
+        write!(
+            f,
+            "
     storel %offset, $group_end
+"
+        )
+        .unwrap();
+    }
+    write!(
+        f,
+        "
     ret 1
-
 @fail
     storel %start, $offset_ptr
     ret 0
