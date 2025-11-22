@@ -7,6 +7,9 @@ qbe -o crates/gibberish_bindings/slice.s crates/gibberish_bindings/slice.qbe
 # Assemble to position-independent object (PIC is fine for both static/shared)
 cc -c -fPIC crates/gibberish_bindings/slice.s -o crates/gibberish_bindings/slice.o
 
+cc -shared -o crates/gibberish_bindings/libqbeslice.so \
+    crates/gibberish_bindings/slice.o
+
 # Archive into a static library
 ar rcs crates/gibberish_bindings/libqbeslice.a crates/gibberish_bindings/slice.o
 

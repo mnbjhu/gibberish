@@ -1,3 +1,8 @@
 [workspace]
-members = ["crates/gibberish", "crates/gibberish_bindings"]
+members = [
+  "crates/gibberish",
+  "crates/gibberish_bindings",
+  "crates/gibberish_tree",
+  "crates/gibberish_dyn_lib",
+]
 resolver = "2"
