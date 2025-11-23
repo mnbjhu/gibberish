@@ -1,4 +1,7 @@
+use std::process::Command;
 use std::{fs, path::Path};
+
+use tempfile::{Builder, NamedTempFile};
 
 use crate::dsl::build::build_parser_qbe;
 
@@ -13,7 +16,14 @@ use crate::{
     },
 };
 
-pub fn build(parser_file: &Path, output: Option<&Path>) {
+#[derive(Clone, clap::ValueEnum)]
+pub enum BuildKind {
+    Qbe,
+    Static,
+    Dynamic,
+}
+
+pub fn build(parser_file: &Path, output: Option<&Path>, kind: &BuildKind) {
     let mut d_cache = ParserCache::new(DslLang);
     let d_parser = dsl_parser(&mut d_cache);
     let parser_text = fs::read_to_string(parser_file).unwrap();
@@ -38,14 +48,74 @@ pub fn build(parser_file: &Path, output: Option<&Path>) {
         .map(|it| it.0.as_str())
         .collect::<Vec<_>>();
     group_names.push("root");
+
     let mut res = String::new();
-    println!("Building lexer");
     build_lexer_qbe(dsl_ast, &parser_text, parser_filename, &mut res);
-    println!("Building parser");
     build_parser_qbe(&parser, &builder.cache, &mut res);
     create_name_function(&mut res, "group", &group_names);
+
     if let Some(out) = output {
-        fs::write(out, res).unwrap()
+        match kind {
+            BuildKind::Qbe => fs::write(out, res).unwrap(),
+            BuildKind::Static => {
+                let qbe = NamedTempFile::new().unwrap();
+                let qbe_path = qbe.path().to_path_buf();
+
+                let lib = Builder::new().suffix(".s").tempfile().unwrap();
+                let lib_path = lib.path().to_path_buf();
+
+                fs::write(&qbe_path, res).unwrap();
+                Command::new("qbe")
+                    .arg("-o")
+                    .arg(&lib_path)
+                    .arg(&qbe_path)
+                    .status()
+                    .unwrap();
+
+                Command::new("cc")
+                    .arg("-c")
+                    .arg("-fPIC")
+                    .arg(&lib_path)
+                    .arg("-o")
+                    .arg(out)
+                    .status()
+                    .unwrap();
+            }
+            BuildKind::Dynamic => {
+                let qbe = NamedTempFile::new().unwrap();
+                let qbe_path = qbe.path().to_path_buf();
+
+                let lib = Builder::new().suffix(".s").tempfile().unwrap();
+                let lib_path = lib.path().to_path_buf();
+
+                let obj = Builder::new().suffix(".o").tempfile().unwrap();
+                let obj_path = obj.path().to_path_buf();
+                fs::write(&qbe_path, res).unwrap();
+                Command::new("qbe")
+                    .arg("-o")
+                    .arg(&lib_path)
+                    .arg(&qbe_path)
+                    .status()
+                    .unwrap();
+
+                Command::new("cc")
+                    .arg("-c")
+                    .arg("-fPIC")
+                    .arg(&lib_path)
+                    .arg("-o")
+                    .arg(&obj_path)
+                    .status()
+                    .unwrap();
+
+                Command::new("cc")
+                    .arg("-shared")
+                    .arg("-o")
+                    .arg(out)
+                    .arg(&obj_path)
+                    .status()
+                    .unwrap();
+            }
+        }
     } else {
         println!("{}", res);
     }

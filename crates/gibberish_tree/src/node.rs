@@ -1,4 +1,4 @@
-use std::{fmt::Debug, mem::ManuallyDrop, ops::Range};
+use std::{fmt::Debug, ops::Range};
 
 use crate::{expected::ExpectedData, lang::CompiledLang};
 
@@ -14,10 +14,28 @@ pub struct Lexeme<L: Lang> {
     pub text: String,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LexemeData {
+    pub kind: usize,
+    pub start: usize,
+    pub end: usize,
+}
+
+impl Lexeme<CompiledLang> {
+    pub fn from_data(value: LexemeData, src: &str) -> Self {
+        Lexeme {
+            span: value.start..value.end,
+            kind: value.kind as u32,
+            text: src[value.start..value.end].to_string(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Group<L: Lang> {
     pub kind: L::Syntax,
-    pub children: ManuallyDrop<Vec<Node<L>>>,
+    pub children: Vec<Node<L>>,
 }
 
 #[derive(Debug)]
@@ -313,7 +331,6 @@ pub struct NodeData {
 
 impl Node<CompiledLang> {
     pub fn from_data(value: NodeData, src: &str, offset: &mut usize) -> Self {
-        println!("Converting {value:?}");
         match value.kind {
             0 => {
                 let start = value.b as usize;
@@ -334,12 +351,10 @@ impl Node<CompiledLang> {
                 );
                 Node::Group(Group {
                     kind: value.group_kind,
-                    children: ManuallyDrop::new(
-                        children
-                            .into_iter()
-                            .map(|it| Node::from_data(it, src, offset))
-                            .collect(),
-                    ),
+                    children: children
+                        .into_iter()
+                        .map(|it| Node::from_data(it, src, offset))
+                        .collect(),
                 })
             },
             2 => unsafe {
@@ -353,7 +368,7 @@ impl Node<CompiledLang> {
                 }
 
                 Node::Err(ParseError::Unexpected {
-                    actual: ManuallyDrop::new(tokens),
+                    actual: tokens,
                     start: *offset,
                 })
             },
@@ -365,7 +380,7 @@ impl Node<CompiledLang> {
                 );
                 Node::Err(ParseError::MissingError {
                     start: *offset,
-                    expected: ManuallyDrop::new(expected.into_iter().map(|it| it.into()).collect()),
+                    expected: expected.into_iter().map(|it| it.into()).collect(),
                 })
             },
             id => panic!("Unexpected node id '{id}'"),

@@ -19,7 +19,7 @@ parser field = str + colon + _expr;
 parser object = field.sep_by(comma).delim_by(l_brace, r_brace);
 parser _expr = (object | array | string | num | bool).skip(whitespace);
 
-parser root = _expr;
+parser _root = _expr;
 
 highlight str @ "property"
 

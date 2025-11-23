@@ -48,7 +48,6 @@ impl<'a> TokenDefAst<'a> {
         text = text.replace("\\n", "\n");
         text = text.replace("\\t", "\t");
         text = text.replace("\\f", "\x0C");
-        println!("Creating regex {text:?}");
         // match Regex::new(&text) {
         //     Ok(regex) => {
         //         lexer.tokens.push((self.name().text.clone(), regex));
@@ -129,7 +128,6 @@ impl Lang for RuntimeLang {
         let mut offset = 0;
         let mut res = vec![];
         'outer: loop {
-            // println!("LEXING: {text}");
             if text.is_empty() {
                 return res;
             }

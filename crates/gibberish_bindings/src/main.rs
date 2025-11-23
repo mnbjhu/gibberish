@@ -15,7 +15,6 @@ fn main() {
         let state_ptr = default_state_ptr(text.as_ptr(), text.len());
         parse(state_ptr);
         let state_data = get_state(state_ptr);
-        // println!("{state_data:#?}")
         let state: State = state_data.into();
         assert_eq!(state.stack.len(), 1);
         state.stack.first().unwrap().debug(text);

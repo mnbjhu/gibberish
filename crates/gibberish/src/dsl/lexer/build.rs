@@ -180,7 +180,6 @@ function w $inc_offset() {{
     let mut state = LexerBuilderState::new();
     let mut names = vec![];
     for stmt in ast.iter() {
-        println!("Building: {}", stmt.name());
         match stmt {
             StmtAst::Token(token_def_ast) => {
                 let name = &token_def_ast.name().text;
@@ -195,7 +194,6 @@ function w $inc_offset() {{
             _ => (),
         };
     }
-    println!("len: {}", names.len());
     create_lex_function(f, &names);
     create_name_function(f, "token", &names);
 }
@@ -336,11 +334,9 @@ impl<'a> TokenDefAst<'a> {
         text = text.replace("\\n", "\n");
         text = text.replace("\\t", "\t");
         text = text.replace("\\f", "\x0C");
-        println!("Generating Regex for {text}");
         let Some(regex) = parse_seq(&text, &mut 0) else {
             panic!("Failed to parse regex {text}");
         };
-        println!("Parsed Regex: {regex:?}");
         build_token_parser(&self.name().text, &regex, state, f)
     }
 }

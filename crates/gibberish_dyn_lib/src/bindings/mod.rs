@@ -1,10 +1,8 @@
-use std::{mem::ManuallyDrop, path::Path};
-
 mod state;
 mod vec;
 
 use gibberish_tree::{lang::CompiledLang, node::Node};
-use libloading::{Library, Symbol};
+use libloading::Symbol;
 
 use crate::bindings::state::{State, StateData};
 
@@ -12,21 +10,7 @@ use crate::bindings::state::{State, StateData};
 // pub fn parse(ptr: *const StateData) -> u32;
 //
 
-pub struct ParseResult<'a> {
-    pub root: ManuallyDrop<Node<CompiledLang>>,
-    lang: &'a CompiledLang,
-    state_ptr: *const StateData,
-}
-
-impl<'a> Drop for ParseResult<'a> {
-    fn drop(&mut self) {
-        let free_state: Symbol<unsafe extern "C" fn(*const StateData) -> ()> =
-            unsafe { self.lang.0.get(b"free_state") }.unwrap();
-        unsafe { free_state(self.state_ptr) }
-    }
-}
-
-pub fn parse<'a>(lang: &'a CompiledLang, text: &str) -> Node<CompiledLang> {
+pub fn parse(lang: &CompiledLang, text: &str) -> Node<CompiledLang> {
     unsafe {
         let default_state_ptr: Symbol<unsafe extern "C" fn(*const u8, usize) -> *const StateData> =
             lang.0.get(b"default_state_ptr").unwrap();
@@ -40,10 +24,8 @@ pub fn parse<'a>(lang: &'a CompiledLang, text: &str) -> Node<CompiledLang> {
         // Call it
         let ptr = default_state_ptr(text.as_ptr(), text.len());
         parse(ptr);
-        State::from_data(ptr.as_ref().unwrap(), text)
-            .stack
-            .pop()
-            .unwrap()
+        let state = get_state(ptr);
+        State::from_data(state, text).stack.pop().unwrap()
     }
 }
 
@@ -76,7 +58,8 @@ mod tests {
             parse(ptr);
             let free_state: Symbol<unsafe extern "C" fn(*const StateData) -> ()> =
                 lang.0.get(b"free_state").unwrap();
-            State::from_data(&*ptr, text);
+            let state = get_state(ptr);
+            State::from_data(state, text);
             free_state(ptr);
         }
     }

@@ -1,8 +1,5 @@
 use core::fmt;
-use std::{
-    fmt::{Display, Formatter},
-    mem::ManuallyDrop,
-};
+use std::fmt::{Display, Formatter};
 
 use crate::node::{Lexeme, Span};
 
@@ -12,11 +9,11 @@ use super::lang::Lang;
 pub enum ParseError<L: Lang> {
     MissingError {
         start: usize,
-        expected: ManuallyDrop<Vec<Expected<L>>>,
+        expected: Vec<Expected<L>>,
     },
     Unexpected {
         start: usize,
-        actual: ManuallyDrop<Vec<Lexeme<L>>>,
+        actual: Vec<Lexeme<L>>,
     },
 }
 
@@ -112,8 +109,8 @@ impl<L: Lang> Expected<L> {
     pub fn debug_name(&self, lang: &L) -> String {
         match self {
             Expected::Token(t) => lang.token_name(t),
-            Expected::Label(l) => lang.syntax_name(l),
-            Expected::Group(g) => todo!(),
+            Expected::Label(l) => todo!(),
+            Expected::Group(g) => lang.syntax_name(g),
         }
     }
 }

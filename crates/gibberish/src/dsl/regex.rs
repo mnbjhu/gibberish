@@ -99,14 +99,6 @@ pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
 pub fn parse_seq<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     let mut res = vec![];
     loop {
-        println!(
-            "Parsing Seq char {}",
-            regex
-                .chars()
-                .nth(*offset)
-                .map(|it| it.to_string())
-                .unwrap_or("EOF".to_string())
-        );
         if matches!(regex.chars().nth(*offset), None | Some('|') | Some(')')) {
             return Some(RegexAst::Seq(res));
         }
