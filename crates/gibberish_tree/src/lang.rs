@@ -1,7 +1,8 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+use std::path::Path;
 
-use libloading::{Library, Symbol};
+use libloading::{AsFilename, Library, Symbol};
 
 use super::node::Lexeme;
 
@@ -23,6 +24,12 @@ pub trait Lang: PartialEq + Eq + Display + Debug + Hash + Clone {
 
 #[derive(Debug)]
 pub struct CompiledLang(pub Library);
+
+impl CompiledLang {
+    pub fn load(path: impl AsFilename) -> Self {
+        CompiledLang(unsafe { Library::new(path).unwrap() })
+    }
+}
 
 impl PartialEq for CompiledLang {
     fn eq(&self, other: &Self) -> bool {

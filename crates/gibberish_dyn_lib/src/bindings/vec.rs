@@ -4,8 +4,13 @@ pub struct SliceData {
     len: usize,
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn host_print(x: i64) {
+    println!("host_print: {x}");
+}
+
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RawVec<T> {
     ptr: *mut T,
     len: usize,

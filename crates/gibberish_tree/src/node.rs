@@ -302,7 +302,7 @@ impl<'a, L: Lang> Iterator for ErrorIter<'a, L> {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeData {
     kind: u32,
     group_kind: u32,

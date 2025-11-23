@@ -10,15 +10,15 @@ use crate::bindings::vec::RawVec;
 
 #[derive(Debug)]
 pub struct State {
-    pub tokens: ManuallyDrop<Vec<Lexeme<CompiledLang>>>,
-    pub stack: ManuallyDrop<Vec<Node<CompiledLang>>>,
+    pub tokens: Vec<Lexeme<CompiledLang>>,
+    pub stack: Vec<Node<CompiledLang>>,
     pub offset: usize,
-    pub delim_stack: ManuallyDrop<Vec<usize>>,
-    pub skip: ManuallyDrop<Vec<usize>>,
+    pub delim_stack: Vec<usize>,
+    pub skip: Vec<usize>,
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StateData {
     pub tokens: RawVec<Lexeme<CompiledLang>>,
     stack: RawVec<NodeData>,
@@ -28,19 +28,17 @@ pub struct StateData {
 }
 
 impl State {
-    pub fn from_data(value: StateData, src: &str) -> Self {
-        let tokens = ManuallyDrop::new(value.tokens.into());
+    pub fn from_data(value: &StateData, src: &str) -> Self {
+        let tokens = value.tokens.clone().into();
         println!("Converted tokens");
-        let stack = ManuallyDrop::new(
-            Vec::from(value.stack)
-                .into_iter()
-                .map(|it| Node::from_data(it, src, &mut 0))
-                .collect(),
-        );
+        let stack = Vec::from(value.stack.clone())
+            .into_iter()
+            .map(|it| Node::from_data(it, src, &mut 0))
+            .collect();
         println!("Converted stack");
-        let delim_stack = ManuallyDrop::new(value.delim_stack.into());
+        let delim_stack = value.delim_stack.clone().into();
         println!("Converted delim_stack");
-        let skip = ManuallyDrop::new(value.skip.into());
+        let skip = value.skip.clone().into();
         println!("Converted skip");
         Self {
             tokens,
@@ -61,7 +59,7 @@ impl State {
 
             // Call it
             let result = func(value.as_ptr(), value.len());
-            State::from_data(result, value)
+            State::from_data(&result, value)
         }
     }
 }

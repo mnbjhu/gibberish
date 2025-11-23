@@ -7,3 +7,5 @@ edition = "2024"
 gibberish_tree = { path = "../gibberish_tree" }
 clap = { version = "4.5.53", features = ["derive"] }
 libloading = "0.9.0"
+notify = "8.2.0"
+safer-ffi = "0.1.13"
