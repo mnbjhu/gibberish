@@ -47,15 +47,14 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     %delim_stack_len_ptr =l add %state_ptr, 64
     %delim_stack_len =l loadl %delim_stack_len_ptr
     %delim_index =l add %delim_stack_len, 2
-    %missing_item =l ceql %delim_index, %res
-    jnz %missing_item, @missing_item_err, @try_parse_close
+    jnz %res, @missing_item_err, @try_parse_close
 @missing_item_err
     %expected =:vec call $expected_{item}()
     call $missing(l %state_ptr, l %expected)
-    jmp @try_parse_close
+    %hit_delim =l ceql %delim_index, %res
+    jnz %hit_delim, @try_parse_close, @missing_close_err
 @check_missing_close
-    %missing_item =l ceql %delim_index, %res
-    jnz %missing_item, @missing_item_err, @ret_ok
+    jnz %res, @missing_close_err, @ret_ok
 @missing_close_err
     %expected =:vec call $expected_{close}()
     call $missing(l %state_ptr, l %expected)
