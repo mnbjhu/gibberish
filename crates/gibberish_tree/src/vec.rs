@@ -10,11 +10,11 @@ pub extern "C" fn host_print(x: i64) {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct RawVec<T> {
-    ptr: *mut T,
-    len: usize,
-    cap: usize,
+    pub ptr: *mut T,
+    pub len: usize,
+    pub cap: usize,
 }
 
 impl<'a, T> IntoIterator for &'a RawVec<T> {
@@ -54,9 +54,9 @@ impl<'a, T> Iterator for RawVecIter<'a, T> {
 #[repr(C)]
 #[derive(Debug)]
 pub struct IntVec {
-    ptr: *mut u64,
-    len: usize,
-    cap: usize,
+    pub ptr: *mut u64,
+    pub len: usize,
+    pub cap: usize,
 }
 
 impl From<SliceData> for &str {

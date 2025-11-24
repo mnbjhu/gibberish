@@ -1,6 +1,6 @@
 use std::{fmt::Debug, ops::Range};
 
-use crate::{expected::ExpectedData, lang::CompiledLang};
+use crate::{expected::ExpectedData, lang::CompiledLang, vec::RawVec};
 
 use super::{err::ParseError, lang::Lang};
 use ansi_term::Colour::{Blue, Green, Red};
@@ -15,7 +15,7 @@ pub struct Lexeme<L: Lang> {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct LexemeData {
     pub kind: usize,
     pub start: usize,
@@ -162,18 +162,28 @@ impl<L: Lang> Group<L> {
 impl<L: Lang> ParseError<L> {
     fn debug_at(&self, offset: usize, lang: &L) {
         // NOTE: Only works when called by outer 'debug_at'
-        let expected = self
-            .expected()
-            .iter()
-            .map(|it| it.debug_name(lang))
-            .collect::<Vec<_>>()
-            .join(",");
-        println!("Expected: {expected}");
-        for token in self.actual() {
-            for _ in 0..offset {
-                print!("  ");
+        match self {
+            ParseError::MissingError { expected, .. } => {
+                let expected = expected
+                    .iter()
+                    .map(|it| it.debug_name(lang))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                println!("Missing: {expected}");
             }
-            println!("  {}", Red.paint(lang.token_name(&token.kind)));
+            ParseError::Unexpected { actual, .. } => {
+                println!("Unexpected:");
+                for token in actual {
+                    for _ in 0..offset {
+                        print!("  ");
+                    }
+                    println!(
+                        "  {}: {:?}",
+                        Red.paint(lang.token_name(&token.kind)),
+                        token.text
+                    )
+                }
+            }
         }
     }
 }
@@ -320,35 +330,36 @@ impl<'a, L: Lang> Iterator for ErrorIter<'a, L> {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy)]
 pub struct NodeData {
     kind: u32,
     group_kind: u32,
-    a: u64,
-    b: u64,
-    c: u64,
+    payload: NodeDataPayload,
+}
+
+#[derive(Clone, Copy)]
+pub union NodeDataPayload {
+    pub lexeme: LexemeData,
+    pub node_vec: RawVec<NodeData>,
+    pub lexeme_vec: RawVec<LexemeData>,
+    pub expected_vec: RawVec<ExpectedData>,
 }
 
 impl Node<CompiledLang> {
     pub fn from_data(value: NodeData, src: &str, offset: &mut usize) -> Self {
         match value.kind {
             0 => {
-                let start = value.b as usize;
-                let end = value.c as usize;
-                *offset = end;
+                let payload = unsafe { value.payload.lexeme };
+                *offset = payload.end;
                 Node::Lexeme(Lexeme {
-                    span: start..end,
-                    kind: value.a as u32,
-                    text: src[start..end].to_string(),
+                    span: payload.start..payload.end,
+                    kind: payload.kind as u32,
+                    text: src[payload.start..payload.end].to_string(),
                 })
             }
 
             1 => unsafe {
-                let children = Vec::from_raw_parts(
-                    value.a as *mut NodeData,
-                    value.b as usize,
-                    value.c as usize,
-                );
+                let children = Vec::from(value.payload.node_vec);
                 Node::Group(Group {
                     kind: value.group_kind,
                     children: children
@@ -358,11 +369,10 @@ impl Node<CompiledLang> {
                 })
             },
             2 => unsafe {
-                let tokens = Vec::from_raw_parts(
-                    value.a as *mut Lexeme<CompiledLang>,
-                    value.b as usize,
-                    value.c as usize,
-                );
+                let tokens = Vec::from(value.payload.lexeme_vec)
+                    .into_iter()
+                    .map(|it| Lexeme::from_data(it, src))
+                    .collect::<Vec<_>>();
                 if let Some(last) = tokens.last() {
                     *offset = last.span.end;
                 }
@@ -373,11 +383,7 @@ impl Node<CompiledLang> {
                 })
             },
             3 => unsafe {
-                let expected = Vec::from_raw_parts(
-                    value.a as *mut ExpectedData,
-                    value.b as usize,
-                    value.c as usize,
-                );
+                let expected = Vec::from(value.payload.expected_vec);
                 Node::Err(ParseError::MissingError {
                     start: *offset,
                     expected: expected.into_iter().map(|it| it.into()).collect(),

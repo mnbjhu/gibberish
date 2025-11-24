@@ -1,10 +1,9 @@
 use gibberish_tree::{
     lang::CompiledLang,
     node::{Lexeme, LexemeData, Node, NodeData},
+    vec::RawVec,
 };
 use libloading::Symbol;
-
-use crate::bindings::vec::RawVec;
 
 #[derive(Debug)]
 pub struct State {
@@ -16,7 +15,7 @@ pub struct State {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct StateData {
     pub tokens: RawVec<LexemeData>,
     stack: RawVec<NodeData>,

@@ -1,6 +1,7 @@
 use crate::{err::Expected, lang::CompiledLang};
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ExpectedData {
     kind: usize,
     id: usize,

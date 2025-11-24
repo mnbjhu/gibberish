@@ -17,9 +17,5 @@ token RParen = "\)";
 token BANG = "!";
 
 parser string = STR;
-parser num = NUM;
-parser literal = num | string + BANG.or_not();
-parser sum = literal fold (PLUS + literal).repeated();
-parser args = sum.sep_by(COMMA);
-parser stmt = (select + args + from + IDENT + SEMI);
+parser stmt = string.delim_by(LParen, RParen) + SEMI;
 parser _root = stmt.repeated().skip(WHITESPACE)

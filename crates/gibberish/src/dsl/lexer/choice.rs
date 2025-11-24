@@ -97,7 +97,13 @@ function l $lex_{id} (l %ptr, l %len) {{
         f,
         "
 @pass
+    %offset =l loadl $offset_ptr
+    %is_eof =l ceql %offset, %len
+    jnz %is_eof, @eof, @inc
+@inc
     call $inc_offset()
+    ret 1
+@eof
     ret 1
 
 @fail

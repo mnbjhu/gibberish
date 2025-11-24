@@ -1,7 +1,4 @@
-{
-  "Hello": [
-    1,
-    2,
-    3
-  ]
-}
+("Hello");
+("Another");
+("Another");
+

@@ -266,9 +266,7 @@ export function :vec $lex(l %ptr, l %len) {{
     %total_offset =l copy 0
     jmp @loop
 @loop
-    %offset =l loadl $offset_ptr
-    %eof =w ceql %offset, %len
-    jnz %eof, @end, @check_{first}
+    jnz %len, @check_{first}, @end
 ",
         first = names.first().unwrap()
     )
@@ -287,8 +285,7 @@ export function :vec $lex(l %ptr, l %len) {{
     %res =l call $lex_{name}(l %ptr, l %len)
     jnz %res, @bump_{name}, @{next}
 @bump_{name}
-    %offset =l loadl $offset_ptr
-    %end =l add %total_offset, %offset
+    %end =l add %total_offset, %res
     %tok =:token call $new_token(l {index}, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
     %total_offset =l copy %end
