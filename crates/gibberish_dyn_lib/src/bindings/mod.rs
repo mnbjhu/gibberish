@@ -1,14 +1,12 @@
 // mod ext;
-mod state;
 
 use gibberish_tree::{
     lang::CompiledLang,
     node::{Lexeme, LexemeData, Node},
+    state::{State, StateData},
     vec::RawVec,
 };
 use libloading::Symbol;
-
-use crate::bindings::state::{State, StateData};
 
 // pub fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;
 // pub fn parse(ptr: *const StateData) -> u32;
@@ -47,10 +45,11 @@ pub fn parse(lang: &CompiledLang, text: &str) -> Node<CompiledLang> {
 mod tests {
     use std::mem;
 
-    use gibberish_tree::lang::CompiledLang;
+    use gibberish_tree::{
+        lang::CompiledLang,
+        state::{State, StateData},
+    };
     use libloading::Symbol;
-
-    use crate::bindings::state::{State, StateData};
 
     #[test]
     fn test_free() {

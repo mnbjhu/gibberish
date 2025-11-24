@@ -4,7 +4,6 @@ use crate::{
     vec::SliceData,
 };
 
-#[link(name = "qbeslice", kind = "static")]
 unsafe extern "C" {
     pub fn token_name(id: u32) -> SliceData;
     pub fn group_name(id: u32) -> SliceData;

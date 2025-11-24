@@ -7,6 +7,7 @@ use tracing_subscriber::util::SubscriberInitExt as _;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::cli::build::{BuildKind, build};
+use crate::cli::generate::generate;
 use crate::cli::parse::parse_custom;
 use crate::cli::query::query;
 use crate::{cli::lex::lex_custom, lsp::main_loop};
@@ -63,6 +64,9 @@ pub enum Command {
         #[clap(long)]
         kind: BuildKind,
     },
+
+    /// Generate libraries and api's for parser
+    Generate { path: PathBuf },
 }
 
 impl Command {
@@ -116,6 +120,7 @@ impl Command {
             Command::Build { path, output, kind } => {
                 build(path, output.as_ref().map(PathBuf::as_path), kind)
             }
+            Command::Generate { path } => generate(path),
         }
     }
 }

@@ -8,9 +8,8 @@ pub struct Lexeme {
     pub end: u64,
 }
 
-#[link(name = "qbeslice", kind = "static")]
 unsafe extern "C" {
-    fn lex(ptr: *const u8, len: usize) -> RawVec<Lexeme>;
+    pub fn lex(ptr: *const u8, len: usize) -> RawVec<Lexeme>;
 }
 
 fn do_lex(text: &str) -> Vec<Lexeme> {

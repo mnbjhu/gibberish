@@ -1,4 +1,4 @@
-use gibberish_tree::{
+use crate::{
     lang::CompiledLang,
     node::{Lexeme, LexemeData, Node, NodeData},
     vec::RawVec,
@@ -14,8 +14,8 @@ pub struct State {
     pub skip: Vec<usize>,
 }
 
-#[repr(C)]
 #[derive(Clone)]
+#[repr(C)]
 pub struct StateData {
     pub tokens: RawVec<LexemeData>,
     stack: RawVec<NodeData>,

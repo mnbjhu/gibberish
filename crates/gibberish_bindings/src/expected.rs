@@ -2,17 +2,17 @@ use std::fmt::Display;
 
 use crate::node::{group_name, token_name};
 
+#[repr(C)]
+pub struct ExpectedData {
+    kind: usize,
+    id: usize,
+}
+
 #[derive(Debug)]
 pub enum Expected {
     Token(usize),
     Group(usize),
     Label(usize),
-}
-
-#[repr(C)]
-pub struct ExpectedData {
-    kind: usize,
-    id: usize,
 }
 
 impl From<ExpectedData> for Expected {

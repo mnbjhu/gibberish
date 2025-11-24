@@ -4,7 +4,6 @@ use crate::{
     node::{Node, NodeData},
 };
 
-#[link(name = "qbeslice", kind = "static")]
 unsafe extern "C" {
     pub fn default_state(ptr: *const u8, len: usize) -> StateData;
     pub fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;

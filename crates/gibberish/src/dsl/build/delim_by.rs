@@ -30,7 +30,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     %res =l call $parse_{open}(l %state_ptr, w %recover)
     jnz %res, @ret_err, @add_delim
 @add_delim
-    call $push_delim(l %state_ptr, l {close})
+    %delim_index =l call $push_delim(l %state_ptr, l {close})
     jmp @try_parse_inner
 ",
             open = self.start.index,
@@ -43,10 +43,6 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             f,
             "
 @check_missing_item
-    %delim_stack_ptr =l add %state_ptr, 56
-    %delim_stack_len_ptr =l add %state_ptr, 64
-    %delim_stack_len =l loadl %delim_stack_len_ptr
-    %delim_index =l add %delim_stack_len, 2
     jnz %res, @missing_item_err, @try_parse_close
 @missing_item_err
     %expected =:vec call $expected_{item}()

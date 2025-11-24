@@ -263,6 +263,7 @@ fn create_lex_function(f: &mut impl Write, names: &[&str]) {
 export function :vec $lex(l %ptr, l %len) {{
 @start
     %tokens =:vec call $new_vec(l 24)
+    %last_was_error =w copy 0
     %total_offset =l copy 0
     jmp @loop
 @loop
@@ -293,6 +294,7 @@ export function :vec $lex(l %ptr, l %len) {{
     %len =l sub %len, %res
     storel 0, $offset_ptr
     storel 0, $group_end
+    %last_was_error =w copy 0
     jmp @loop
 "
         )
@@ -301,16 +303,31 @@ export function :vec $lex(l %ptr, l %len) {{
     write!(
         f,
         "
-
 @fail
+    jnz %last_was_error, @fail_again, @fail_first
+@fail_first
     %end =l add %total_offset, 1
     %tok =:token call $new_token(l {error_index}, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
+    jmp @fail_finish
+@fail_again
+    %end =l add %total_offset, 1
+    %last_ptr =l call $last(l %tokens, l 24)
+    %last_end_ptr =l add %last_ptr, 16
+    %last_end =l loadl %last_end_ptr
+    %new_end =l add %last_end, 1
+    storel %new_end, %last_end_ptr
+    jmp @fail_finish
+
+@fail_finish
     %total_offset =l copy %end
     %ptr =l add %ptr, 1
     %len =l sub %len, 1
     storel 0, $offset_ptr
     storel 0, $group_end
+    %last_was_error =w copy 1
+    jmp @loop
+    
 @end
     ret %tokens
 }}

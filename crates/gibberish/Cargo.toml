@@ -29,3 +29,4 @@ dashmap = "6"
 ariadne = "0.5.1"
 thiserror = "2.0.17"
 tempfile = "3.23.0"
+gibberish-gibberish-parser = { path = "../../../gibberish_parser" }
