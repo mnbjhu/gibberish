@@ -1,12 +1,8 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::{
-    api::Parser,
-    dsl::lexer::RuntimeLang,
-    lsp::semantic_tokens::TokenKind,
-    parser::{lang::Lang, node::Node},
-    query::Query,
-};
+use gibberish_tree::{lang::Lang, query::Query};
+
+use crate::{api::Parser, dsl::lexer::RuntimeLang};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct ParserIndex<L: Lang> {
@@ -36,7 +32,7 @@ pub struct ParserCache<L: Lang> {
     pub lang: L,
     pub parsers: Vec<Parser<L>>,
     pub cached: HashMap<Parser<L>, ParserIndex<L>>,
-    pub highlights: Vec<Query<RuntimeLang, TokenKind>>,
+    // pub highlights: Vec<Query<RuntimeLang, TokenKind>>,
 }
 
 impl<L: Lang> ParserCache<L> {
@@ -45,7 +41,7 @@ impl<L: Lang> ParserCache<L> {
             parsers: vec![],
             cached: HashMap::new(),
             lang,
-            highlights: vec![],
+            // highlights: vec![],
         }
     }
 }
@@ -65,10 +61,6 @@ impl<'a, L: Lang> ParserIndex<L> {
 
     pub fn get_mut(&self, cache: &'a mut ParserCache<L>) -> &'a mut Parser<L> {
         &mut cache.parsers[self.index]
-    }
-
-    pub fn parse(self, text: &str, cache: &ParserCache<L>) -> Node<L> {
-        self.get_ref(cache).parse(text, cache)
     }
 }
 

@@ -3,24 +3,21 @@ use std::{
     path::Path,
 };
 
-use crate::dsl::{
-    build_parser_from_src,
-    lst::{dsl_parser, lang::DslLang},
-};
+use gibberish_gibberish_parser::Gibberish;
+use gibberish_tree::lang::CompiledLang;
 
-use crate::api::ptr::ParserCache;
+use crate::report::report_errors;
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
     let text = fs::read_to_string(path).unwrap();
-    let mut cache = ParserCache::new(DslLang);
-    let res = dsl_parser(&mut cache).parse(&text, &cache);
-    res.report_errors(&text, path.to_str().unwrap(), &DslLang);
-    res.debug_print(errors, tokens, &DslLang);
+    let res = Gibberish::parse(&text);
+    report_errors(&res, &text, path.to_str().unwrap(), &Gibberish);
+    res.debug_print(errors, tokens, &Gibberish);
 }
 
 pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
-    let (parser, cache) = build_parser_from_src(parser);
+    let lang = CompiledLang::load(parser);
     let text = fs::read_to_string(path).unwrap();
-    let res = parser.parse(&text, &cache);
-    res.debug_print(errors, tokens, &cache.lang);
+    let res = gibberish_dyn_lib::bindings::parse(&lang, &text);
+    res.debug_print(errors, tokens, &lang);
 }

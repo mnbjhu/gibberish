@@ -1,22 +1,17 @@
-use crate::{
-    dsl::{
-        ast::expr::ExprAst,
-        lst::{lang::DslLang, syntax::DslSyntax as S, token::DslToken as T},
-    },
-    parser::node::{Group, Lexeme},
-};
+use gibberish_gibberish_parser::{Gibberish, GibberishToken};
+use gibberish_tree::node::{Group, Lexeme};
+
+use crate::dsl::ast::expr::ExprAst;
 
 #[derive(Clone, Copy)]
-pub struct ParserDefAst<'a>(pub &'a Group<DslLang>);
+pub struct ParserDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> ParserDefAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<DslLang> {
-        self.0.lexeme_by_kind(T::Ident).unwrap()
+    pub fn name(&self) -> &'a Lexeme<Gibberish> {
+        self.0.lexeme_by_kind(GibberishToken::Ident).unwrap()
     }
 
     pub fn expr(&self) -> Option<ExprAst<'a>> {
-        self.0
-            .green_node_by_name(S::Expr)
-            .map(|it| it.green_children().next().unwrap().into())
+        self.0.green_children().next().map(ExprAst::from)
     }
 }

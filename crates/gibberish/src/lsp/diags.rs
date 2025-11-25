@@ -1,90 +1,86 @@
-use crate::{
-    dsl::lexer::RuntimeLang,
-    lsp::ServerState,
-    parser::{
-        err::{Expected, ParseError},
-        lang::Lang,
-    },
-};
+use crate::lsp::ServerState;
 use async_lsp::{
     LanguageClient as _,
     lsp_types::{Diagnostic, DiagnosticSeverity, PublishDiagnosticsParams, Url},
 };
+use gibberish_tree::{
+    err::{Expected, ParseError},
+    lang::{CompiledLang, Lang},
+    node::Node,
+};
 
-use crate::{lsp::span_to_range_str, parser::node::Node};
+use crate::lsp::span_to_range_str;
 
-impl Node<RuntimeLang> {
-    pub fn diags(&self, txt: &str, lang: &RuntimeLang, url: &Url) -> Vec<Diagnostic> {
-        let mut diags = vec![];
-        match self {
-            Node::Group(group) => {
-                for child in &group.children {
-                    diags.extend(child.diags(txt, lang, url));
-                }
+pub fn diags(
+    node: &Node<CompiledLang>,
+    txt: &str,
+    lang: &CompiledLang,
+    url: &Url,
+) -> Vec<Diagnostic> {
+    let mut d = vec![];
+    match node {
+        Node::Group(group) => {
+            for child in &group.children {
+                d.extend(diags(child, txt, lang, url));
             }
-            Node::Lexeme(_) => return vec![],
-            Node::Err(parse_error) => match parse_error {
-                ParseError::MissingError {
-                    start_delim,
-                    before,
-                    expected,
-                    ..
-                } => {
-                    let mut related = vec![];
-                    diags.push(Diagnostic {
-                        range: span_to_range_str(start_delim.span.clone(), txt),
-                        severity: Some(DiagnosticSeverity::INFORMATION),
-                        code: None,
-                        code_description: None,
-                        source: None,
-                        message: "A delim is opened here".to_string(),
-                        related_information: None,
-                        tags: None,
-                        data: None,
-                    });
-                    if let Some(before) = before {
-                        diags.push(Diagnostic {
-                            range: span_to_range_str(before.span.clone(), txt),
-                            severity: Some(DiagnosticSeverity::INFORMATION),
-                            code: None,
-                            code_description: None,
-                            source: None,
-                            message: format!(
-                                "Expected {} before here",
-                                expected_text(expected, lang)
-                            ),
-                            related_information: None,
-                            tags: None,
-                            data: None,
-                        });
-                    }
-                    diags.push(Diagnostic {
-                        range: span_to_range_str(parse_error.span(), txt),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        code: None,
-                        code_description: None,
-                        source: None,
-                        message: format!("Missing {:?}", expected_text(expected, lang)),
-                        related_information: Some(related),
-                        tags: None,
-                        data: None,
-                    })
-                }
-                ParseError::Unexpected { expected, .. } => diags.push(Diagnostic {
+        }
+        Node::Lexeme(_) => return vec![],
+        Node::Err(parse_error) => match parse_error {
+            ParseError::MissingError { expected, start } => {
+                let mut related = vec![];
+                // diags.push(Diagnostic {
+                //     range: span_to_range_str(start_delim.span.clone(), txt),
+                //     severity: Some(DiagnosticSeverity::INFORMATION),
+                //     code: None,
+                //     code_description: None,
+                //     source: None,
+                //     message: "A delim is opened here".to_string(),
+                //     related_information: None,
+                //     tags: None,
+                //     data: None,
+                // });
+                // if let Some(before) = before {
+                //     diags.push(Diagnostic {
+                //         range: span_to_range_str(before.span.clone(), txt),
+                //         severity: Some(DiagnosticSeverity::INFORMATION),
+                //         code: None,
+                //         code_description: None,
+                //         source: None,
+                //         message: format!(
+                //             "Expected {} before here",
+                //             expected_text(expected, lang)
+                //         ),
+                //         related_information: None,
+                //         tags: None,
+                //         data: None,
+                //     });
+                // }
+                d.push(Diagnostic {
                     range: span_to_range_str(parse_error.span(), txt),
                     severity: Some(DiagnosticSeverity::ERROR),
                     code: None,
                     code_description: None,
                     source: None,
-                    message: format!("Expected {:?}", expected_text(expected, lang)),
-                    related_information: None,
+                    message: format!("Missing {:?}", expected_text(expected, lang)),
+                    related_information: Some(related),
                     tags: None,
                     data: None,
-                }),
-            },
-        }
-        diags
+                })
+            }
+            ParseError::Unexpected { .. } => d.push(Diagnostic {
+                range: span_to_range_str(parse_error.span(), txt),
+                severity: Some(DiagnosticSeverity::ERROR),
+                code: None,
+                code_description: None,
+                source: None,
+                message: format!("Unexpected"),
+                related_information: None,
+                tags: None,
+                data: None,
+            }),
+        },
     }
+    d
 }
 
 fn expected_text<L: Lang>(expected: &Vec<Expected<L>>, lang: &L) -> String {

@@ -1,9 +1,8 @@
 use std::fmt::{Display, Write};
 
-use crate::{
-    api::ptr::{ParserCache, ParserIndex},
-    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
-};
+use gibberish_tree::{err::Expected, lang::Lang};
+
+use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
@@ -11,33 +10,6 @@ use super::Parser;
 pub struct Just<L: Lang>(pub L::Token);
 
 impl<L: Lang> Just<L> {
-    pub fn parse(&self, state: &mut ParserState<L>) -> PRes {
-        let Some(tok) = state.current() else {
-            return PRes::Eof;
-        };
-        if tok.kind == self.0 {
-            state.bump();
-            PRes::Ok
-        } else if let Some(pos) = state.try_delim() {
-            PRes::Break(pos)
-        } else {
-            // state.bump_err(self.expected());
-            PRes::Err
-        }
-    }
-
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
-        let Some(tok) = state.at_offset(offset) else {
-            return PRes::Eof;
-        };
-        if tok.kind == self.0 {
-            return PRes::Ok;
-        } else if recover && let Some(pos) = state.try_delim() {
-            return PRes::Break(pos);
-        }
-        PRes::Err
-    }
-
     pub fn expected(&self) -> Vec<Expected<L>> {
         vec![Expected::Token(self.0.clone())]
     }

@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display};
 
+use gibberish_tree::{lang::Lang, node::Lexeme};
 use regex::Regex;
 
 use crate::{
@@ -8,7 +9,6 @@ use crate::{
         RootAst,
         stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
     },
-    parser::{lang::Lang, node::Lexeme},
 };
 
 pub mod build;
@@ -120,7 +120,7 @@ impl Lang for RuntimeLang {
 
     type Syntax = u32;
 
-    fn lex(&self, src: &str) -> Vec<crate::parser::node::Lexeme<Self>>
+    fn lex(&self, src: &str) -> Vec<Lexeme<Self>>
     where
         Self: Sized,
     {

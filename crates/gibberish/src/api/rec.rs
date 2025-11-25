@@ -1,7 +1,6 @@
-use crate::{
-    api::ptr::{ParserCache, ParserIndex},
-    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
-};
+use gibberish_tree::{err::Expected, lang::Lang};
+
+use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
@@ -9,14 +8,6 @@ use super::Parser;
 pub struct Recursive<L: Lang>(pub ParserIndex<L>);
 
 impl<'a, L: Lang> Recursive<L> {
-    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
-        self.0.get_ref(state.cache).do_parse(state, recover)
-    }
-
-    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
-        self.0.get_ref(state.cache).peak(state, recover, offset)
-    }
-
     pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         self.0.get_ref(cache).expected(cache)
     }

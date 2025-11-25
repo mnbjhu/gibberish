@@ -30,6 +30,20 @@ fn kebab_to_upper_camel(input: &str) -> String {
         .collect::<String>()
 }
 
+fn snake_to_upper_camel(input: &str) -> String {
+    input
+        .split('_')
+        .filter(|s| !s.is_empty())
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        })
+        .collect::<String>()
+}
+
 fn build_crate(name: &str, crate_dir: PathBuf) {
     let struct_name = kebab_to_upper_camel(name);
     let cargo_toml = format!(
@@ -57,6 +71,9 @@ fn main() {{
 "
     );
     write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
+
+    // let mut enum_body = String::new();
+    // for (index, name) in
 
     let lib_rs = format!(
         "

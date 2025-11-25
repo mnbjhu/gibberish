@@ -1,14 +1,6 @@
-use crate::{
-    dsl::{
-        ast::stmt::highlight::QueryAst,
-        lexer::RuntimeLang,
-        lst::{lang::DslLang, query::query_parser},
-        parser::ParserBuilder,
-    },
-    lsp::semantic_tokens::TokenKind,
-    parser::state::ParserState,
-    query::Query,
-};
+use gibberish_tree::query::Query;
+
+use crate::dsl::{ast::stmt::highlight::QueryAst, lexer::RuntimeLang, parser::ParserBuilder};
 
 impl<'a> QueryAst<'a> {
     pub fn build(&self, builder: &ParserBuilder<'a>) -> Query<RuntimeLang, TokenKind> {

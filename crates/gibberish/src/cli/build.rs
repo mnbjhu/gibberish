@@ -1,6 +1,7 @@
 use std::process::Command;
 use std::{fs, path::Path};
 
+use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
 use crate::dsl::build::build_parser_qbe;
@@ -11,7 +12,6 @@ use crate::{
     dsl::{
         ast::RootAst,
         lexer::{RuntimeLang, build::build_lexer_qbe, build_lexer},
-        lst::{dsl_parser, lang::DslLang, syntax::DslSyntax},
         parser::{ParserBuilder, build_parser},
     },
 };
@@ -41,12 +41,9 @@ pub fn build(parser_file: &Path, output: Option<&Path>, kind: &BuildKind) {
 }
 
 pub fn build_qbe_str(parser_file: &Path) -> String {
-    let mut d_cache = ParserCache::new(DslLang);
-    let d_parser = dsl_parser(&mut d_cache);
     let parser_text = fs::read_to_string(parser_file).unwrap();
-    let dsl_lst = d_parser.parse(&parser_text, &d_cache);
-    let dsl_ast = RootAst(dsl_lst.as_group());
-    assert_eq!(dsl_lst.as_group().kind, DslSyntax::Root);
+    let res = Gibberish::parse(&parser_text);
+    let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
     let lexer = build_lexer(dsl_ast, &parser_text, parser_filename);
     let lang = RuntimeLang {
@@ -82,7 +79,6 @@ pub fn build_static_lib(qbe_text: &str, out: &Path) {
 
     let lib_o = Builder::new().suffix(".o").tempfile().unwrap();
     let lib_o_path = lib_o.path().to_path_buf();
-
 
     fs::write(&qbe_path, qbe_text).unwrap();
     Command::new("qbe")

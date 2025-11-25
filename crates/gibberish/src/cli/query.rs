@@ -2,15 +2,11 @@ use std::{fs, path::Path};
 
 use gibberish::dsl::lst::token::DslToken;
 
+use crate::api::ptr::ParserCache;
 use crate::dsl::ast::RootAst;
 use crate::dsl::ast::stmt::highlight::QueryAst;
 use crate::dsl::lexer::{RuntimeLang, build_lexer};
-use crate::dsl::lst::dsl_parser;
-use crate::dsl::lst::syntax::DslSyntax;
 use crate::dsl::parser::{ParserBuilder, build_parser};
-use crate::{api::ptr::ParserCache, dsl::lst::query::query_parser};
-
-use crate::dsl::{build_parser_from_src, lst::lang::DslLang};
 
 pub fn query(parser_src: &Path, src: &Path, query: &str) {
     let mut d_cache = ParserCache::new(DslLang);

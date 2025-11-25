@@ -8,9 +8,9 @@ use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::cli::build::{BuildKind, build};
 use crate::cli::generate::generate;
+use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
-use crate::cli::query::query;
-use crate::{cli::lex::lex_custom, lsp::main_loop};
+// use crate::cli::query::query;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -45,14 +45,13 @@ pub enum Command {
         hide_tokens: bool,
     },
 
-    Query {
-        #[clap(long)]
-        src: PathBuf,
-        #[clap(long)]
-        parser_src: PathBuf,
-        query: String,
-    },
-
+    // Query {
+    //     #[clap(long)]
+    //     src: PathBuf,
+    //     #[clap(long)]
+    //     parser_src: PathBuf,
+    //     query: String,
+    // },
     /// Starts an lsp for the specified syntax file
     Lsp { path: PathBuf },
 
@@ -109,14 +108,15 @@ impl Command {
                 hide_errors,
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
-            Command::Lsp { path } => main_loop(path).await,
-            Command::Query {
-                src,
-                parser_src,
-                query: q,
-            } => {
-                query(parser_src, src, q);
-            }
+            // Command::Lsp { path } => main_loop(path).await,
+            Command::Lsp { path } => todo!(),
+            // Command::Query {
+            //     src,
+            //     parser_src,
+            //     query: q,
+            // } => {
+            //     query(parser_src, src, q);
+            // }
             Command::Build { path, output, kind } => {
                 build(path, output.as_ref().map(PathBuf::as_path), kind)
             }

@@ -2,6 +2,9 @@ use async_lsp::lsp_types::request::Completion;
 use async_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, Position, Range, Url,
 };
+use gibberish_tree::err::Expected;
+use gibberish_tree::lang::CompiledLang;
+use gibberish_tree::node::Node;
 
 pub mod capabilities;
 pub mod diags;
@@ -30,25 +33,16 @@ use tower::ServiceBuilder;
 use tracing::Level;
 
 use crate::api::ptr::{ParserCache, ParserIndex};
-use crate::dsl::ast::RootAst;
-use crate::dsl::build_parser_from_src;
-use crate::dsl::lexer::{RuntimeLang, RuntimeLexer, build_lexer};
-use crate::dsl::lst::lang::DslLang;
-use crate::dsl::parser::{ParserBuilder, build_parser};
+use crate::dsl::lexer::RuntimeLang;
 use crate::lsp::capabilities::capabilities;
 use crate::lsp::document_symbols::get_document_symbols;
 use crate::lsp::semantic_tokens::{SemanticToken, get_semantic_tokens};
-use crate::parser::err::Expected;
-use crate::parser::lang::Lang;
-use crate::parser::node::Node;
-use crate::parser::state::ParserState;
 
 pub struct ServerState {
     pub client: ClientSocket,
     counter: i32,
     pub db: Arc<DashMap<String, String>>,
-    pub parser: ParserIndex<RuntimeLang>,
-    pub cache: Arc<ParserCache<RuntimeLang>>,
+    pub parser: CompiledLang,
 }
 
 struct TickEvent;
@@ -69,14 +63,13 @@ pub async fn main_loop(parser_path: &Path) {
         });
         let db = Arc::new(DashMap::new());
 
-        let (parser, cache) = build_parser_from_src(parser_path);
+        let parser = CompiledLang::load(parser_path);
 
         let mut router = Router::new(ServerState {
             client: client.clone(),
             counter: 0,
             db,
             parser,
-            cache: Arc::new(cache),
         });
         router
             .request::<request::Initialize, _>(|_, _| async { Ok(capabilities()) })
@@ -84,8 +77,7 @@ pub async fn main_loop(parser_path: &Path) {
                 let db = st.db.clone(); // move Arc<DashMap<...>>
                 let uri = msg.text_document.uri.clone(); // move params
                 let parser = st.parser.clone();
-                let cache = st.cache.clone();
-                async move { semantic_tokens_full(db, uri, parser, cache) }
+                async move { semantic_tokens_full(db, uri, parser) }
             })
             .request::<request::Completion, _>(|st, msg| {
                 let db = st.db.clone();
@@ -182,8 +174,6 @@ fn did_open(
     ControlFlow::Continue(())
 }
 
-use futures::future::{self, Ready};
-
 #[allow(clippy::needless_pass_by_value)]
 fn initialize(
     _: &mut ServerState,
@@ -196,8 +186,7 @@ fn initialize(
 fn semantic_tokens_full(
     db: Arc<DashMap<String, String>>,
     uri: Url,
-    parser: ParserIndex<RuntimeLang>,
-    cache: Arc<ParserCache<RuntimeLang>>,
+    parser: CompiledLang,
 ) -> Result<Option<async_lsp::lsp_types::SemanticTokensResult>, async_lsp::ResponseError> {
     let path = uri.clone().to_file_path().unwrap();
     let text: String = db

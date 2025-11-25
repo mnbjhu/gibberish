@@ -1,10 +1,9 @@
+use gibberish_gibberish_parser::Gibberish;
+use gibberish_tree::node::Group;
+
 use crate::dsl::ast::stmt::highlight::HighlightAst;
-use crate::dsl::lst::{lang::DslLang, syntax::DslSyntax as S};
-use crate::{
-    dsl::ast::stmt::{
-        fold::FoldDefAst, keyword::KeywordDefAst, parser::ParserDefAst, token::TokenDefAst,
-    },
-    parser::node::Group,
+use crate::dsl::ast::stmt::{
+    fold::FoldDefAst, keyword::KeywordDefAst, parser::ParserDefAst, token::TokenDefAst,
 };
 
 pub mod fold;
@@ -22,12 +21,14 @@ pub enum StmtAst<'a> {
     Highlight(HighlightAst<'a>),
 }
 
-impl<'a> From<&'a Group<DslLang>> for StmtAst<'a> {
-    fn from(value: &'a Group<DslLang>) -> Self {
+use gibberish_gibberish_parser::GibberishSyntax as S;
+
+impl<'a> From<&'a Group<Gibberish>> for StmtAst<'a> {
+    fn from(value: &'a Group<Gibberish>) -> Self {
         match value.kind {
             S::ParserDef => {
-                if let Some(expr) = value.green_node_by_name(S::Expr)
-                    && expr.green_children().next().unwrap().kind == S::Fold
+                if let Some(expr) = value.green_children().next()
+                    && expr.kind == S::FoldStmt
                 {
                     return StmtAst::Fold(FoldDefAst(value));
                 }
@@ -35,7 +36,7 @@ impl<'a> From<&'a Group<DslLang>> for StmtAst<'a> {
             }
             S::TokenDef => StmtAst::Token(TokenDefAst(value)),
             S::KeywordDef => StmtAst::Keyword(KeywordDefAst(value)),
-            S::Highlight => StmtAst::Highlight(HighlightAst(value)),
+            S::HighlightDef => StmtAst::Highlight(HighlightAst(value)),
             kind => panic!("Unexpected kind for stmt: {kind}"),
         }
     }

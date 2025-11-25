@@ -1,5 +1,7 @@
 use core::panic;
 
+use gibberish_tree::node::Span;
+
 use crate::{
     api::{
         Parser,
@@ -18,7 +20,6 @@ use crate::{
         },
         lexer::RuntimeLang,
     },
-    parser::node::Span,
     report::simple::report_simple_error,
 };
 
@@ -53,8 +54,8 @@ pub fn build_parser<'a>(
         .filter_map(|it| match it {
             StmtAst::Parser(p) => Some(p.build(builder)),
             StmtAst::Fold(f) => Some(f.build(builder)),
-            StmtAst::Highlight(h) => {
-                builder.cache.highlights.push(h.query().build(builder));
+            StmtAst::Highlight(_) => {
+                // builder.cache.highlights.push(h.query().build(builder)); // TODO: Re-impement
                 None
             }
             _ => None,

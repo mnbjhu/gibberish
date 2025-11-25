@@ -1,4 +1,4 @@
-use crate::parser::{lang::Lang, node::Node};
+use crate::{lang::Lang, node::Node};
 
 pub enum Query<L: Lang, T: Clone> {
     Group {

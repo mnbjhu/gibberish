@@ -418,6 +418,8 @@ dependencies = [
  "dashmap",
  "futures",
  "gibberish-gibberish-parser",
+ "gibberish_dyn_lib",
+ "gibberish_tree",
  "logos",
  "notify",
  "regex",

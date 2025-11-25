@@ -1,12 +1,13 @@
 use std::fmt::Write;
 
+use gibberish_tree::err::Expected;
+
 use crate::{
     api::{
         Parser,
         ptr::{ParserCache, ParserIndex},
     },
     dsl::lexer::RuntimeLang,
-    parser::err::Expected,
 };
 
 pub mod choice;
@@ -71,7 +72,6 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
     fn build_parse(&self, id: usize, f: &mut impl Write) {
         match self {
             Parser::Just(just) => just.build_parse(id, f),
-            Parser::TokSeq(tok_seq) => todo!(),
             Parser::Choice(choice) => choice.build_parse(id, f),
             Parser::Seq(seq) => seq.build_parse(id, f),
             Parser::Sep(sep) => sep.build_parse(id, f),
@@ -82,7 +82,6 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Skip(skip) => skip.build_parse(id, f),
             Parser::UnSkip(un_skip) => todo!(),
             Parser::Optional(optional) => optional.build_parse(id, f),
-            Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => fold_once.build_parse(id, f),
@@ -94,7 +93,6 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
     fn build_peak(&self, id: usize, f: &mut impl Write) {
         match self {
             Parser::Just(just) => just.build_peak(id, f),
-            Parser::TokSeq(tok_seq) => todo!(),
             Parser::Choice(choice) => choice.build_peak(id, f),
             Parser::Seq(seq) => seq.build_peak(id, f),
             Parser::Sep(sep) => sep.build_peak(id, f),
@@ -105,7 +103,6 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Skip(skip) => skip.build_peak(id, f),
             Parser::UnSkip(un_skip) => todo!(),
             Parser::Optional(optional) => optional.build_peak(id, f),
-            Parser::Recover(recover) => todo!(),
             Parser::NoneOf(none_of) => todo!(),
             Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => fold_once.build_peak(id, f),
@@ -141,6 +138,7 @@ function :vec $expected_{id}() {{
             let (kind, id) = match it {
                 Expected::Token(id) => (0, id),
                 Expected::Label(id) => (1, id),
+                Expected::Group(id) => (2, id),
             };
             write!(f, "l {kind}, l {id}",).unwrap()
         });

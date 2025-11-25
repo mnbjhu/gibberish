@@ -1,39 +1,35 @@
-use crate::dsl::lexer::RuntimeLang;
 use crate::lsp::ServerState;
+use crate::{dsl::lexer::RuntimeLang, lsp::span_to_range_str};
 use async_lsp::lsp_types::{
     DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse, SymbolKind,
 };
 use futures::{FutureExt as _, future::BoxFuture};
-
-use crate::parser::lang::Lang as _;
-use crate::{
-    lsp::span_to_range_str,
-    parser::node::{Group, Node},
+use gibberish_tree::{
+    lang::CompiledLang,
+    node::{Group, Node},
 };
 
-impl Group<RuntimeLang> {
-    pub fn symbols(&self, txt: &str, lang: &RuntimeLang) -> Vec<DocumentSymbol> {
-        let mut ret = vec![];
-        for child in &self.children {
-            let span = child.span();
-            let Node::Group(group) = child else {
-                continue;
-            };
-            let range = span_to_range_str(span.clone(), txt);
-            let s = DocumentSymbol {
-                name: lang.syntax_name(&group.kind),
-                detail: None,
-                kind: SymbolKind::NULL,
-                tags: None,
-                deprecated: None,
-                range,
-                selection_range: range,
-                children: Some(group.symbols(txt, lang)),
-            };
-            ret.push(s);
-        }
-        ret
+pub fn symbols(group: Group<CompiledLang>, txt: &str, lang: &RuntimeLang) -> Vec<DocumentSymbol> {
+    let mut ret = vec![];
+    for child in &group.children {
+        let span = child.span();
+        let Node::Group(group) = child else {
+            continue;
+        };
+        let range = span_to_range_str(span.clone(), txt);
+        let s = DocumentSymbol {
+            name: lang.syntax_name(&group.kind),
+            detail: None,
+            kind: SymbolKind::NULL,
+            tags: None,
+            deprecated: None,
+            range,
+            selection_range: range,
+            children: Some(group.symbols(txt, lang)),
+        };
+        ret.push(s);
     }
+    ret
 }
 
 pub fn get_document_symbols(

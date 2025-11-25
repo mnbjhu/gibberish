@@ -1,7 +1,6 @@
-use crate::{
-    api::ptr::ParserCache,
-    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
-};
+use gibberish_tree::{err::Expected, lang::Lang};
+
+use crate::api::ptr::ParserCache;
 
 use super::Parser;
 
@@ -13,47 +12,6 @@ pub enum Requirement {
 }
 
 impl<'a> Requirement {
-    pub fn parse<L: Lang>(
-        &self,
-        parser: &'a Parser<L>,
-        next: &'a Parser<L>,
-        state: &mut ParserState<'a, L>,
-        recover: bool,
-    ) -> (bool, PRes) {
-        match self {
-            Requirement::Yes => (true, parser.do_parse(state, recover)),
-            Requirement::No => (false, next.do_parse(state, recover)),
-            Requirement::Maybe => {
-                if parser.do_parse(state, recover).is_ok() {
-                    return (true, PRes::Ok);
-                } else {
-                    (false, next.do_parse(state, recover))
-                }
-            }
-        }
-    }
-
-    pub fn peak<L: Lang>(
-        &self,
-        parser: &Parser<L>,
-        next: &Parser<L>,
-        state: &ParserState<L>,
-        recover: bool,
-        offset: usize,
-    ) -> PRes {
-        match self {
-            Requirement::Yes => parser.peak(state, recover, offset),
-            Requirement::No => next.peak(state, recover, offset),
-            Requirement::Maybe => {
-                if parser.peak(state, recover, offset).is_ok() {
-                    PRes::Ok
-                } else {
-                    next.peak(state, recover, offset)
-                }
-            }
-        }
-    }
-
     pub fn expected<L: Lang>(
         &self,
         parser: &Parser<L>,

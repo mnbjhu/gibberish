@@ -1,7 +1,6 @@
-use crate::{
-    api::ptr::{ParserCache, ParserIndex},
-    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
-};
+use gibberish_tree::{err::Expected, lang::Lang};
+
+use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
@@ -13,32 +12,6 @@ pub struct FoldOnce<L: Lang> {
 }
 
 impl<'a, L: Lang> FoldOnce<L> {
-    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
-        state.enter(self.name.clone());
-        let first = self.first.get_ref(state.cache).do_parse(state, recover);
-        if first.is_err() {
-            state.disolve_name();
-            return first;
-        }
-        if self
-            .next
-            .get_ref(state.cache)
-            .peak(state, recover, state.after_skip())
-            .is_err()
-        {
-            state.disolve_name();
-            return PRes::Ok;
-        } else {
-            self.next.get_ref(state.cache).do_parse(state, recover);
-        }
-        state.exit();
-        PRes::Ok
-    }
-
-    pub fn peak(&'a self, state: &ParserState<'a, L>, recover: bool, offset: usize) -> PRes {
-        self.first.get_ref(state.cache).peak(state, recover, offset)
-    }
-
     pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         self.first.get_ref(cache).expected(cache)
     }

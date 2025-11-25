@@ -1,27 +1,22 @@
-use crate::{
-    dsl::{
-        ast::expr::ExprAst,
-        lst::{lang::DslLang, syntax::DslSyntax as S, token::DslToken as T},
-    },
-    parser::node::{Group, Lexeme},
-};
+use gibberish_gibberish_parser::Gibberish;
+use gibberish_tree::node::{Group, Lexeme};
+
+use crate::dsl::ast::expr::ExprAst;
+
+use gibberish_gibberish_parser::GibberishSyntax as S;
+use gibberish_gibberish_parser::GibberishToken as T;
 
 #[derive(Clone, Copy)]
-pub struct FoldDefAst<'a>(pub &'a Group<DslLang>);
+pub struct FoldDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> FoldDefAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<DslLang> {
+    pub fn name(&self) -> &'a Lexeme<Gibberish> {
         self.0.lexeme_by_kind(T::Ident).unwrap()
     }
 
-    fn fold(&self) -> &'a Group<DslLang> {
-        let res = self
-            .0
-            .green_node_by_name(S::Expr)
-            .unwrap()
-            .green_node_by_name(S::Fold)
-            .unwrap();
-        assert_eq!(res.kind, S::Fold);
+    fn fold(&self) -> &'a Group<Gibberish> {
+        let res = self.0.green_node_by_name(S::FoldStmt).unwrap();
+        assert_eq!(res.kind, S::FoldStmt);
         res
     }
 

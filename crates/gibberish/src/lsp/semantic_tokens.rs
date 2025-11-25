@@ -1,11 +1,3 @@
-use crate::{
-    dsl::lst::{syntax::DslSyntax, token::DslToken},
-    parser::{
-        lang::Lang,
-        node::{Group, Node, Span},
-    },
-};
-
 #[derive(Debug, PartialEq, Clone, Eq, Copy)]
 pub enum TokenKind {
     Var,
@@ -33,6 +25,7 @@ pub struct SemanticToken {
 
 use async_lsp::lsp_types::SemanticToken as LspSemanticToken;
 use async_lsp::lsp_types::SemanticTokens;
+use gibberish_tree::node::Span;
 
 #[allow(dead_code, clippy::cast_possible_truncation)]
 pub fn get_semantic_tokens(mut tokens: Vec<SemanticToken>, text: &str) -> Option<SemanticTokens> {

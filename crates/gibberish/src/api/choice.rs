@@ -1,7 +1,6 @@
-use crate::{
-    api::ptr::{ParserCache, ParserIndex},
-    parser::{err::Expected, lang::Lang, res::PRes, state::ParserState},
-};
+use gibberish_tree::{err::Expected, lang::Lang};
+
+use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
@@ -11,39 +10,6 @@ pub struct Choice<L: Lang> {
 }
 
 impl<'a, L: Lang> Choice<L> {
-    pub fn parse(&'a self, state: &mut ParserState<'a, L>, recover: bool) -> PRes {
-        let mut res = self.options[0]
-            .get_ref(state.cache)
-            .peak(state, recover, state.after_skip());
-        if res.is_ok() {
-            return self.options[0]
-                .get_ref(state.cache)
-                .do_parse(state, recover);
-        }
-        for option in &self.options[1..] {
-            res = option
-                .get_ref(state.cache)
-                .peak(state, recover, state.after_skip());
-            if res.is_ok() {
-                return option.get_ref(state.cache).do_parse(state, recover);
-            }
-        }
-        res
-    }
-
-    pub fn peak(&self, state: &ParserState<L>, recover: bool, offset: usize) -> PRes {
-        let mut res = PRes::Ok;
-        for p in &self.options {
-            res = p.get_ref(state.cache).peak(state, recover, offset);
-            if res.is_ok() {
-                return PRes::Ok;
-            } else if matches!(res, PRes::Eof) {
-                return res;
-            }
-        }
-        res
-    }
-
     pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
         self.options
             .iter()
