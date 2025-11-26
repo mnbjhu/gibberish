@@ -1,6 +1,6 @@
 use core::panic;
 
-use gibberish_tree::node::Span;
+use gibberish_core::node::Span;
 
 use crate::{
     api::{
@@ -23,16 +23,16 @@ use crate::{
     report::simple::report_simple_error,
 };
 
-pub struct ParserBuilder<'a> {
+pub struct ParserBuilder {
     pub lexer: Vec<(String, String)>,
     pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
     pub cache: ParserCache<RuntimeLang>,
-    text: &'a str,
-    filename: &'a str,
+    text: String,
+    filename: String,
 }
 
-impl<'a> ParserBuilder<'a> {
-    pub fn new(text: &'a str, filename: &'a str) -> Self {
+impl ParserBuilder {
+    pub fn new(text: String, filename: String) -> Self {
         Self {
             lexer: vec![],
             vars: vec![],
@@ -43,14 +43,11 @@ impl<'a> ParserBuilder<'a> {
     }
 
     pub fn error(&self, msg: &str, span: Span) {
-        report_simple_error(msg, span, self.text, self.filename);
+        report_simple_error(msg, span, &self.text, &self.filename);
     }
 }
 
-pub fn build_parser<'a>(
-    ast: RootAst<'a>,
-    builder: &mut ParserBuilder<'a>,
-) -> ParserIndex<RuntimeLang> {
+pub fn build_parser<'a>(ast: RootAst<'a>, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
     let res = ast
         .iter()
         .filter_map(|it| match it {
@@ -88,7 +85,7 @@ pub fn build_parser<'a>(
 }
 
 impl<'a> ParserDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
+    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
         let name = self.name().text.as_str();
         let name_index = builder.vars.len();
         if let Some(expr) = self.expr() {
@@ -110,7 +107,7 @@ impl<'a> ParserDefAst<'a> {
     }
 }
 
-impl<'a> ParserBuilder<'a> {
+impl ParserBuilder {
     fn replace_var(&mut self, name: &str, p: ParserIndex<RuntimeLang>) -> bool {
         if let Some(existing) = self.get_var(name) {
             *existing.get_mut(&mut self.cache) = p.get_ref(&self.cache).clone();
@@ -128,7 +125,7 @@ impl<'a> ParserBuilder<'a> {
 }
 
 impl<'a> FoldDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
+    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
         let name = self.name().text.as_str();
         assert!(!name.starts_with("_"), "Fold expressions should be named");
         let name_index = builder.vars.len();
@@ -141,7 +138,7 @@ impl<'a> FoldDefAst<'a> {
 }
 
 impl<'a> ExprAst<'a> {
-    pub fn build(&self, builder: &mut ParserBuilder<'a>) -> ParserIndex<RuntimeLang> {
+    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
         match self {
             ExprAst::Ident(lexeme) => {
                 if let Some(p) = builder

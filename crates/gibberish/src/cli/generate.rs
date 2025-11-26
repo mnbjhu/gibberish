@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::cli::build::build_parser_from_src;
 use crate::{
     cli::build::{build_dynamic_lib, build_qbe_str, build_static_lib},
     dsl::parser::ParserBuilder,
@@ -13,11 +14,12 @@ use crate::{
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
-    let qbe = build_qbe_str(src);
+    let (builder, parser) = build_parser_from_src(src);
+    let qbe_str = builder.build_qbe(parser);
     let _ = create_dir("lib");
-    build_static_lib(&qbe, &PathBuf::from(format!("lib/lib{name}-parser.a")));
-    build_dynamic_lib(&qbe, &PathBuf::from(format!("lib/{name}-parser.so")));
-    build_crate(name, current_dir().unwrap());
+    build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
+    build_dynamic_lib(&qbe_str, &PathBuf::from(format!("lib/{name}-parser.so")));
+    build_crate(name, current_dir().unwrap(), &builder);
 }
 
 fn kebab_to_upper_camel(input: &str) -> String {
@@ -76,10 +78,29 @@ fn main() {{
     );
     write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
 
-    let mut enum_body = String::new();
-    for (index, name) in &builder.lexer {
-        write!(&mut enum_body, "");
+    let mut token_body = String::new();
+    for (name, _) in &builder.lexer {
+        let name = snake_to_upper_camel(name);
+        writeln!(&mut token_body, "\t{name},").unwrap();
     }
+
+    let mut syntax_body = String::new();
+    for (index, name) in builder
+        .vars
+        .iter()
+        .enumerate()
+        .filter_map(|(index, (name, _))| {
+            if name.starts_with('_') {
+                None
+            } else {
+                Some((index, name))
+            }
+        })
+    {
+        let name = snake_to_upper_camel(name);
+        writeln!(&mut syntax_body, "\t{name} = {},", index).unwrap();
+    }
+    writeln!(&mut syntax_body, "\tRoot = {},", builder.vars.len()).unwrap();
 
     let lib_rs = format!(
         "
@@ -113,9 +134,31 @@ impl Display for {struct_name} {{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct {struct_name};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum {struct_name}Token {{
+    {token_body}
+}}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum {struct_name}Syntax {{
+    {syntax_body}
+}}
+
+impl Display for {struct_name}Token {{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
+        write!(f, \"{{:?}}\", self)
+    }}
+}}
+
+impl Display for {struct_name}Syntax {{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
+        write!(f, \"{{:?}}\", self)
+    }}
+}}
+
 impl Lang for {struct_name} {{
-    type Token = u32;
-    type Syntax = u32;
+    type Token = {struct_name}Token;
+    type Syntax = {struct_name}Syntax;
 
     fn lex(&self, src: &str) -> Vec<Lexeme<Self>> {{
         todo!()
@@ -125,15 +168,15 @@ impl Lang for {struct_name} {{
         todo!()
     }}
 
-    fn token_name(&self, token: &Self::Token) -> String {{
-        let slice: &str = unsafe {{ token_name(*token) }}.into();
-        slice.to_string()
-    }}
-
-    fn syntax_name(&self, syntax: &Self::Syntax) -> String {{
-        let slice: &str = unsafe {{ group_name(*syntax) }}.into();
-        slice.to_string()
-    }}
+    // fn token_name(&self, token: &Self::Token) -> String {{
+    //     let slice: &str = unsafe {{ token_name(*token) }}.into();
+    //     slice.to_string()
+    // }}
+    //
+    // fn syntax_name(&self, syntax: &Self::Syntax) -> String {{
+    //     let slice: &str = unsafe {{ group_name(*syntax) }}.into();
+    //     slice.to_string()
+    // }}
 }}
 
 impl {struct_name} {{

@@ -417,9 +417,9 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
+ "gibberish-core",
  "gibberish-gibberish-parser",
  "gibberish_dyn_lib",
- "gibberish_tree",
  "logos",
  "notify",
  "regex",
@@ -435,33 +435,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "gibberish-gibberish-parser"
+name = "gibberish-core"
 version = "0.1.0"
 dependencies = [
- "gibberish_tree",
+ "ansi_term",
+ "libloading",
 ]
 
 [[package]]
-name = "gibberish_bindings"
+name = "gibberish-gibberish-parser"
 version = "0.1.0"
+dependencies = [
+ "gibberish-core",
+]
 
 [[package]]
 name = "gibberish_dyn_lib"
 version = "0.1.0"
 dependencies = [
  "clap",
- "gibberish_tree",
+ "gibberish-core",
  "libloading",
  "notify",
  "safer-ffi",
-]
-
-[[package]]
-name = "gibberish_tree"
-version = "0.1.0"
-dependencies = [
- "ansi_term",
- "libloading",
 ]
 
 [[package]]

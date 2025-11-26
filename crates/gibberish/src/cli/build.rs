@@ -5,8 +5,10 @@ use std::{fs, path::Path};
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
+use crate::api::ptr::ParserIndex;
 use crate::dsl::build::build_parser_qbe;
 
+use crate::dsl::lexer::RuntimeLang;
 use crate::dsl::lexer::build::create_name_function;
 use crate::dsl::{
     ast::RootAst,
@@ -38,24 +40,31 @@ pub fn build(parser_file: &Path, output: Option<&Path>, kind: &BuildKind) {
 }
 
 pub fn build_qbe_str(parser_file: &Path) -> String {
+    let (builder, parser) = build_parser_from_src(parser_file);
+    builder.build_qbe(parser)
+}
+
+impl ParserBuilder {
+    pub fn build_qbe(&self, parser: ParserIndex<RuntimeLang>) -> String {
+        let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
+        group_names.push("root");
+        let mut res = String::new();
+        let pre = include_str!("../../pre.qbe");
+        write!(&mut res, "{}", pre).unwrap();
+        build_parser_qbe(&parser, self, &mut res);
+        create_name_function(&mut res, "group", &group_names);
+        res
+    }
+}
+
+pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex<RuntimeLang>) {
     let parser_text = fs::read_to_string(parser_file).unwrap();
     let res = Gibberish::parse(&parser_text);
     let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
-    let mut builder = ParserBuilder::new(&parser_text, parser_filename);
+    let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
     let parser = build_parser(dsl_ast, &mut builder);
-    let mut group_names = builder
-        .vars
-        .iter()
-        .map(|it| it.0.as_str())
-        .collect::<Vec<_>>();
-    group_names.push("root");
-    let mut res = String::new();
-    let pre = include_str!("../../pre.qbe");
-    write!(&mut res, "{}", pre).unwrap();
-    build_parser_qbe(&parser, &builder, &mut res);
-    create_name_function(&mut res, "group", &group_names);
-    res
+    (builder, parser)
 }
 
 pub fn build_static_lib(qbe_text: &str, out: &Path) {

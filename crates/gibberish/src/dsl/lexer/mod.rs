@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use gibberish_tree::{lang::Lang, node::Lexeme};
+use gibberish_core::{lang::Lang, node::Lexeme};
 use regex::Regex;
 
 use crate::{

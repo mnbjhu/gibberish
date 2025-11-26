@@ -1,4 +1,4 @@
-use gibberish_tree::lang::CompiledLang;
+use gibberish_core::lang::CompiledLang;
 use notify::{Event, RecursiveMode, Result as NotifyResult, Watcher as _, recommended_watcher};
 use std::{
     fs,

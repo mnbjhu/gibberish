@@ -1,5 +1,5 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
-use gibberish_tree::node::Span;
+use gibberish_core::node::Span;
 
 pub fn report_simple_error(msg: &str, span: Span, src: &str, filename: &str) {
     let red = Color::Red;

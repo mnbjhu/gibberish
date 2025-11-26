@@ -1,5 +1,5 @@
+use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishToken};
-use gibberish_tree::node::{Group, Lexeme};
 
 use crate::dsl::ast::expr::ExprAst;
 

@@ -1,7 +1,7 @@
 use choice::Choice;
 use delim::Delim;
 use fold::Fold;
-use gibberish_tree::{err::Expected, lang::Lang};
+use gibberish_core::{err::Expected, lang::Lang};
 use just::Just;
 use named::Named;
 use optional::Optional;

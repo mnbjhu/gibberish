@@ -1,8 +1,0 @@
-[package]
-name = "gibberish_tree"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-ansi_term = "0.12.1"
-libloading = "0.9.0"

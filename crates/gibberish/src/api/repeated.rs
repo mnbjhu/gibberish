@@ -1,5 +1,5 @@
-use gibberish_tree::err::Expected;
-use gibberish_tree::lang::Lang;
+use gibberish_core::err::Expected;
+use gibberish_core::lang::Lang;
 
 use crate::api::Parser;
 

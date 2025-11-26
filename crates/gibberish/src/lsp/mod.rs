@@ -2,9 +2,9 @@ use async_lsp::lsp_types::request::Completion;
 use async_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, Position, Range, Url,
 };
-use gibberish_tree::err::Expected;
-use gibberish_tree::lang::CompiledLang;
-use gibberish_tree::node::Node;
+use gibberish_core::err::Expected;
+use gibberish_core::lang::CompiledLang;
+use gibberish_core::node::Node;
 
 pub mod capabilities;
 pub mod diags;

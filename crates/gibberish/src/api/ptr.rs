@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use gibberish_tree::{lang::Lang, query::Query};
+use gibberish_core::{lang::Lang, query::Query};
 
 use crate::{api::Parser, dsl::lexer::RuntimeLang};
 

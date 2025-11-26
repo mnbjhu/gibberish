@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use gibberish_tree::err::Expected;
+use gibberish_core::err::Expected;
 
 use crate::{
     api::{

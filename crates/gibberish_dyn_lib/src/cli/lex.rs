@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use gibberish_tree::{
+use gibberish_core::{
     lang::{CompiledLang, Lang},
     node::Lexeme,
 };

@@ -3,8 +3,8 @@ use std::{
     path::Path,
 };
 
+use gibberish_core::lang::CompiledLang;
 use gibberish_gibberish_parser::Gibberish;
-use gibberish_tree::lang::CompiledLang;
 
 use crate::report::report_errors;
 

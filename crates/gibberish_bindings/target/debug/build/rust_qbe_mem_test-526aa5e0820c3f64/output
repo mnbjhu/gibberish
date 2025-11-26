@@ -1,2 +1,0 @@
-cargo:rustc-link-search=native=qbe
-cargo:rustc-link-lib=static=qbetest

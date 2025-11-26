@@ -1,6 +1,6 @@
 // mod ext;
 
-use gibberish_tree::{
+use gibberish_core::{
     lang::CompiledLang,
     node::{Lexeme, LexemeData, Node},
     state::{State, StateData},
@@ -45,7 +45,7 @@ pub fn parse(lang: &CompiledLang, text: &str) -> Node<CompiledLang> {
 mod tests {
     use std::mem;
 
-    use gibberish_tree::{
+    use gibberish_core::{
         lang::CompiledLang,
         state::{State, StateData},
     };

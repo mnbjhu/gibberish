@@ -25,7 +25,7 @@ pub struct SemanticToken {
 
 use async_lsp::lsp_types::SemanticToken as LspSemanticToken;
 use async_lsp::lsp_types::SemanticTokens;
-use gibberish_tree::node::Span;
+use gibberish_core::node::Span;
 
 #[allow(dead_code, clippy::cast_possible_truncation)]
 pub fn get_semantic_tokens(mut tokens: Vec<SemanticToken>, text: &str) -> Option<SemanticTokens> {

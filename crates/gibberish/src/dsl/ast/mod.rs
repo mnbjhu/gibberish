@@ -1,5 +1,5 @@
+use gibberish_core::node::Group;
 use gibberish_gibberish_parser::{Gibberish, GibberishSyntax};
-use gibberish_tree::node::Group;
 
 use crate::dsl::ast::stmt::StmtAst;
 

@@ -1,4 +1,4 @@
-use gibberish_tree::query::Query;
+use gibberish_core::query::Query;
 
 use crate::dsl::{ast::stmt::highlight::QueryAst, lexer::RuntimeLang, parser::ParserBuilder};
 

@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
+use gibberish_core::lang::CompiledLang;
 use gibberish_gibberish_parser::Gibberish;
-use gibberish_tree::lang::CompiledLang;
 
 pub fn lex(path: &Path) {
     let text = fs::read_to_string(path).unwrap();

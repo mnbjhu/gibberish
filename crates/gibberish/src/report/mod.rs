@@ -1,5 +1,5 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
-use gibberish_tree::{
+use gibberish_core::{
     err::ParseError,
     lang::Lang,
     node::{Node, Span},

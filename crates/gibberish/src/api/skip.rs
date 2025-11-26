@@ -1,4 +1,4 @@
-use gibberish_tree::{err::Expected, lang::Lang};
+use gibberish_core::{err::Expected, lang::Lang};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 

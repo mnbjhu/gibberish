@@ -1,5 +1,5 @@
+use gibberish_core::node::Group;
 use gibberish_gibberish_parser::Gibberish;
-use gibberish_tree::node::Group;
 
 use crate::dsl::ast::stmt::highlight::HighlightAst;
 use crate::dsl::ast::stmt::{
@@ -35,7 +35,7 @@ impl<'a> From<&'a Group<Gibberish>> for StmtAst<'a> {
                 StmtAst::Parser(ParserDefAst(value))
             }
             S::TokenDef => StmtAst::Token(TokenDefAst(value)),
-            S::KeywordDef => StmtAst::Keyword(KeywordDefAst(value)),
+            S::KwDef => StmtAst::Keyword(KeywordDefAst(value)),
             S::HighlightDef => StmtAst::Highlight(HighlightAst(value)),
             kind => panic!("Unexpected kind for stmt: {kind}"),
         }

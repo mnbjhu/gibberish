@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use gibberish_tree::lang::CompiledLang;
+use gibberish_core::lang::CompiledLang;
 
 use crate::bindings::parse as p;
 
