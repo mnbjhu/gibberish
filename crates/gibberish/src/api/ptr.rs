@@ -13,8 +13,8 @@ pub struct ParserIndex<L: Lang> {
 impl<L: Lang> Clone for ParserIndex<L> {
     fn clone(&self) -> Self {
         Self {
-            index: self.index.clone(),
-            _pd: self._pd.clone(),
+            index: self.index,
+            _pd: self._pd,
         }
     }
 }
@@ -29,18 +29,16 @@ impl<L: Lang> ParserIndex<L> {
 }
 
 pub struct ParserCache<L: Lang> {
-    pub lang: L,
     pub parsers: Vec<Parser<L>>,
     pub cached: HashMap<Parser<L>, ParserIndex<L>>,
     // pub highlights: Vec<Query<RuntimeLang, TokenKind>>,
 }
 
 impl<L: Lang> ParserCache<L> {
-    pub fn new(lang: L) -> Self {
+    pub fn new() -> Self {
         Self {
             parsers: vec![],
             cached: HashMap::new(),
-            lang,
             // highlights: vec![],
         }
     }

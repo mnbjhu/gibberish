@@ -24,6 +24,7 @@ use crate::{
 };
 
 pub struct ParserBuilder<'a> {
+    pub lexer: Vec<(String, String)>,
     pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
     pub cache: ParserCache<RuntimeLang>,
     text: &'a str,
@@ -31,10 +32,11 @@ pub struct ParserBuilder<'a> {
 }
 
 impl<'a> ParserBuilder<'a> {
-    pub fn new(lang: RuntimeLang, text: &'a str, filename: &'a str) -> Self {
+    pub fn new(text: &'a str, filename: &'a str) -> Self {
         Self {
+            lexer: vec![],
             vars: vec![],
-            cache: ParserCache::new(lang),
+            cache: ParserCache::new(),
             text,
             filename,
         }
@@ -58,7 +60,24 @@ pub fn build_parser<'a>(
                 // builder.cache.highlights.push(h.query().build(builder)); // TODO: Re-impement
                 None
             }
-            _ => None,
+            StmtAst::Token(t) => {
+                let value = t.value().unwrap();
+                let mut text = value.text.clone();
+                text.remove(0);
+                text.pop();
+                text = text.replace("\\\\", "\\");
+                text = text.replace("\\\"", "\"");
+                text = text.replace("\\n", "\n");
+                text = text.replace("\\t", "\t");
+                text = text.replace("\\f", "\x0C");
+                builder.lexer.push((t.name().text.to_string(), text));
+                None
+            }
+            StmtAst::Keyword(k) => {
+                let regex = format!("({})[^_a-zA-Z0-9]", k.name().text);
+                builder.lexer.push((k.name().text.to_string(), regex));
+                None
+            }
         })
         .last()
         .unwrap();
@@ -134,10 +153,7 @@ impl<'a> ExprAst<'a> {
                     p
                 } else {
                     let tok = builder
-                        .cache
-                        .lang
                         .lexer
-                        .tokens
                         .iter()
                         .position(|(name, _)| name == &lexeme.text);
                     if tok.is_none() {

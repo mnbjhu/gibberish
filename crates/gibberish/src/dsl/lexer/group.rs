@@ -16,6 +16,7 @@ pub fn build_group_regex<'a>(
     write!(
         f,
         "
+# RegexGroup
 function l $lex_{id} (l %ptr, l %len) {{
 @start
     %start =l loadl $offset_ptr

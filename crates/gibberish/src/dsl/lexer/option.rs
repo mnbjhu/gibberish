@@ -19,7 +19,7 @@ impl<'a> OptionAst<'a> {
             OptionAst::Range(range) => write!(
                 f,
                 "
-
+# RegexRange
 function w $lex_{id}(l %ptr, l %len) {{
 @start
     %offset =l loadl $offset_ptr
@@ -43,6 +43,7 @@ function w $lex_{id}(l %ptr, l %len) {{
             OptionAst::Char(char) => write!(
                 f,
                 "
+# RegexChar
 function w $lex_{id}(l %ptr, l %len) {{
 @start
     %res =w call $cmp_current(l %ptr, l %len, w {char})
@@ -61,6 +62,7 @@ function w $lex_{id}(l %ptr, l %len) {{
                 write!(
                     f,
                     "
+# RegexRegexOption
 function w $lex_{id}(l %ptr, l %len) {{
 @start
     %res =w call $lex_{inner_id}(l %ptr, l %len)

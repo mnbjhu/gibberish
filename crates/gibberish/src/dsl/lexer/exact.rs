@@ -7,6 +7,7 @@ pub fn build_exact_regex(f: &mut impl Write, state: &mut LexerBuilderState, text
     write!(
         f,
         "
+# Exact
 function l $lex_{id} (l %ptr, l %len) {{
 @start
     %start =l loadl $offset_ptr

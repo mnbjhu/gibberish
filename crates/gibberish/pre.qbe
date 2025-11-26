@@ -635,3 +635,23 @@ export function w $free_state(l %s) {
     # done (StateData itself is not freed here)
     ret 1
 }
+
+data $offset_ptr = { l 0 }
+data $group_end = { l 0 }
+
+function w $cmp_current(l %ptr, l %len, w %char) {
+@start
+    %offset =l loadl $offset_ptr
+    %actual_offset =l add %ptr, %offset
+    %current =w loadub %actual_offset
+    %res =w ceqw %current, %char
+    ret %res
+}
+
+function w $inc_offset() {
+@start
+    %offset =l loadl $offset_ptr
+    %offset =l add %offset, 1
+    storel %offset, $offset_ptr
+    ret 0
+}

@@ -338,6 +338,7 @@ pub struct NodeData {
 }
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub union NodeDataPayload {
     pub lexeme: LexemeData,
     pub node_vec: RawVec<NodeData>,

@@ -147,54 +147,14 @@ function w $lex_{id} (l %ptr, l %len) {{
     }
 }
 
-pub fn build_lexer_qbe<'a>(ast: RootAst<'a>, src: &str, filename: &str, f: &mut impl Write) {
-    let pre = include_str!("../../../pre.qbe");
-    write!(f, "{}", pre).unwrap();
-    write!(
-        f,
-        "
-
-data $offset_ptr = {{ l 0 }}
-data $group_end = {{ l 0 }}
-
-function w $cmp_current(l %ptr, l %len, w %char) {{
-@start
-    %offset =l loadl $offset_ptr
-    %actual_offset =l add %ptr, %offset
-    %current =w loadub %actual_offset
-    %res =w ceqw %current, %char
-    ret %res
-}}
-
-function w $inc_offset() {{
-@start
-    %offset =l loadl $offset_ptr
-    %offset =l add %offset, 1
-    storel %offset, $offset_ptr
-    ret 0
-}}
-
-",
-    )
-    .unwrap();
+pub fn build_lexer_qbe(lexer: &[(String, String)], f: &mut impl Write) {
     let mut state = LexerBuilderState::new();
-    let mut names = vec![];
-    for stmt in ast.iter() {
-        match stmt {
-            StmtAst::Token(token_def_ast) => {
-                let name = &token_def_ast.name().text;
-                token_def_ast.build_qbe(&mut state, f);
-                names.push(name.as_str());
-            }
-            StmtAst::Keyword(kw_ast) => {
-                let name = &kw_ast.name().text;
-                kw_ast.build_qbe(&mut state, f);
-                names.push(name);
-            }
-            _ => (),
-        };
+    for (name, regex) in lexer {
+        let regex = parse_seq(regex, &mut 0).unwrap();
+        build_token_parser(name, &regex, &mut state, f)
     }
-    create_lex_function(f, &names);
+    create_lex_function(f, lexer);
+    let names = lexer.iter().map(|(it, _)| it.as_str()).collect::<Vec<_>>();
     create_name_function(f, "token", &names);
 }
 
@@ -256,7 +216,7 @@ export function :str_slice ${kind}_name(w %kind) {{"
     )
     .unwrap();
 }
-fn create_lex_function(f: &mut impl Write, names: &[&str]) {
+fn create_lex_function(f: &mut impl Write, names: &[(String, String)]) {
     write!(
         f,
         "
@@ -269,20 +229,21 @@ export function :vec $lex(l %ptr, l %len) {{
 @loop
     jnz %len, @check_{first}, @end
 ",
-        first = names.first().unwrap()
+        first = names.first().unwrap().0
     )
     .unwrap();
     let last = names.len() - 1;
-    for (index, name) in names.iter().enumerate() {
+    for (index, (name, _)) in names.iter().enumerate() {
         let next = if index == last {
             "fail"
         } else {
-            &format!("check_{}", names[index + 1])
+            &format!("check_{}", names[index + 1].0)
         };
         write!(
             f,
             "
 @check_{name}
+    storel 0, $group_end
     %res =l call $lex_{name}(l %ptr, l %len)
     jnz %res, @bump_{name}, @{next}
 @bump_{name}

@@ -15,6 +15,7 @@ pub fn build_seq_regex<'a>(
     write!(
         f,
         "
+# RegexSeq
 function l $lex_{id} (l %ptr, l %len) {{
 @start
     %start =l loadl $offset_ptr

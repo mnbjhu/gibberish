@@ -7,7 +7,10 @@ use crate::{
         Parser,
         ptr::{ParserCache, ParserIndex},
     },
-    dsl::lexer::RuntimeLang,
+    dsl::{
+        lexer::{RuntimeLang, build::build_lexer_qbe},
+        parser::ParserBuilder,
+    },
 };
 
 pub mod choice;
@@ -25,14 +28,15 @@ pub mod skip;
 
 pub fn build_parser_qbe(
     parser: &ParserIndex<RuntimeLang>,
-    cache: &ParserCache<RuntimeLang>,
+    builder: &ParserBuilder,
     f: &mut impl Write,
 ) {
-    build_parse_by_id(cache, f);
-    for (index, parser) in cache.parsers.iter().enumerate() {
+    build_lexer_qbe(&builder.lexer, f);
+    build_parse_by_id(builder, f);
+    for (index, parser) in builder.cache.parsers.iter().enumerate() {
         parser.build_parse(index, f);
         parser.build_peak(index, f);
-        parser.build_expected(index, f, cache);
+        parser.build_expected(index, f, builder);
     }
 
     write!(
@@ -63,7 +67,7 @@ export function w $parse(l %state_ptr) {{
 }}
 ",
         inner = parser.index,
-        root = cache.lang.vars.len()
+        root = builder.vars.len()
     )
     .unwrap()
 }
@@ -113,7 +117,7 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
 }
 
 impl Parser<RuntimeLang> {
-    fn build_expected(&self, id: usize, f: &mut impl Write, cache: &ParserCache<RuntimeLang>) {
+    fn build_expected(&self, id: usize, f: &mut impl Write, builder: &ParserBuilder) {
         if let Parser::Optional(op) = self {
             write!(
                 f,
@@ -129,7 +133,7 @@ function :vec $expected_{id}() {{
             .unwrap();
             return;
         }
-        let expected = self.expected(cache);
+        let expected = self.expected(&builder.cache);
         write!(f, "\ndata $expected_{id}_data = {{").unwrap();
         expected.iter().enumerate().for_each(|(index, it)| {
             if index != 0 {
@@ -172,7 +176,7 @@ pub trait ParserQBEBuilder {
     fn build_peak(&self, id: usize, f: &mut impl Write);
 }
 
-pub fn build_parse_by_id(cache: &ParserCache<RuntimeLang>, f: &mut impl Write) {
+pub fn build_parse_by_id(builder: &ParserBuilder, f: &mut impl Write) {
     write!(
         f,
         "
@@ -181,8 +185,8 @@ function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {{
     )
     .unwrap();
 
-    for (index, _) in cache.parsers.iter().enumerate() {
-        let next = if index + 1 == cache.parsers.len() {
+    for (index, _) in builder.cache.parsers.iter().enumerate() {
+        let next = if index + 1 == builder.cache.parsers.len() {
             "@err".to_string()
         } else {
             format!("@check_{}", index + 1)

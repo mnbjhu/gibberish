@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::process::Command;
 use std::{fs, path::Path};
 
@@ -7,13 +8,9 @@ use tempfile::{Builder, NamedTempFile};
 use crate::dsl::build::build_parser_qbe;
 
 use crate::dsl::lexer::build::create_name_function;
-use crate::{
-    api::ptr::ParserCache,
-    dsl::{
-        ast::RootAst,
-        lexer::{RuntimeLang, build::build_lexer_qbe, build_lexer},
-        parser::{ParserBuilder, build_parser},
-    },
+use crate::dsl::{
+    ast::RootAst,
+    parser::{ParserBuilder, build_parser},
 };
 
 #[derive(Clone, clap::ValueEnum)]
@@ -45,27 +42,18 @@ pub fn build_qbe_str(parser_file: &Path) -> String {
     let res = Gibberish::parse(&parser_text);
     let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
-    let lexer = build_lexer(dsl_ast, &parser_text, parser_filename);
-    let lang = RuntimeLang {
-        lexer,
-        vars: vec![],
-    };
-
-    let mut builder = ParserBuilder::new(lang, &parser_text, parser_filename);
+    let mut builder = ParserBuilder::new(&parser_text, parser_filename);
     let parser = build_parser(dsl_ast, &mut builder);
-    builder.cache.lang.vars = builder.vars;
     let mut group_names = builder
-        .cache
-        .lang
         .vars
         .iter()
         .map(|it| it.0.as_str())
         .collect::<Vec<_>>();
     group_names.push("root");
-
     let mut res = String::new();
-    build_lexer_qbe(dsl_ast, &parser_text, parser_filename, &mut res);
-    build_parser_qbe(&parser, &builder.cache, &mut res);
+    let pre = include_str!("../../pre.qbe");
+    write!(&mut res, "{}", pre).unwrap();
+    build_parser_qbe(&parser, &builder, &mut res);
     create_name_function(&mut res, "group", &group_names);
     res
 }

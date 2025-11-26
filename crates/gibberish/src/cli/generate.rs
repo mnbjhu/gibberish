@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::{
     env::current_dir,
     fs::{self, create_dir},
@@ -5,7 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::cli::build::{build_dynamic_lib, build_qbe_str, build_static_lib};
+use crate::{
+    cli::build::{build_dynamic_lib, build_qbe_str, build_static_lib},
+    dsl::parser::ParserBuilder,
+};
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
@@ -44,7 +48,7 @@ fn snake_to_upper_camel(input: &str) -> String {
         .collect::<String>()
 }
 
-fn build_crate(name: &str, crate_dir: PathBuf) {
+fn build_crate(name: &str, crate_dir: PathBuf, builder: &ParserBuilder) {
     let struct_name = kebab_to_upper_camel(name);
     let cargo_toml = format!(
         r#"[package]
@@ -72,8 +76,10 @@ fn main() {{
     );
     write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
 
-    // let mut enum_body = String::new();
-    // for (index, name) in
+    let mut enum_body = String::new();
+    for (index, name) in &builder.lexer {
+        write!(&mut enum_body, "");
+    }
 
     let lib_rs = format!(
         "

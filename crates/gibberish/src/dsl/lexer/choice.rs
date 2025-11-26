@@ -15,6 +15,7 @@ pub fn build_choice_regex<'a>(
     write!(
         f,
         "
+# RegexChoice
 function l $lex_{id} (l %ptr, l %len) {{
 @start
     %start =l loadl $offset_ptr
@@ -69,6 +70,7 @@ pub fn build_negated_chocie_regex<'a>(
     write!(
         f,
         "
+# RegexNegatedChoice
 function l $lex_{id} (l %ptr, l %len) {{
 @start
     %start =l loadl $offset_ptr
