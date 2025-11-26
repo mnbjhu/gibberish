@@ -1,6 +1,5 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::path::Path;
 
 use libloading::{AsFilename, Library, Symbol};
 
@@ -32,7 +31,7 @@ impl CompiledLang {
 }
 
 impl PartialEq for CompiledLang {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, _: &Self) -> bool {
         todo!()
     }
 }
@@ -60,7 +59,7 @@ impl Lang for CompiledLang {
     type Token = u32;
     type Syntax = u32;
 
-    fn lex(&self, src: &str) -> Vec<Lexeme<Self>> {
+    fn lex(&self, _: &str) -> Vec<Lexeme<Self>> {
         todo!()
     }
 
