@@ -1,0 +1,657 @@
+type :str_slice = { l 2 }
+type :vec = { l 3 }
+type :token = { l 3 }
+
+type :node = { w 2, l 3 }
+
+data $match_just = { b "Matched just %d\n", b 0 }
+data $eof_just = { b "Eof just %d\n", b 0 }
+data $skipped_just = { b "Skipped just %d\n", b 0 }
+data $break_just = { b "Break just %d\n", b 0 }
+data $err_just = { b "Err just %d\n", b 0 }
+
+
+# <stack: 3> <tokens: 3> <offset: 1> <delim_stack: 3> <skip: 3>
+type :state = { l 3, l 3, l, l 3, l 3 }
+
+export function :vec $test_vec_contains() {
+@start
+    %vec =:vec call $new_vec(l 8)
+    call $push_long(l %vec, l 0)
+    call $push_long(l %vec, l 1)
+    call $push_long(l %vec, l 2)
+    #%res =l call $contains_long(l %vec, l 1)
+    ret %vec
+}
+
+function w $is_eof(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %tokens_len =l loadl %tokens_len_ptr
+
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %res =w ceql %current, %tokens_len
+    ret %res
+}
+
+data $skipping_token = { b "Skipping token %u\n", b 0 }
+
+export function w $skip(l %state_ptr, l %token_kind) {
+@start
+    %skip_ptr =l add %state_ptr, 80
+    %already =l call $contains_long(l %skip_ptr, l %token_kind)
+    jnz %already, @already, @push
+@already
+    ret 0
+@push
+    call $push_long(l %skip_ptr, l %token_kind)
+    ret 1
+}
+
+export function w $unskip(l %state_ptr, l %token_kind) {
+@start
+    %skip_ptr =l add %state_ptr, 80
+    %already =l call $contains_long(l %skip_ptr, l %token_kind)
+    jnz %already, @already, @remove
+@already
+    ret 0
+@remove
+    %index =l sub %already, 1
+    call $remove_long(l %skip_ptr, l %index)
+    ret 1
+}
+
+function w $remove_long(l %vec, l %index) {
+@start
+    %len_ptr =l add %vec, 8
+    %len =l loadl %len_ptr
+    %end =l mul %len, 8
+    %offset =l mul %index, 8
+    %after =l add %index, 8
+    %cpy_size =l sub %end, %after
+    call $memcpy(l %offset, l %after, l %cpy_size)
+    %len =l sub %len, 1
+    storel %len, %len_ptr
+    ret 1
+}
+
+data $checking_skipped = { b "Checking %u == %u\n" ,b 0}
+data $found_skipped = { b "Found %d\n" ,b 0}
+data $info_msg = {b "Checking contains long for arr %u, len: %u\n"}
+
+function l $contains_long(l %vec, l %value) {
+@start
+    %ptr =l loadl %vec
+    %len_ptr =l add %vec, 8
+    %len =l loadl %len_ptr
+    %index =l copy 0
+    %item_ptr =l loadl %vec
+    jnz %len, @loop, @false
+@loop
+    %item =l loadl %item_ptr
+    %found =l ceql %item, %value
+    jnz %found, @true, @iter
+@iter
+    %index =l add %index, 1
+    %item_ptr =l add %item_ptr, 8
+    %is_end =l ceql %index, %len
+    jnz %is_end, @false, @loop
+@false
+    ret 0
+@true
+    %res =l add %index, 1
+    ret %res
+}
+
+function l $push_delim(l %state_ptr, l %delim) {
+@start
+    %delim_stack_ptr =l add %state_ptr, 56
+    call $push_long(l %delim_stack_ptr, l %delim)
+    %delim_len_ptr =l add %delim_stack_ptr, 8
+    %delim_len =l loadl %delim_len_ptr
+    %res =l add 2, %delim_len
+    ret %res
+}
+
+function w $pop_delim(l %state_ptr) {
+@start
+    %delim_stack_ptr =l add %state_ptr, 56
+    call $pop(l %delim_stack_ptr, l 8)
+    ret 1
+}
+
+export function w $bumpN(l %state_ptr, l %n) {
+@start
+    jmp @loop
+@loop
+    jnz %n, @iter, @ret
+@iter
+    %n =l sub %n, 1
+    call $bump(l %state_ptr)
+    jmp @loop
+@ret
+    ret 1
+}
+
+export function w $enter_group(l %state_ptr, w %group_kind) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %new =:node call $new_group_node(w %group_kind)
+    call $push(l %stack_ptr, l 32, l %new)
+    ret 1
+}
+
+function l $current_kind(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+    %token_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %token =l loadl %token_ptr
+    ret %token
+}
+
+export function l $kind_at_offset(l %state_ptr, l %offset) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %at_offset =l add %current, %offset
+    %token_ptr =l call $get(l %state_ptr, l 24, l %at_offset)
+    %token =l loadl %token_ptr
+    ret %token
+}
+
+data $skipped_msg = { b "SKIPPED\n", b 0}
+function l $after_skipped(l %state_ptr) {
+@start
+    %tokens_len_ptr =l add %state_ptr, 8
+    %current_ptr =l add %state_ptr, 48
+
+    %current =l loadl %current_ptr
+    %len =l loadl %tokens_len_ptr
+
+    %offset =l copy 0
+    %skip_ptr =l add %state_ptr, 80
+@check_eof
+    %index =l add %offset, %current
+    %is_eof =l ceql %len, %index
+    jnz %is_eof, @ret, @loop
+@loop
+    %kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %is_skipped =l call $contains_long(l %skip_ptr, l %kind)
+    jnz %is_skipped, @iter, @ret
+@iter
+    %offset =l add %offset, 1
+    jmp @check_eof
+@ret
+    ret %offset
+}
+
+export function w $exit_group(l %state_ptr) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+
+    %removed =l call $pop(l %stack_ptr, l 32)
+    %last =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %last, 8
+
+    call $push(l %children_ptr, l 32, l %removed)
+    ret 1
+}
+
+export function w $bump(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_token_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret 1
+}
+
+export function w $missing(l %state_ptr, l %expected) {
+@check_zero_expected
+    %ptr =l loadl %expected
+    jnz %ptr, @start, @ret
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+    %missing =:node call $new_missing_node(l %expected)
+    call $push(l %children_ptr, l 32, l %missing)
+    ret 1
+@ret
+    ret 1
+}
+
+export function w $bump_err(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+
+    %children_ptr =l add %current_group, 8
+    %last_child =l call $last(l %children_ptr, l 32)
+
+    %last_child_kind =l loadl %last_child
+    %last_is_err =l ceql %last_child_kind, 2
+    jnz %last_is_err, @extend_err, @new_error
+@extend_err
+    %tokens =l add %last_child, 8
+    call $push(l %tokens, l 24, l %tok_ptr)
+    ret 1
+@new_error
+    %new_node =:node call $new_error_node()
+    %tokens =l add %new_node, 8
+    call $push(l %tokens, l 24, l %tok_ptr)
+    call $push(l %children_ptr, l 32, l %new_node)
+    ret 1
+}
+
+export function l $default_state_ptr(l %ptr, l %len) {
+@start
+    %ptr =:state call $default_state(l %ptr, l %len)
+    %res =l call $malloc(l 104)
+    call $memcpy(l %res, l %ptr, l 104)
+    ret %res
+}
+
+export function :state $get_state(l %ptr) {
+@start
+    %state =l alloc8 104
+    blit %ptr, %state, 104
+    ret %state
+}
+
+export function l $last(l %vec_ptr, l %size) {
+@start
+    %ptr =l loadl %vec_ptr
+
+    %len_ptr =l add %vec_ptr, 8
+    %len =l loadl %len_ptr
+
+    %index =l sub %len, 1
+
+    %offset =l mul %index, %size
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+export function :state $default_state(l %ptr, l %len) {
+@start
+    %tokens =:vec call $lex(l %ptr, l %len)
+    %res =:state call $new_state(:vec %tokens)
+    ret %res
+}
+
+function :state $new_state(:vec %tokens) {
+@start
+    %res =l alloc8 104
+    %stack_ptr =l add %res, 24
+    %offset_ptr =l add %res, 48
+    %delim_stack_ptr =l add %res, 56
+    %skip_ptr =l add %res, 80
+
+    %root =w loadw $root_group_id
+    %group =:node call $new_group_node(w %root)
+
+    %stack =:vec call $new_vec(l 32)
+    call $push(l %stack, l 32, l %group)
+
+    %delim_stack =:vec call $new_vec(l 8)
+    %skip =:vec call $new_vec(l 8)
+
+    blit %tokens, %res, 24
+    blit %stack, %stack_ptr, 24
+    blit %delim_stack, %delim_stack_ptr, 24
+    blit %skip, %skip_ptr, 24
+    storel 0, %offset_ptr
+
+    ret %res
+}
+
+data $debug_group = { b "Group { kind: %d, group_kind: %d, ptr: %d, len: %d, cap: %d, }", b 0 }
+
+function w $print_group(:node %group) {
+@start
+    %group_kind_ptr =l add %group, 4
+    %ptr_ptr =l add %group, 8
+    %len_ptr =l add %group, 16
+    %cap_ptr =l add %group, 24
+
+    %kind =l loadw %group
+    %group_kind =l loadw %group_kind_ptr
+    %ptr =l loadl %ptr_ptr
+    %len =l loadl %len_ptr
+    %cap =l loadl %cap_ptr
+    ret 1
+}
+
+export function l $get(l %vec_ptr, l %size, l %index) {
+@start
+    %ptr =l loadl %vec_ptr
+    %offset =l mul %size, %index
+    %item_ptr =l add %ptr, %offset
+    ret %item_ptr
+}
+
+data $AHH = { b "AHHH", b 0 }
+export function :node $new_token_node(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 32
+    %kind_ptr =l add %res, 8
+    %start_ptr =l add %res, 16
+    %end_ptr =l add %res, 24
+    storel 0, %res
+    storel %kind, %kind_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+export function :node $new_missing_node(l %expected) {
+@start
+    %res =l alloc8 32
+    %expected_ptr =l add 8, %res
+    blit %expected, %expected_ptr, 24
+    storew 3, %res
+    ret %res
+}
+
+export function :node $new_group_node(w %kind) {
+@start
+    %res =l alloc8 32
+    %group_kind =l add %res, 4
+    %vec =:vec call $new_vec(l 32)
+    %vec_ptr =l add %res, 8
+    %group_kind_ptr =l add 4, %res
+    blit %vec, %vec_ptr, 24
+    storew 1, %res
+    storew %kind, %group_kind_ptr
+    ret %res
+}
+
+
+
+export function :node $new_error_node() {
+@start
+    %res =l alloc8 32
+    %vec =:vec call $new_vec(l 24)
+    %vec_ptr =l add %res, 8
+    blit %vec, %vec_ptr, 24
+    storel 2, %res
+    ret %res
+}
+
+export function :vec $new_vec(l %item_size) {
+@start
+    %ptr_ptr =l alloc8 24
+    %len_ptr =l add %ptr_ptr, 8
+    %cap_ptr =l add %ptr_ptr, 16
+
+    %size =l mul %item_size, 4
+    %ptr =l call $malloc(l %size)
+
+    storel %ptr, %ptr_ptr
+    storel 0, %len_ptr
+    storel 4, %cap_ptr
+    ret %ptr_ptr
+}
+
+
+export function :token $new_token(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 24
+    %start_ptr =l add %res, 8
+    %end_ptr =l add %res, 16
+    storel %kind, %res
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+export function l $pop(l %vec, l %value_size) {
+@start
+  %len_ptr =l add %vec, 8
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+
+  %len =l sub %len, 1
+  storel %len, %len_ptr
+
+  %offset =l mul %len, %value_size
+  %item_ptr =l add %offset, %ptr
+  ret %item_ptr
+}
+
+export function w $push_long(l %vec, l %value) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %bytes =l mul %cap, 8
+    %new_ptr =l call $malloc(l %bytes)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    %bytes =l mul %len, 8
+    call $memcpy(l %new_ptr, l %ptr, l %bytes)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+@push
+    %offset =l mul %len, 8
+    %item_ptr =l add %ptr, %offset
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    storel %value, %item_ptr
+    ret 1
+}
+
+export function w $push(l %vec, l %value_size, l %value_ptr) {
+@start
+  %len_ptr =l add %vec, 8
+  %cap_ptr =l add %vec, 16
+
+  %ptr =l loadl %vec
+  %len =l loadl %len_ptr
+  %cap =l loadl %cap_ptr
+
+  %full =w ceql %len, %cap
+  jnz %full, @alloc, @push
+@alloc
+    %cap =l mul %cap, 4
+    %size =l mul %cap, %value_size
+    %new_ptr =l call $malloc(l %size)
+    storel %cap, %cap_ptr
+    storel %new_ptr, %vec
+
+    %size =l mul %len, %value_size
+    call $memcpy(l %new_ptr, l %ptr, l %size)
+    call $free(l %ptr)
+    %ptr =l copy %new_ptr
+    jmp @push
+@push
+    %offset =l mul %len, %value_size
+    %item_ptr =l add %offset, %ptr
+    %len =l add %len, 1
+    storel %len, %len_ptr
+    call $memcpy(l %item_ptr, l %value_ptr, l %value_size)
+    ret 1
+}
+
+export function w $free_node(l %n) {
+@start
+    %kind =w loadw %n
+    %is0 =w ceqw %kind, 0
+    jnz %is0, @case0, @check1
+@check1
+    # ---- check kind == 1 ----
+    %is1 =w ceqw %kind, 1
+    jnz %is1, @case1, @check2
+@check2
+    # ---- check kind == 2 ----
+    %is2 =w ceqw %kind, 2
+    jnz %is2, @case2, @check3
+
+@check3
+    # ---- check kind == 3 ----
+    %is3 =w ceqw %kind, 3
+    jnz %is3, @case3, @end
+
+
+@case0
+    jmp @end
+
+
+@case1
+    %childptr_ptr =l add %n, 8
+    %childptr =l loadl %childptr_ptr
+    %len_ptr =l add %n, 16
+    %len =l loadl %len_ptr
+    %i =l copy 0
+    jmp @loop
+@loop
+    %cmp =w cultl %i, %len
+    jnz %cmp, @loop_body, @loop_done
+@loop_body
+    %off   =l mul %i, 32
+    %child =l add %childptr, %off
+    call $free_node(l %child)
+    %i =l add %i, 1
+    jmp @loop
+
+@loop_done
+    call $free(l %childptr)
+    jmp @end
+
+
+@case2
+    %tokptr_ptr =l add %n, 8
+    %tokptr =l loadl %tokptr_ptr
+    call $free(l %tokptr)
+    jmp @end
+
+
+@case3
+    %exptr_ptr =l add %n, 8
+    %exptr =l loadl %exptr_ptr
+    call $free(l %exptr)
+    jmp @end
+
+
+@end
+    ret 1
+}
+
+export function w $free_state(l %s) {
+@start
+    # ---- free tokens RawVec<Lexeme> ----
+    # tokens.ptr at offset 0
+    %tokptr_ptr =l add %s, 0
+    %tokptr     =l loadl %tokptr_ptr
+    call $free(l %tokptr)
+
+    # ---- free stack RawVec<NodeData> (recursively with free_node) ----
+    # stack.ptr at offset 24
+    %stackptr_ptr =l add %s, 24
+    %stackptr     =l loadl %stackptr_ptr
+
+    # stack.len at offset 32
+    %stacklen_ptr =l add %s, 32
+    %stacklen     =l loadl %stacklen_ptr
+
+    # i = 0
+    %i =l copy 0
+    jmp @stack_loop
+
+@stack_loop
+    # while (i < stacklen)
+    %cmp =w cultl %i, %stacklen
+    jnz %cmp, @stack_loop_body, @stack_loop_done
+
+@stack_loop_body
+    # node_i = stackptr + i * 32  (sizeof(NodeData) == 32)
+    %off  =l mul %i, 32
+    %node =l add %stackptr, %off
+
+    # recursively free this node
+    call $free_node(l %node)
+
+    # i++
+    %i =l add %i, 1
+    jmp @stack_loop
+
+@stack_loop_done
+    # free(stack.ptr)
+    call $free(l %stackptr)
+
+    # ---- free delim_stack RawVec<usize> ----
+    # delim_stack.ptr at offset 56
+    %delimptr_ptr =l add %s, 56
+    %delimptr     =l loadl %delimptr_ptr
+    call $free(l %delimptr)
+
+    # ---- free skip RawVec<usize> ----
+    # skip.ptr at offset 80
+    %skipptr_ptr =l add %s, 80
+    %skipptr     =l loadl %skipptr_ptr
+    call $free(l %skipptr)
+
+    # done (StateData itself is not freed here)
+    ret 1
+}
+
+data $offset_ptr = { l 0 }
+data $group_end = { l 0 }
+
+function w $cmp_current(l %ptr, l %len, w %char) {
+@start
+    %offset =l loadl $offset_ptr
+    %actual_offset =l add %ptr, %offset
+    %current =w loadub %actual_offset
+    %res =w ceqw %current, %char
+    ret %res
+}
+
+function w $inc_offset() {
+@start
+    %offset =l loadl $offset_ptr
+    %offset =l add %offset, 1
+    storel %offset, $offset_ptr
+    ret 0
+}

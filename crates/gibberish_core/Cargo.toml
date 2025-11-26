@@ -1,0 +1,12 @@
+[package]
+name = "gibberish-core"
+version = "0.1.0"
+edition = "2024"
+description = "Core types and functions for Gibberish parsers"
+license = "MIT"                                                          # or whatever you actually use
+repository = "https://github.com/mnbjhu/gibberish/crates/gibberish_core"
+readme = "README.md"
+
+[dependencies]
+ansi_term = "0.12.1"
+libloading = "0.9.0"

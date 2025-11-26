@@ -1,0 +1,11 @@
+[package]
+name = "gibberish_dyn_lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gibberish-core = "0.1.0"
+clap = { version = "4.5.53", features = ["derive"] }
+libloading = "0.9.0"
+notify = "8.2.0"
+safer-ffi = "0.1.13"

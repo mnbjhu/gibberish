@@ -1,0 +1,21 @@
+
+keyword select;
+keyword from;
+keyword delete;
+
+token NUM = "[0-9]+";
+token STR = "\"[^\"]*\"";
+token WHITESPACE = "\s+";
+token IDENT = "[_a-zA-Z]+";
+token COLON = ":";
+token COMMA = ",";
+token SEMI = ";";
+token PLUS = "\+";
+token TIMES = "\*";
+token LParen = "\(";
+token RParen = "\)";
+token BANG = "!";
+
+parser string = STR;
+parser stmt = string.delim_by(LParen, RParen) + SEMI;
+parser _root = stmt.repeated().skip(WHITESPACE)
