@@ -63,7 +63,7 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-gibberish_tree = {{ path = "../gibberish/crates/gibberish_tree" }}
+gibberish-core = "0.1.0"
 "#
     );
     write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
@@ -106,7 +106,7 @@ fn main() {{
         "
 use std::{{fmt::Display, mem}};
 
-use gibberish_tree::{{
+use gibberish_core::{{
     lang::Lang,
     node::{{Lexeme, LexemeData, Node}},
     state::{{State, StateData}},
