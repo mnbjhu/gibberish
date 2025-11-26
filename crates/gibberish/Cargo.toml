@@ -29,6 +29,6 @@ dashmap = "6"
 ariadne = "0.5.1"
 thiserror = "2.0.17"
 tempfile = "3.23.0"
-gibberish-gibberish-parser = { path = "../../../gibberish_parser" }
+gibberish-gibberish-parser = "0.1.0"
 gibberish-core = "0.1.0"
 gibberish_dyn_lib = { path = "../gibberish_dyn_lib" }
