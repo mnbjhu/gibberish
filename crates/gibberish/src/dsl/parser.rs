@@ -7,26 +7,22 @@ use crate::{
         Parser,
         choice::choice,
         just::just,
-        maybe::Requirement,
         named::Named,
         ptr::{ParserCache, ParserIndex},
         seq::seq,
     },
-    dsl::{
-        ast::{
-            RootAst,
-            expr::ExprAst,
-            stmt::{StmtAst, fold::FoldDefAst, parser::ParserDefAst},
-        },
-        lexer::RuntimeLang,
+    dsl::ast::{
+        RootAst,
+        expr::ExprAst,
+        stmt::{StmtAst, fold::FoldDefAst, parser::ParserDefAst},
     },
     report::simple::report_simple_error,
 };
 
 pub struct ParserBuilder {
     pub lexer: Vec<(String, String)>,
-    pub vars: Vec<(String, ParserIndex<RuntimeLang>)>,
-    pub cache: ParserCache<RuntimeLang>,
+    pub vars: Vec<(String, ParserIndex)>,
+    pub cache: ParserCache,
     text: String,
     filename: String,
 }
@@ -47,7 +43,7 @@ impl ParserBuilder {
     }
 }
 
-pub fn build_parser<'a>(ast: RootAst<'a>, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
+pub fn build_parser<'a>(ast: RootAst<'a>, builder: &mut ParserBuilder) -> ParserIndex {
     let res = ast
         .iter()
         .filter_map(|it| match it {
@@ -85,7 +81,7 @@ pub fn build_parser<'a>(ast: RootAst<'a>, builder: &mut ParserBuilder) -> Parser
 }
 
 impl<'a> ParserDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
+    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         let name = self.name().text.as_str();
         let name_index = builder.vars.len();
         if let Some(expr) = self.expr() {
@@ -108,7 +104,7 @@ impl<'a> ParserDefAst<'a> {
 }
 
 impl ParserBuilder {
-    fn replace_var(&mut self, name: &str, p: ParserIndex<RuntimeLang>) -> bool {
+    fn replace_var(&mut self, name: &str, p: ParserIndex) -> bool {
         if let Some(existing) = self.get_var(name) {
             *existing.get_mut(&mut self.cache) = p.get_ref(&self.cache).clone();
             true
@@ -117,7 +113,7 @@ impl ParserBuilder {
         }
     }
 
-    pub fn get_var(&self, name: &str) -> Option<ParserIndex<RuntimeLang>> {
+    pub fn get_var(&self, name: &str) -> Option<ParserIndex> {
         self.vars
             .iter()
             .find_map(|(n, p)| if name == n { Some(p.clone()) } else { None })
@@ -125,7 +121,7 @@ impl ParserBuilder {
 }
 
 impl<'a> FoldDefAst<'a> {
-    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
+    fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         let name = self.name().text.as_str();
         assert!(!name.starts_with("_"), "Fold expressions should be named");
         let name_index = builder.vars.len();
@@ -138,7 +134,7 @@ impl<'a> FoldDefAst<'a> {
 }
 
 impl<'a> ExprAst<'a> {
-    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex<RuntimeLang> {
+    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         match self {
             ExprAst::Ident(lexeme) => {
                 if let Some(p) = builder
@@ -209,12 +205,7 @@ impl<'a> ExprAst<'a> {
                                     args.len()
                                 )
                             }
-                            expr = expr.sep_by_extra(
-                                args[0].clone(),
-                                Requirement::Maybe,
-                                Requirement::Maybe,
-                                &mut builder.cache,
-                            )
+                            expr = expr.sep_by_extra(args[0].clone(), &mut builder.cache)
                         }
                         "delim_by" => {
                             let args = member

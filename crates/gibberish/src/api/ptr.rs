@@ -1,40 +1,32 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
-use gibberish_core::{lang::Lang, query::Query};
+use gibberish_core::lang::Lang;
 
-use crate::{api::Parser, dsl::lexer::RuntimeLang};
+use crate::api::Parser;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-pub struct ParserIndex<L: Lang> {
+pub struct ParserIndex {
     pub index: usize,
-    _pd: PhantomData<L>,
 }
 
-impl<L: Lang> Clone for ParserIndex<L> {
+impl Clone for ParserIndex {
     fn clone(&self) -> Self {
-        Self {
-            index: self.index,
-            _pd: self._pd,
-        }
+        Self { index: self.index }
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn from(index: usize) -> ParserIndex<L> {
-        ParserIndex {
-            index,
-            _pd: PhantomData,
-        }
+impl ParserIndex {
+    pub fn from(index: usize) -> ParserIndex {
+        ParserIndex { index }
     }
 }
 
-pub struct ParserCache<L: Lang> {
-    pub parsers: Vec<Parser<L>>,
-    pub cached: HashMap<Parser<L>, ParserIndex<L>>,
-    // pub highlights: Vec<Query<RuntimeLang, TokenKind>>,
+pub struct ParserCache {
+    pub parsers: Vec<Parser>,
+    pub cached: HashMap<Parser, ParserIndex>,
 }
 
-impl<L: Lang> ParserCache<L> {
+impl ParserCache {
     pub fn new() -> Self {
         Self {
             parsers: vec![],
@@ -44,7 +36,7 @@ impl<L: Lang> ParserCache<L> {
     }
 }
 
-impl<L: Lang> std::fmt::Debug for ParserCache<L> {
+impl std::fmt::Debug for ParserCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ParserCache")
             .field("parsers", &self.parsers)
@@ -52,18 +44,18 @@ impl<L: Lang> std::fmt::Debug for ParserCache<L> {
     }
 }
 
-impl<'a, L: Lang> ParserIndex<L> {
-    pub fn get_ref(&self, cache: &'a ParserCache<L>) -> &'a Parser<L> {
+impl<'a> ParserIndex {
+    pub fn get_ref(&self, cache: &'a ParserCache) -> &'a Parser {
         &cache.parsers[self.index]
     }
 
-    pub fn get_mut(&self, cache: &'a mut ParserCache<L>) -> &'a mut Parser<L> {
+    pub fn get_mut(&self, cache: &'a mut ParserCache) -> &'a mut Parser {
         &mut cache.parsers[self.index]
     }
 }
 
-impl<L: Lang> Parser<L> {
-    pub fn cache(self, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+impl Parser {
+    pub fn cache(self, cache: &mut ParserCache) -> ParserIndex {
         if let Some(cached) = cache.cached.get(&self) {
             cached.clone()
         } else {

@@ -1,30 +1,31 @@
-use gibberish_core::{err::Expected, lang::Lang};
-use tracing::warn;
-
 use crate::api::ptr::{ParserCache, ParserIndex};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Delim<L: Lang> {
-    pub start: ParserIndex<L>,
-    pub end: ParserIndex<L>,
-    pub inner: ParserIndex<L>,
+pub struct Delim {
+    pub start: ParserIndex,
+    pub end: ParserIndex,
+    pub inner: ParserIndex,
 }
 
-impl<'a, L: Lang> Delim<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl Delim {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.start.get_ref(cache).expected(cache)
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
+impl ParserIndex {
     pub fn delim_by(
         self,
-        start: ParserIndex<L>,
-        end: ParserIndex<L>,
-        cache: &mut ParserCache<L>,
-    ) -> ParserIndex<L> {
+        start: ParserIndex,
+        end: ParserIndex,
+        cache: &mut ParserCache,
+    ) -> ParserIndex {
         Parser::Delim(Delim {
             start,
             end,

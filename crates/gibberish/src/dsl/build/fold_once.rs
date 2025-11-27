@@ -1,9 +1,6 @@
-use crate::{
-    api::fold_once::FoldOnce,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::fold_once::FoldOnce, dsl::build::ParserQBEBuilder};
 
-impl ParserQBEBuilder for FoldOnce<RuntimeLang> {
+impl ParserQBEBuilder for FoldOnce {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

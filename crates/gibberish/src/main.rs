@@ -4,10 +4,6 @@ use cli::command::Command;
 mod api;
 mod cli;
 mod dsl;
-// mod json;
-// mod lsp;
-// mod parser;
-// mod query;
 mod report;
 
 #[tokio::main]

@@ -1,26 +1,29 @@
 use std::fmt::{Display, Write};
 
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Just<L: Lang>(pub L::Token);
+pub struct Just(pub u32);
 
-impl<L: Lang> Just<L> {
-    pub fn expected(&self) -> Vec<Expected<L>> {
+impl Just {
+    pub fn expected(&self) -> Vec<Expected<CompiledLang>> {
         vec![Expected::Token(self.0.clone())]
     }
 }
 
-pub fn just<L: Lang>(tok: L::Token, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+pub fn just(tok: u32, cache: &mut ParserCache) -> ParserIndex {
     let p = Parser::Just(Just(tok));
     p.cache(cache)
 }
 
-impl<L: Lang> Display for Just<L> {
+impl Display for Just {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Just({})", self.0)
     }

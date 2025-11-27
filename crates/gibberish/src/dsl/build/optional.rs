@@ -1,9 +1,6 @@
-use crate::{
-    api::optional::Optional,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::optional::Optional, dsl::build::ParserQBEBuilder};
 
-impl ParserQBEBuilder for Optional<RuntimeLang> {
+impl ParserQBEBuilder for Optional {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

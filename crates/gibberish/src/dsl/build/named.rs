@@ -1,9 +1,6 @@
-use crate::{
-    api::named::Named,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::named::Named, dsl::build::ParserQBEBuilder};
 
-impl ParserQBEBuilder for Named<RuntimeLang> {
+impl ParserQBEBuilder for Named {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

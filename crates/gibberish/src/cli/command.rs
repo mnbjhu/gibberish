@@ -109,7 +109,7 @@ impl Command {
                 hide_tokens,
             } => watch(path, !hide_errors, !hide_tokens).unwrap(),
             // Command::Lsp { path } => main_loop(path).await,
-            Command::Lsp { path } => todo!(),
+            Command::Lsp { .. } => todo!(),
             // Command::Query {
             //     src,
             //     parser_src,

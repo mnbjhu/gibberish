@@ -1,12 +1,9 @@
 use crate::{
     api::seq::Seq,
-    dsl::{
-        build::{ParserQBEBuilder, delim_by::try_parse},
-        lexer::RuntimeLang,
-    },
+    dsl::build::{ParserQBEBuilder, delim_by::try_parse},
 };
 
-impl ParserQBEBuilder for Seq<RuntimeLang> {
+impl ParserQBEBuilder for Seq {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         let new_delims_len = self.0.len() - 1;
         let magic = new_delims_len + 3;

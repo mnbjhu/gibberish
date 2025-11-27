@@ -1,30 +1,33 @@
 use std::fmt::Display;
 
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Named<L: Lang> {
-    pub inner: ParserIndex<L>,
-    pub name: L::Syntax,
+pub struct Named {
+    pub inner: ParserIndex,
+    pub name: u32,
 }
 
-impl<'a, L: Lang> Named<L> {
-    pub fn expected(&self) -> Vec<Expected<L>> {
+impl Named {
+    pub fn expected(&self) -> Vec<Expected<CompiledLang>> {
         vec![Expected::Label(self.name.clone())]
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn named(self, name: L::Syntax, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+impl ParserIndex {
+    pub fn named(self, name: u32, cache: &mut ParserCache) -> ParserIndex {
         Parser::Named(Named { inner: self, name }).cache(cache)
     }
 }
 
-impl<L: Lang> Display for Named<L> {
+impl Display for Named {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Named({})", self.name)
     }

@@ -2,7 +2,7 @@
 
 use gibberish_core::{
     lang::CompiledLang,
-    node::{Lexeme, LexemeData, Node},
+    node::{LexemeData, Node},
     state::{State, StateData},
     vec::RawVec,
 };
@@ -43,7 +43,6 @@ pub fn parse(lang: &CompiledLang, text: &str) -> Node<CompiledLang> {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
 
     use gibberish_core::{
         lang::CompiledLang,

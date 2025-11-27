@@ -1,29 +1,27 @@
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct FoldOnce<L: Lang> {
-    pub name: L::Syntax,
-    pub first: ParserIndex<L>,
-    pub next: ParserIndex<L>,
+pub struct FoldOnce {
+    pub name: u32,
+    pub first: ParserIndex,
+    pub next: ParserIndex,
 }
 
-impl<'a, L: Lang> FoldOnce<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl<'a> FoldOnce {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.first.get_ref(cache).expected(cache)
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn fold_once(
-        self,
-        name: L::Syntax,
-        next: ParserIndex<L>,
-        cache: &mut ParserCache<L>,
-    ) -> ParserIndex<L> {
+impl ParserIndex {
+    pub fn fold_once(self, name: u32, next: ParserIndex, cache: &mut ParserCache) -> ParserIndex {
         Parser::FoldOnce(FoldOnce {
             name,
             first: self,

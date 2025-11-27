@@ -1,12 +1,9 @@
 use crate::{
     api::sep::Sep,
-    dsl::{
-        build::{ParserQBEBuilder, delim_by::try_parse},
-        lexer::RuntimeLang,
-    },
+    dsl::build::{ParserQBEBuilder, delim_by::try_parse},
 };
 
-impl ParserQBEBuilder for Sep<RuntimeLang> {
+impl ParserQBEBuilder for Sep {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

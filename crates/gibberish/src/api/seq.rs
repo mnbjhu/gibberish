@@ -1,14 +1,17 @@
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Seq<L: Lang>(pub Vec<ParserIndex<L>>);
+pub struct Seq(pub Vec<ParserIndex>);
 
-impl<'a, L: Lang> Seq<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl<'a> Seq {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.0
             .first()
             .expect("Seq should have at least one element")
@@ -17,12 +20,12 @@ impl<'a, L: Lang> Seq<L> {
     }
 }
 
-pub fn seq<L: Lang>(parts: Vec<ParserIndex<L>>, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+pub fn seq(parts: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
     Parser::Seq(Seq(parts)).cache(cache)
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn then(self, other: ParserIndex<L>, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+impl ParserIndex {
+    pub fn then(self, other: ParserIndex, cache: &mut ParserCache) -> ParserIndex {
         if let Parser::Seq(seq) = self.get_mut(cache) {
             seq.0.push(other);
             self

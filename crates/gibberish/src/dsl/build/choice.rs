@@ -1,9 +1,6 @@
-use crate::{
-    api::choice::Choice,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::choice::Choice, dsl::build::ParserQBEBuilder};
 
-impl ParserQBEBuilder for Choice<RuntimeLang> {
+impl ParserQBEBuilder for Choice {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

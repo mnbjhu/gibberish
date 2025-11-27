@@ -1,23 +1,26 @@
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct UnSkip<L: Lang> {
-    token: L::Token,
-    inner: ParserIndex<L>,
+pub struct UnSkip {
+    token: u32,
+    inner: ParserIndex,
 }
 
-impl<'a, L: Lang> UnSkip<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl UnSkip {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.inner.get_ref(cache).expected(cache)
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn unskip(self, token: L::Token, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+impl ParserIndex {
+    pub fn unskip(self, token: u32, cache: &mut ParserCache) -> ParserIndex {
         Parser::UnSkip(UnSkip { token, inner: self }).cache(cache)
     }
 }

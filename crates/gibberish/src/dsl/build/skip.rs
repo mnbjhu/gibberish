@@ -1,9 +1,6 @@
-use crate::{
-    api::skip::Skip,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::skip::Skip, dsl::build::ParserQBEBuilder};
 
-impl ParserQBEBuilder for Skip<RuntimeLang> {
+impl ParserQBEBuilder for Skip {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

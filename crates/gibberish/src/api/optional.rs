@@ -1,4 +1,4 @@
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::api::{
     Parser,
@@ -6,16 +6,16 @@ use crate::api::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Optional<L: Lang>(pub ParserIndex<L>);
+pub struct Optional(pub ParserIndex);
 
-impl<'a, L: Lang> Optional<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl Optional {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.0.get_ref(cache).expected(cache)
     }
 }
 
-impl<L: Lang> ParserIndex<L> {
-    pub fn or_not(self, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+impl ParserIndex {
+    pub fn or_not(self, cache: &mut ParserCache) -> ParserIndex {
         Parser::Optional(Optional(self)).cache(cache)
     }
 }

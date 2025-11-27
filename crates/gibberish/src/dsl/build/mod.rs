@@ -3,34 +3,22 @@ use std::fmt::Write;
 use gibberish_core::err::Expected;
 
 use crate::{
-    api::{
-        Parser,
-        ptr::{ParserCache, ParserIndex},
-    },
-    dsl::{
-        lexer::{RuntimeLang, build::build_lexer_qbe},
-        parser::ParserBuilder,
-    },
+    api::{Parser, ptr::ParserIndex},
+    dsl::{lexer::build::build_lexer_qbe, parser::ParserBuilder},
 };
 
 pub mod choice;
 pub mod delim_by;
-pub mod fold;
 pub mod fold_once;
 pub mod just;
 pub mod named;
 pub mod optional;
 pub mod rep0;
-pub mod rep1;
 pub mod sep_by;
 pub mod seq;
 pub mod skip;
 
-pub fn build_parser_qbe(
-    parser: &ParserIndex<RuntimeLang>,
-    builder: &ParserBuilder,
-    f: &mut impl Write,
-) {
+pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
     build_parse_by_id(builder, f);
     for (index, parser) in builder.cache.parsers.iter().enumerate() {
@@ -72,7 +60,7 @@ export function w $parse(l %state_ptr) {{
     .unwrap()
 }
 
-impl ParserQBEBuilder for Parser<RuntimeLang> {
+impl ParserQBEBuilder for Parser {
     fn build_parse(&self, id: usize, f: &mut impl Write) {
         match self {
             Parser::Just(just) => just.build_parse(id, f),
@@ -80,14 +68,10 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Seq(seq) => seq.build_parse(id, f),
             Parser::Sep(sep) => sep.build_parse(id, f),
             Parser::Delim(delim) => delim.build_parse(id, f),
-            Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_parse(id, f),
-            Parser::Fold(fold) => fold.build_parse(id, f),
             Parser::Skip(skip) => skip.build_parse(id, f),
-            Parser::UnSkip(un_skip) => todo!(),
+            Parser::UnSkip(_) => todo!(),
             Parser::Optional(optional) => optional.build_parse(id, f),
-            Parser::NoneOf(none_of) => todo!(),
-            Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => fold_once.build_parse(id, f),
             Parser::Repeated(repeated) => repeated.build_parse(id, f),
             Parser::Empty => todo!(),
@@ -101,14 +85,10 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
             Parser::Seq(seq) => seq.build_peak(id, f),
             Parser::Sep(sep) => sep.build_peak(id, f),
             Parser::Delim(delim) => delim.build_peak(id, f),
-            Parser::Rec(recursive) => todo!(),
             Parser::Named(named) => named.build_peak(id, f),
-            Parser::Fold(fold) => fold.build_peak(id, f),
             Parser::Skip(skip) => skip.build_peak(id, f),
-            Parser::UnSkip(un_skip) => todo!(),
+            Parser::UnSkip(_) => todo!(),
             Parser::Optional(optional) => optional.build_peak(id, f),
-            Parser::NoneOf(none_of) => todo!(),
-            Parser::Break(_) => todo!(),
             Parser::FoldOnce(fold_once) => fold_once.build_peak(id, f),
             Parser::Repeated(repeated) => repeated.build_peak(id, f),
             Parser::Empty => todo!(),
@@ -116,9 +96,9 @@ impl ParserQBEBuilder for Parser<RuntimeLang> {
     }
 }
 
-impl Parser<RuntimeLang> {
+impl Parser {
     fn build_expected(&self, id: usize, f: &mut impl Write, builder: &ParserBuilder) {
-        if let Parser::Optional(op) = self {
+        if let Parser::Optional(_) = self {
             write!(
                 f,
                 "

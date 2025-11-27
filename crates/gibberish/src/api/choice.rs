@@ -1,16 +1,19 @@
-use gibberish_core::{err::Expected, lang::Lang};
+use gibberish_core::{
+    err::Expected,
+    lang::{CompiledLang, Lang},
+};
 
 use crate::api::ptr::{ParserCache, ParserIndex};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Choice<L: Lang> {
-    pub options: Vec<ParserIndex<L>>,
+pub struct Choice {
+    pub options: Vec<ParserIndex>,
 }
 
-impl<'a, L: Lang> Choice<L> {
-    pub fn expected(&self, cache: &ParserCache<L>) -> Vec<Expected<L>> {
+impl Choice {
+    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.options
             .iter()
             .flat_map(|it| it.get_ref(cache).expected(cache))
@@ -18,17 +21,6 @@ impl<'a, L: Lang> Choice<L> {
     }
 }
 
-pub fn choice<L: Lang>(options: Vec<ParserIndex<L>>, cache: &mut ParserCache<L>) -> ParserIndex<L> {
+pub fn choice(options: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
     Parser::Choice(Choice { options }).cache(cache)
-}
-
-impl<L: Lang> ParserIndex<L> {
-    pub fn or(self, other: ParserIndex<L>, cache: &mut ParserCache<L>) -> ParserIndex<L> {
-        if let Parser::Choice(options) = self.get_mut(cache) {
-            options.options.push(other);
-            self
-        } else {
-            choice(vec![self, other], cache)
-        }
-    }
 }

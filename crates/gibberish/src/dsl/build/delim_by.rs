@@ -1,7 +1,4 @@
-use crate::{
-    api::delim::Delim,
-    dsl::{build::ParserQBEBuilder, lexer::RuntimeLang},
-};
+use crate::{api::delim::Delim, dsl::build::ParserQBEBuilder};
 
 pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Write) {
     write!(
@@ -19,7 +16,7 @@ pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Writ
     .unwrap();
 }
 
-impl ParserQBEBuilder for Delim<RuntimeLang> {
+impl ParserQBEBuilder for Delim {
     fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
