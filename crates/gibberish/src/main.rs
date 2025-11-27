@@ -1,9 +1,10 @@
 use clap::Parser;
 use cli::command::Command;
 
-mod api;
+mod ast;
 mod cli;
-mod dsl;
+mod lexer;
+mod parser;
 mod report;
 
 #[tokio::main]

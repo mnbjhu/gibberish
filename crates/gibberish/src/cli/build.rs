@@ -5,12 +5,12 @@ use std::{fs, path::Path};
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
-use crate::api::ptr::ParserIndex;
-use crate::dsl::ast::builder::ParserBuilder;
-use crate::dsl::build::build_parser_qbe;
+use crate::ast::builder::ParserBuilder;
+use crate::parser::build::build_parser_qbe;
+use crate::parser::ptr::ParserIndex;
 
-use crate::dsl::ast::RootAst;
-use crate::dsl::lexer::build::create_name_function;
+use crate::ast::RootAst;
+use crate::lexer::build::create_name_function;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {

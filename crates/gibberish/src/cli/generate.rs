@@ -6,9 +6,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
 use crate::cli::build::{build_dynamic_lib, build_static_lib};
-use crate::dsl::ast::builder::ParserBuilder;
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
