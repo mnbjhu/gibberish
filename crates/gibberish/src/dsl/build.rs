@@ -2,24 +2,8 @@ use std::fmt::Write;
 
 use crate::{
     api::ptr::ParserIndex,
-    dsl::{lexer::build::build_lexer_qbe, parser::ParserBuilder},
+    dsl::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe},
 };
-
-pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Write) {
-    write!(
-        f,
-        "
-@try_parse_{name}
-    %res =l call $parse_{id}(l %state_ptr, w %recover)
-    %is_err =l ceql 1, %res
-    jnz %is_err, @bump_err_{name}, {after}
-@bump_err_{name}
-    call $bump_err(l %state_ptr)
-    jmp @try_parse_{name}
-",
-    )
-    .unwrap();
-}
 
 pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);

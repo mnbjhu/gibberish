@@ -1,6 +1,6 @@
 use crate::{
     api::ptr::{ParserCache, ParserIndex},
-    dsl::build::try_parse,
+    dsl::ast::try_parse,
 };
 use gibberish_core::{err::Expected, lang::CompiledLang};
 

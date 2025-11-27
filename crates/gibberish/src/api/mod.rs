@@ -13,7 +13,7 @@ use tracing::debug;
 
 use crate::{
     api::{fold_once::FoldOnce, ptr::ParserCache, repeated::Repeated, unskip::UnSkip},
-    dsl::parser::ParserBuilder,
+    dsl::ast::builder::ParserBuilder,
 };
 
 pub mod choice;

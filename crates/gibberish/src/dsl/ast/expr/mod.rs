@@ -1,10 +1,9 @@
-use crate::api::just::just;
 use crate::api::ptr::ParserIndex;
+use crate::dsl::ast::builder::ParserBuilder;
 use crate::dsl::ast::expr::call::CallAst;
 use crate::dsl::ast::expr::choice::ChoiceAst;
 use crate::dsl::ast::expr::ident::build_ident;
 use crate::dsl::ast::expr::seq::SeqAst;
-use crate::dsl::parser::ParserBuilder;
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
 

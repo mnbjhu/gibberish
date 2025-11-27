@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::Gibberish;
 
 use crate::{
     api::{just::just, ptr::ParserIndex},
-    dsl::parser::ParserBuilder,
+    dsl::ast::builder::ParserBuilder,
 };
 
 pub fn build_ident(builder: &mut ParserBuilder, lexeme: &Lexeme<Gibberish>) -> ParserIndex {

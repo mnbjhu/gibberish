@@ -1,6 +1,36 @@
-use std::fmt::{Display, Write};
+use std::{
+    fmt::{Display, Write},
+    ops::Range,
+};
 
-use crate::dsl::{lexer::build::LexerBuilderState, regex::OptionAst};
+use crate::dsl::lexer::{RegexAst, build::LexerBuilderState, parse_special};
+
+#[derive(Debug)]
+pub enum OptionAst<'a> {
+    Range(Range<u8>),
+    Char(u8),
+    Regex(RegexAst<'a>),
+}
+
+pub fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst<'a>> {
+    if let Some(special) = parse_special(regex, offset) {
+        return Some(OptionAst::Regex(special));
+    }
+    match regex.chars().nth(*offset) {
+        Some(char) => {
+            *offset += 1;
+            if let Some('-') = regex.chars().nth(*offset) {
+                *offset += 1;
+                let end = regex.chars().nth(*offset)?;
+                *offset += 1;
+                return Some(OptionAst::Range(char as u8..end as u8));
+            } else {
+                Some(OptionAst::Char(char as u8))
+            }
+        }
+        _ => None,
+    }
+}
 
 impl<'a> Display for OptionAst<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

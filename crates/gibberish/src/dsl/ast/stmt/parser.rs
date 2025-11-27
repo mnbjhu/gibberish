@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishToken};
 
 use crate::{
     api::{Parser, ptr::ParserIndex},
-    dsl::{ast::expr::ExprAst, parser::ParserBuilder},
+    dsl::ast::{builder::ParserBuilder, expr::ExprAst},
 };
 
 #[derive(Clone, Copy)]

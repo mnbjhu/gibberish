@@ -1,6 +1,21 @@
 use std::fmt::Write;
 
-use crate::dsl::lexer::build::LexerBuilderState;
+use crate::dsl::lexer::{RegexAst, build::LexerBuilderState};
+
+pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+    let start = *offset;
+    loop {
+        match regex.chars().nth(*offset) {
+            Some('|') | Some('[') | Some(']') | Some('(') | Some(')') | Some('\\') | None => break,
+            _ => *offset += 1,
+        }
+    }
+    if start == *offset {
+        None
+    } else {
+        Some(RegexAst::Exact(&regex[start..*offset]))
+    }
+}
 
 pub fn build_exact_regex(f: &mut impl Write, state: &mut LexerBuilderState, text: &str) -> usize {
     let id = state.id();

@@ -1,6 +1,35 @@
 use std::fmt::Write;
 
-use crate::dsl::{lexer::build::LexerBuilderState, regex::OptionAst};
+use crate::dsl::lexer::{
+    RegexAst,
+    build::LexerBuilderState,
+    option::{OptionAst, parse_option},
+};
+
+pub fn parse_choice<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+    let Some('[') = regex.chars().nth(*offset) else {
+        return None;
+    };
+    *offset += 1;
+
+    let negate = if let Some('^') = regex.chars().nth(*offset) {
+        *offset += 1;
+        true
+    } else {
+        false
+    };
+
+    let mut options = vec![];
+
+    while let Some(current) = regex.chars().nth(*offset) {
+        if current == ']' {
+            *offset += 1;
+            return Some(RegexAst::Choice { negate, options });
+        };
+        options.push(parse_option(regex, offset)?);
+    }
+    None
+}
 
 pub fn build_choice_regex<'a>(
     state: &mut LexerBuilderState,

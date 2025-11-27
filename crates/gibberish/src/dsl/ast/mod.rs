@@ -1,8 +1,12 @@
 use gibberish_core::node::Group;
 use gibberish_gibberish_parser::{Gibberish, GibberishSyntax};
 
-use crate::dsl::ast::stmt::StmtAst;
+use crate::{
+    api::{Parser, named::Named, ptr::ParserIndex},
+    dsl::ast::{builder::ParserBuilder, stmt::StmtAst},
+};
 
+pub mod builder;
 pub mod expr;
 pub mod stmt;
 
@@ -14,4 +18,44 @@ impl<'a> RootAst<'a> {
         assert_eq!(self.0.kind, GibberishSyntax::Root);
         self.0.green_children().map(StmtAst::from)
     }
+
+    pub fn build_parser(self, builder: &mut ParserBuilder) -> ParserIndex {
+        let res = self
+            .iter()
+            .filter_map(|it| match it {
+                StmtAst::Parser(p) => Some(p.build(builder)),
+                StmtAst::Fold(f) => Some(f.build(builder)),
+                StmtAst::Highlight(_) => None,
+                StmtAst::Token(t) => {
+                    t.build(builder);
+                    None
+                }
+                StmtAst::Keyword(k) => {
+                    k.build(builder);
+                    None
+                }
+            })
+            .last()
+            .unwrap();
+        match res.get_ref(&builder.cache) {
+            Parser::Named(Named { inner, .. }) => inner.clone(),
+            _ => res,
+        }
+    }
+}
+
+pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Write) {
+    write!(
+        f,
+        "
+@try_parse_{name}
+    %res =l call $parse_{id}(l %state_ptr, w %recover)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_{name}, {after}
+@bump_err_{name}
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_{name}
+",
+    )
+    .unwrap();
 }

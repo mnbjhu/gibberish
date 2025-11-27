@@ -6,13 +6,11 @@ use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
 use crate::api::ptr::ParserIndex;
+use crate::dsl::ast::builder::ParserBuilder;
 use crate::dsl::build::build_parser_qbe;
 
+use crate::dsl::ast::RootAst;
 use crate::dsl::lexer::build::create_name_function;
-use crate::dsl::{
-    ast::RootAst,
-    parser::{ParserBuilder, build_parser},
-};
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
@@ -62,7 +60,7 @@ pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex)
     let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
     let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
-    let parser = build_parser(dsl_ast, &mut builder);
+    let parser = dsl_ast.build_parser(&mut builder);
     (builder, parser)
 }
 

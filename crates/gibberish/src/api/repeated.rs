@@ -4,7 +4,7 @@ use gibberish_core::lang::CompiledLang;
 use crate::api::Parser;
 
 use crate::api::ptr::{ParserCache, ParserIndex};
-use crate::dsl::build::try_parse;
+use crate::dsl::ast::try_parse;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Repeated(pub ParserIndex);

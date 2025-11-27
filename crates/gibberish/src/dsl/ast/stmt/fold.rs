@@ -1,6 +1,8 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
 
+use crate::api::ptr::ParserIndex;
+use crate::dsl::ast::builder::ParserBuilder;
 use crate::dsl::ast::expr::ExprAst;
 
 use gibberish_gibberish_parser::GibberishSyntax as S;
@@ -28,5 +30,16 @@ impl<'a> FoldDefAst<'a> {
         let mut iter = self.fold().green_children();
         iter.next().unwrap();
         iter.next().map(|it| it.into())
+    }
+
+    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
+        let name = self.name().text.as_str();
+        assert!(!name.starts_with("_"), "Fold expressions should be named");
+        let name_index = builder.vars.len();
+        let first = self.first().build(builder);
+        let next = self.next().unwrap().build(builder);
+        let p = first.fold_once(name_index as u32, next, &mut builder.cache);
+        builder.vars.push((name.to_string(), p.clone()));
+        p
     }
 }

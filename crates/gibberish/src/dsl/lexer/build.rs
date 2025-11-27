@@ -1,13 +1,11 @@
 use std::fmt::Write;
 
-use crate::dsl::{
-    lexer::{
-        choice::{build_choice_regex, build_negated_chocie_regex},
-        exact::build_exact_regex,
-        group::build_group_regex,
-        seq::build_seq_regex,
-    },
-    regex::{RegexAst, parse_seq},
+use crate::dsl::lexer::{
+    RegexAst,
+    choice::{build_choice_regex, build_negated_chocie_regex},
+    exact::build_exact_regex,
+    group::build_group_regex,
+    seq::{build_seq_regex, parse_seq},
 };
 
 pub struct LexerBuilderState {

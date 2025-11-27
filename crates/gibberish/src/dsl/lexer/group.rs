@@ -1,6 +1,42 @@
 use std::fmt::Write;
 
-use crate::dsl::{lexer::build::LexerBuilderState, regex::RegexAst};
+use crate::dsl::lexer::{RegexAst, build::LexerBuilderState, seq::parse_seq};
+
+pub fn parse_capture(regex: &str, offset: &mut usize) -> bool {
+    if !matches!(regex.chars().nth(*offset), Some('?')) {
+        return true;
+    }
+    if !matches!(regex.chars().nth(*offset + 1), Some(':')) {
+        return true;
+    }
+    *offset += 2;
+    false
+}
+
+pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+    if !matches!(regex.chars().nth(*offset), Some('(')) {
+        return None;
+    }
+    *offset += 1;
+    let capture = parse_capture(regex, offset);
+    let mut options = vec![];
+    loop {
+        options.push(parse_seq(regex, offset)?);
+        let current = regex.chars().nth(*offset)?;
+        if current == ')' {
+            *offset += 1;
+            break;
+        }
+        if current == '|' {
+            *offset += 1;
+            continue;
+        } else {
+            return None;
+        }
+    }
+    assert_ne!(options.len(), 0);
+    Some(RegexAst::Group { options, capture })
+}
 
 pub fn build_group_regex<'a>(
     state: &mut LexerBuilderState,
