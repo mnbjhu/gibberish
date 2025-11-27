@@ -7,7 +7,7 @@ impl<'a> Display for OptionAst<'a> {
         match self {
             OptionAst::Range(range) => write!(f, "{}-{}", range.start as char, range.end as char),
             OptionAst::Char(c) => write!(f, "{}", *c as char),
-            OptionAst::Regex(regex_ast) => todo!(),
+            OptionAst::Regex(_) => todo!(),
         }
     }
 }

@@ -1,17 +1,13 @@
 use std::fmt::Write;
 
 use crate::dsl::{
-    ast::{
-        RootAst,
-        stmt::{StmtAst, keyword::KeywordDefAst, token::TokenDefAst},
-    },
     lexer::{
         choice::{build_choice_regex, build_negated_chocie_regex},
         exact::build_exact_regex,
         group::build_group_regex,
         seq::build_seq_regex,
     },
-    regex::{OptionAst, RegexAst, parse_seq},
+    regex::{RegexAst, parse_seq},
 };
 
 pub struct LexerBuilderState {
@@ -296,47 +292,6 @@ export function :vec $lex(l %ptr, l %len) {{
         error_index = names.len()
     )
     .unwrap()
-}
-
-impl<'a> TokenDefAst<'a> {
-    pub fn build_qbe(&self, state: &mut LexerBuilderState, f: &mut impl Write) {
-        let value = self.value().unwrap();
-        let mut text = value.text.clone();
-        text.remove(0);
-        text.pop();
-        text = text.replace("\\\\", "\\");
-        text = text.replace("\\\"", "\"");
-        text = text.replace("\\n", "\n");
-        text = text.replace("\\t", "\t");
-        text = text.replace("\\f", "\x0C");
-        let Some(regex) = parse_seq(&text, &mut 0) else {
-            panic!("Failed to parse regex {text}");
-        };
-        build_token_parser(&self.name().text, &regex, state, f)
-    }
-}
-
-impl<'a> KeywordDefAst<'a> {
-    pub fn build_qbe(&self, state: &mut LexerBuilderState, f: &mut impl Write) {
-        let value = self.name();
-        let text = &value.text;
-        let regex = RegexAst::Seq(vec![
-            RegexAst::Group {
-                options: vec![RegexAst::Exact(text)],
-                capture: true,
-            },
-            RegexAst::Choice {
-                negate: true,
-                options: vec![
-                    OptionAst::Range('a' as u8..'z' as u8),
-                    OptionAst::Range('A' as u8..'Z' as u8),
-                    OptionAst::Range('0' as u8..'9' as u8),
-                    OptionAst::Char('_' as u8),
-                ],
-            },
-        ]);
-        build_token_parser(&self.name().text, &regex, state, f)
-    }
 }
 
 pub fn build_token_parser<'a>(

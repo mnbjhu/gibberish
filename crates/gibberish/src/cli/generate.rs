@@ -8,7 +8,7 @@ use std::{
 
 use crate::cli::build::build_parser_from_src;
 use crate::{
-    cli::build::{build_dynamic_lib, build_qbe_str, build_static_lib},
+    cli::build::{build_dynamic_lib, build_static_lib},
     dsl::parser::ParserBuilder,
 };
 

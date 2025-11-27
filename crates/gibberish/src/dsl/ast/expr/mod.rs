@@ -1,7 +1,17 @@
-use std::iter::empty;
-
+use crate::api::just::just;
+use crate::api::ptr::ParserIndex;
+use crate::dsl::ast::expr::call::CallAst;
+use crate::dsl::ast::expr::choice::ChoiceAst;
+use crate::dsl::ast::expr::ident::build_ident;
+use crate::dsl::ast::expr::seq::SeqAst;
+use crate::dsl::parser::ParserBuilder;
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
+
+pub mod call;
+pub mod choice;
+pub mod ident;
+pub mod seq;
 
 #[derive(Clone, Copy)]
 pub enum ExprAst<'a> {
@@ -26,62 +36,13 @@ impl<'a> From<&'a Group<Gibberish>> for ExprAst<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct SeqAst<'a>(pub &'a Group<Gibberish>);
-
-impl<'a> SeqAst<'a> {
-    pub fn iter(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        self.0.green_children().map(ExprAst::from)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct ChoiceAst<'a>(pub &'a Group<Gibberish>);
-
-impl<'a> ChoiceAst<'a> {
-    pub fn iter(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        self.0.green_children().map(ExprAst::from)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct CallAst<'a>(pub &'a Group<Gibberish>);
-
-impl<'a> CallAst<'a> {
-    pub fn target(&self) -> ExprAst<'a> {
-        self.0.green_children().next().unwrap().into()
-    }
-
-    pub fn arms(&self) -> impl Iterator<Item = CallArmAst<'a>> {
-        self.0.green_children().filter_map(|it| {
-            if it.kind == S::Call {
-                Some(CallArmAst(it))
-            } else {
-                None
-            }
-        })
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct CallArmAst<'a>(pub &'a Group<Gibberish>);
-
-impl<'a> CallArmAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<Gibberish> {
-        self.0
-            .green_node_by_name(S::CallName)
-            .unwrap()
-            .lexeme_by_kind(T::Ident)
-            .unwrap()
-    }
-
-    pub fn args(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        let ret: Box<dyn Iterator<Item = ExprAst<'a>>> =
-            if let Some(args) = self.0.green_node_by_name(S::Args) {
-                Box::new(args.green_children().map(ExprAst::from))
-            } else {
-                Box::new(empty())
-            };
-        ret
+impl<'a> ExprAst<'a> {
+    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
+        match self {
+            ExprAst::Ident(lexeme) => build_ident(builder, lexeme),
+            ExprAst::Seq(seq_ast) => seq_ast.build(builder),
+            ExprAst::Choice(choice_ast) => choice_ast.build(builder),
+            ExprAst::Call(member_ast) => member_ast.build(builder),
+        }
     }
 }

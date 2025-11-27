@@ -1,19 +1,15 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
-use gibberish_core::{
-    err::ParseError,
-    lang::Lang,
-    node::{Node, Span},
-};
+use gibberish_core::{err::ParseError, lang::Lang, node::Node};
 
 pub mod regex;
 pub mod simple;
 
 pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &str, lang: &L) {
     let red = Color::Red;
-    let blue = Color::Cyan;
+    // let blue = Color::Cyan;
     let error_span = error.span();
     match error {
-        ParseError::MissingError { expected, start } => {
+        ParseError::MissingError { expected, .. } => {
             let expected_txt = expected
                 .iter()
                 .map(|it| it.debug_name(lang))
@@ -41,7 +37,7 @@ pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &
         ParseError::Unexpected { .. } => {
             let mut report = Report::build(ReportKind::Error, (filename, error_span.clone()))
                 .with_code(3)
-                .with_message(format!("Unexpected",));
+                .with_message("Unexpected".to_string());
             // Generate & choose some colours for each of our elements
             report = report.with_label(
                 Label::new((filename, error_span.clone()))

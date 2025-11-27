@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use gibberish_core::lang::Lang;
 
 use crate::api::Parser;
 

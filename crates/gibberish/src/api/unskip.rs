@@ -1,6 +1,6 @@
 use gibberish_core::{
     err::Expected,
-    lang::{CompiledLang, Lang},
+    lang::CompiledLang,
 };
 
 use crate::api::ptr::{ParserCache, ParserIndex};

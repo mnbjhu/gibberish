@@ -18,6 +18,7 @@ pub enum StmtAst<'a> {
     Keyword(KeywordDefAst<'a>),
     Parser(ParserDefAst<'a>),
     Fold(FoldDefAst<'a>),
+    #[allow(unused)]
     Highlight(HighlightAst<'a>),
 }
 
@@ -38,18 +39,6 @@ impl<'a> From<&'a Group<Gibberish>> for StmtAst<'a> {
             S::KwDef => StmtAst::Keyword(KeywordDefAst(value)),
             S::HighlightDef => StmtAst::Highlight(HighlightAst(value)),
             kind => panic!("Unexpected kind for stmt: {kind}"),
-        }
-    }
-}
-
-impl<'a> StmtAst<'a> {
-    pub fn name(&self) -> &'a str {
-        match self {
-            StmtAst::Token(token_def_ast) => &token_def_ast.name().text,
-            StmtAst::Keyword(keyword_def_ast) => &keyword_def_ast.name().text,
-            StmtAst::Parser(parser_def_ast) => &parser_def_ast.name().text,
-            StmtAst::Fold(fold_def_ast) => &fold_def_ast.name().text,
-            StmtAst::Highlight(_) => "highlight",
         }
     }
 }

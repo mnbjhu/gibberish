@@ -1,7 +1,5 @@
 use std::ops::Range;
 
-use thiserror::Error;
-
 #[derive(Debug)]
 pub enum RegexAst<'a> {
     Exact(&'a str),
@@ -26,9 +24,6 @@ pub enum OptionAst<'a> {
     Char(u8),
     Regex(RegexAst<'a>),
 }
-
-#[derive(Debug, Error)]
-pub enum RegexParseErr {}
 
 pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
     if let Some(special) = parse_special(regex, offset) {
@@ -160,7 +155,7 @@ fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst<'a>>
     }
 }
 
-fn parse_capture<'a>(regex: &'a str, offset: &mut usize) -> bool {
+fn parse_capture(regex: &str, offset: &mut usize) -> bool {
     if !matches!(regex.chars().nth(*offset), Some('?')) {
         return true;
     }

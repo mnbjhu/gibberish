@@ -7,7 +7,6 @@ use std::{
     sync::mpsc,
 };
 
-use crate::api::ptr::ParserCache;
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
