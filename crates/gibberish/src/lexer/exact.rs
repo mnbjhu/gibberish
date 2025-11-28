@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::lexer::{RegexAst, build::LexerBuilderState};
 
-pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     let start = *offset;
     loop {
         match regex.chars().nth(*offset) {
@@ -13,7 +13,7 @@ pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
     if start == *offset {
         None
     } else {
-        Some(RegexAst::Exact(&regex[start..*offset]))
+        Some(RegexAst::Exact(regex[start..*offset].to_string()))
     }
 }
 

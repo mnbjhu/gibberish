@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_regex};
 
-pub fn parse_seq<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_seq(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let mut res = vec![];
     loop {
         if matches!(regex.chars().nth(*offset), None | Some('|') | Some(')')) {
@@ -21,10 +21,10 @@ pub fn parse_seq<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>>
     }
 }
 
-pub fn build_seq_regex<'a>(
+pub fn build_seq_regex(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
-    parts: &[RegexAst<'a>],
+    parts: &[RegexAst],
 ) -> usize {
     let id = state.id();
     let parts = parts

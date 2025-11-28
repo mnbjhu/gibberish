@@ -13,7 +13,7 @@ pub fn parse_capture(regex: &str, offset: &mut usize) -> bool {
     false
 }
 
-pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     if !matches!(regex.chars().nth(*offset), Some('(')) {
         return None;
     }
@@ -41,7 +41,7 @@ pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
 pub fn build_group_regex<'a>(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
-    options: &[RegexAst<'a>],
+    options: &[RegexAst],
     capture: bool,
 ) -> usize {
     let id = state.id();

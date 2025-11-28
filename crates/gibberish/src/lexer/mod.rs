@@ -10,24 +10,25 @@ pub mod option;
 pub mod seq;
 
 #[derive(Debug)]
-pub enum RegexAst<'a> {
-    Exact(&'a str),
-    Seq(Vec<RegexAst<'a>>),
+pub enum RegexAst {
+    Exact(String),
+    Seq(Vec<RegexAst>),
     Choice {
         negate: bool,
-        options: Vec<OptionAst<'a>>,
+        options: Vec<OptionAst>,
     },
     Group {
-        options: Vec<RegexAst<'a>>,
+        options: Vec<RegexAst>,
         capture: bool,
     },
-    Rep0(Box<RegexAst<'a>>),
-    Rep1(Box<RegexAst<'a>>),
+    Rep0(Box<RegexAst>),
+    Rep1(Box<RegexAst>),
     Whitepace,
     Any,
+    Error,
 }
 
-pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     if let Some(special) = parse_special(regex, offset) {
         return Some(special);
     }
@@ -43,7 +44,7 @@ pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a
     None
 }
 
-pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     let current = regex.chars().nth(*offset);
     if let Some('.') = current {
         *offset += 1;
@@ -52,21 +53,21 @@ pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<
     if let Some('\\') = current {
         let next = regex.chars().nth(*offset + 1)?;
         let res = match next {
-            'n' => Some(RegexAst::Exact("\n")),
-            't' => Some(RegexAst::Exact("\t")),
-            '"' => Some(RegexAst::Exact("\"")),
+            'n' => Some(RegexAst::Exact("\n".to_string())),
+            't' => Some(RegexAst::Exact("\t".to_string())),
+            '"' => Some(RegexAst::Exact("\"".to_string())),
             's' => Some(RegexAst::Whitepace),
-            '\\' => Some(RegexAst::Exact("\\")),
-            '[' => Some(RegexAst::Exact("[")),
-            ']' => Some(RegexAst::Exact("]")),
-            '(' => Some(RegexAst::Exact("(")),
-            ')' => Some(RegexAst::Exact(")")),
-            '{' => Some(RegexAst::Exact("{")),
-            '}' => Some(RegexAst::Exact("}")),
-            '+' => Some(RegexAst::Exact("+")),
-            '*' => Some(RegexAst::Exact("*")),
-            '|' => Some(RegexAst::Exact("|")),
-            '.' => Some(RegexAst::Exact(".")),
+            '\\' => Some(RegexAst::Exact("\\".to_string())),
+            '[' => Some(RegexAst::Exact("[".to_string())),
+            ']' => Some(RegexAst::Exact("]".to_string())),
+            '(' => Some(RegexAst::Exact("(".to_string())),
+            ')' => Some(RegexAst::Exact(")".to_string())),
+            '{' => Some(RegexAst::Exact("{".to_string())),
+            '}' => Some(RegexAst::Exact("}".to_string())),
+            '+' => Some(RegexAst::Exact("+".to_string())),
+            '*' => Some(RegexAst::Exact("*".to_string())),
+            '|' => Some(RegexAst::Exact("|".to_string())),
+            '.' => Some(RegexAst::Exact(".".to_string())),
             _ => None,
         };
         if res.is_some() {

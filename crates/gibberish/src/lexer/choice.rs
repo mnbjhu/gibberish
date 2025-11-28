@@ -6,7 +6,7 @@ use crate::lexer::{
     option::{OptionAst, parse_option},
 };
 
-pub fn parse_choice<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'a>> {
+pub fn parse_choice(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let Some('[') = regex.chars().nth(*offset) else {
         return None;
     };
@@ -31,10 +31,10 @@ pub fn parse_choice<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst<'
     None
 }
 
-pub fn build_choice_regex<'a>(
+pub fn build_choice_regex(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
-    options: &[OptionAst<'a>],
+    options: &[OptionAst],
 ) -> usize {
     let id = state.id();
     let parts = options
@@ -89,7 +89,7 @@ function l $lex_{id} (l %ptr, l %len) {{
 pub fn build_negated_chocie_regex<'a>(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
-    options: &[OptionAst<'a>],
+    options: &[OptionAst],
 ) -> usize {
     let id = state.id();
     let parts = options

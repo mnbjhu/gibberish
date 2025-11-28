@@ -6,13 +6,13 @@ use std::{
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_special};
 
 #[derive(Debug)]
-pub enum OptionAst<'a> {
+pub enum OptionAst {
     Range(Range<u8>),
     Char(u8),
-    Regex(RegexAst<'a>),
+    Regex(RegexAst),
 }
 
-pub fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst<'a>> {
+pub fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst> {
     if let Some(special) = parse_special(regex, offset) {
         return Some(OptionAst::Regex(special));
     }
@@ -32,7 +32,7 @@ pub fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst<
     }
 }
 
-impl<'a> Display for OptionAst<'a> {
+impl Display for OptionAst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OptionAst::Range(range) => write!(f, "{}-{}", range.start as char, range.end as char),
@@ -42,7 +42,7 @@ impl<'a> Display for OptionAst<'a> {
     }
 }
 
-impl<'a> OptionAst<'a> {
+impl<'a> OptionAst {
     pub fn build(&self, state: &mut LexerBuilderState, f: &mut impl Write) -> usize {
         let id = state.id();
         match self {

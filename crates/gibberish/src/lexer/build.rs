@@ -5,7 +5,7 @@ use crate::lexer::{
     choice::{build_choice_regex, build_negated_chocie_regex},
     exact::build_exact_regex,
     group::build_group_regex,
-    seq::{build_seq_regex, parse_seq},
+    seq::build_seq_regex,
 };
 
 pub struct LexerBuilderState {
@@ -24,7 +24,7 @@ impl LexerBuilderState {
     }
 }
 
-impl<'a> RegexAst<'a> {
+impl RegexAst {
     pub fn build(&self, state: &mut LexerBuilderState, f: &mut impl Write) -> usize {
         match self {
             RegexAst::Exact(text) => build_exact_regex(f, state, text),
@@ -137,15 +137,15 @@ function w $lex_{id} (l %ptr, l %len) {{
                 .unwrap();
                 id
             }
+            RegexAst::Error => panic!("Should exist in this phase of compile"),
         }
     }
 }
 
-pub fn build_lexer_qbe(lexer: &[(String, String)], f: &mut impl Write) {
+pub fn build_lexer_qbe(lexer: &[(String, RegexAst)], f: &mut impl Write) {
     let mut state = LexerBuilderState::new();
     for (name, regex) in lexer {
-        let regex = parse_seq(regex, &mut 0).unwrap();
-        build_token_parser(name, &regex, &mut state, f)
+        build_token_parser(name, regex, &mut state, f)
     }
     create_lex_function(f, lexer);
     let names = lexer.iter().map(|(it, _)| it.as_str()).collect::<Vec<_>>();
@@ -210,7 +210,7 @@ export function :str_slice ${kind}_name(w %kind) {{"
     )
     .unwrap();
 }
-fn create_lex_function(f: &mut impl Write, names: &[(String, String)]) {
+fn create_lex_function(f: &mut impl Write, names: &[(String, RegexAst)]) {
     write!(
         f,
         "
@@ -292,9 +292,9 @@ export function :vec $lex(l %ptr, l %len) {{
     .unwrap()
 }
 
-pub fn build_token_parser<'a>(
+pub fn build_token_parser(
     name: &str,
-    regex: &RegexAst<'a>,
+    regex: &RegexAst,
     state: &mut LexerBuilderState,
     f: &mut impl Write,
 ) {

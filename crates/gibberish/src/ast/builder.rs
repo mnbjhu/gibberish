@@ -1,16 +1,18 @@
 use gibberish_core::node::Span;
 
 use crate::{
+    lexer::RegexAst,
     parser::ptr::{ParserCache, ParserIndex},
     report::simple::report_simple_error,
 };
 
 pub struct ParserBuilder {
-    pub lexer: Vec<(String, String)>,
+    pub lexer: Vec<(String, RegexAst)>,
     pub vars: Vec<(String, ParserIndex)>,
     pub cache: ParserCache,
     text: String,
     filename: String,
+    has_errored: bool,
 }
 
 impl ParserBuilder {
@@ -21,12 +23,15 @@ impl ParserBuilder {
             cache: ParserCache::new(),
             text,
             filename,
+            has_errored: false,
         }
     }
 
-    pub fn error(&self, msg: &str, span: Span) {
+    pub fn error(&mut self, msg: &str, span: Span) {
+        self.has_errored = true;
         report_simple_error(msg, span, &self.text, &self.filename);
     }
+
     pub fn replace_var(&mut self, name: &str, p: ParserIndex) -> bool {
         if let Some(existing) = self.get_var(name) {
             *existing.get_mut(&mut self.cache) = p.get_ref(&self.cache).clone();

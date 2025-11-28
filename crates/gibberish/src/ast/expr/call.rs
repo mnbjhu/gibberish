@@ -27,6 +27,7 @@ impl<'a> CallAst<'a> {
     pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         let mut expr = self.target().build(builder);
         for member in self.arms() {
+            let span = &member.name().span;
             match member.name().text.as_str() {
                 "repeated" => {
                     let args = member
@@ -34,7 +35,10 @@ impl<'a> CallAst<'a> {
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if !args.is_empty() {
-                        panic!("'repeated' expected no args but {} were found", args.len())
+                        builder.error(
+                            &format!("'repeated' expected no args but {} were found", args.len()),
+                            span.clone(),
+                        );
                     }
                     expr = expr.repeated(&mut builder.cache)
                 }
@@ -44,7 +48,11 @@ impl<'a> CallAst<'a> {
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
-                        panic!("'sep_by' expected one arg but {} were found", args.len())
+                        builder.error(
+                            &format!("'sep_by' expected one arg but {} were found", args.len()),
+                            span.clone(),
+                        );
+                        panic!()
                     }
                     expr = expr.sep_by(args[0].clone(), &mut builder.cache)
                 }
@@ -54,9 +62,12 @@ impl<'a> CallAst<'a> {
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
-                        panic!(
-                            "'sep_by_padded' expected one arg but {} were found",
-                            args.len()
+                        builder.error(
+                            &format!(
+                                "'sep_by_padded' expected one arg but {} were found",
+                                args.len()
+                            ),
+                            span.clone(),
                         )
                     }
                     expr = expr.sep_by_extra(args[0].clone(), &mut builder.cache)
@@ -67,7 +78,10 @@ impl<'a> CallAst<'a> {
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 2 {
-                        panic!("'delim_by' expected 2 args but {} were found", args.len())
+                        builder.error(
+                            &format!("'delim_by' expected 2 args but {} were found", args.len()),
+                            span.clone(),
+                        )
                     }
                     expr = expr.delim_by(args[0].clone(), args[1].clone(), &mut builder.cache)
                 }
@@ -77,12 +91,15 @@ impl<'a> CallAst<'a> {
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
-                        panic!("'skip' expected 1 arg but {} were found", args.len())
+                        builder.error(
+                            &format!("'skip' expected 1 arg but {} were found", args.len()),
+                            span.clone(),
+                        )
                     }
                     if let Parser::Just(tok) = args[0].get_ref(&builder.cache) {
                         expr = expr.skip(tok.0, &mut builder.cache)
                     } else {
-                        panic!("Expected a token but found a parser")
+                        builder.error("Expected a token but found a parser", span.clone())
                     }
                 }
                 "unskip" => {
