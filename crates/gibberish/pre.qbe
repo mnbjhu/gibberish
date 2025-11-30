@@ -3,6 +3,7 @@ type :vec = { l 3 }
 type :token = { l 3 }
 
 type :node = { w 2, l 3 }
+type :lexer_state = { l 2, l 1, l 1}
 
 data $match_just = { b "Matched just %d\n", b 0 }
 data $eof_just = { b "Eof just %d\n", b 0 }

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use gibberish_core::err::Expected;
 use gibberish_core::lang::CompiledLang;
 
@@ -60,6 +62,14 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             inner = self.0.index
         )
         .unwrap()
+    }
+
+    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+        self.0.get_ref(cache).start_tokens(cache)
+    }
+
+    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+        true
     }
 }
 

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
@@ -134,6 +136,22 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             inner = self.0.first().unwrap().index,
         )
         .unwrap()
+    }
+
+    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+        let mut res = HashSet::new();
+        for item in &self.0 {
+            let item = item.get_ref(cache);
+            res.extend(item.start_tokens(cache));
+            if !item.is_optional(cache) {
+                return res.into_iter().collect();
+            }
+        }
+        res
+    }
+
+    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+        self.0.iter().all(|it| it.get_ref(cache).is_optional(cache))
     }
 }
 

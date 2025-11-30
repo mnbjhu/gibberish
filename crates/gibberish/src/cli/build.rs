@@ -11,6 +11,7 @@ use crate::parser::ptr::ParserIndex;
 
 use crate::ast::RootAst;
 use crate::lexer::build::create_name_function;
+use crate::report::{report_errors, report_parse_error};
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
@@ -57,8 +58,9 @@ impl ParserBuilder {
 pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex) {
     let parser_text = fs::read_to_string(parser_file).unwrap();
     let res = Gibberish::parse(&parser_text);
-    let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
+    report_errors(&res, &parser_text, parser_filename, &Gibberish);
+    let dsl_ast = RootAst(res.as_group());
     let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
     let parser = dsl_ast.build_parser(&mut builder);
     (builder, parser)

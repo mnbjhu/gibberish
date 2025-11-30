@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::parser::ptr::{ParserCache, ParserIndex};
@@ -16,6 +18,7 @@ impl Choice {
             .flat_map(|it| it.get_ref(cache).expected(cache))
             .collect()
     }
+
     pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
@@ -80,6 +83,18 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{",
 }}"
         )
         .unwrap();
+    }
+
+    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+        let mut set = HashSet::new();
+        for option in &self.options {
+            set.extend(option.get_ref(cache).start_tokens(cache));
+        }
+        set
+    }
+
+    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+        false // TODO: Look into whether this is easy to support
     }
 }
 

@@ -1,6 +1,10 @@
 keyword select;
 keyword from;
 keyword delete;
+keyword define;
+keyword table;
+keyword field;
+keyword on;
 
 token NUM = "[0-9]+";
 token STR = "\"[^\"]*\"";
@@ -14,28 +18,24 @@ token TIMES = "\*";
 token LParen = "\(";
 token RParen = "\)";
 
-parser field = IDENT;
+parser field_name = IDENT;
 parser num = NUM;
 parser string = STR;
 
 parser _expr;
-parser _atom = field | num | string | _expr.delim_by(LParen, RParen);
+parser _atom = field_name | num | string | _expr.delim_by(LParen, RParen);
 parser product = _atom fold TIMES + _atom;
 parser sum = product fold PLUS + product;
 parser _expr = sum;
 
-parser table = IDENT;
+parser table_name = IDENT;
 
-parser select_stmt = select + _expr.sep_by(COMMA) + from + table;
+parser select_stmt = select + _expr.sep_by(COMMA) + from + table_name;
 parser delete_stmt = delete + from + IDENT;
+parser define_table_stmt = define + table + table_name;
+parser define_field_stmt = define + field + field_name on table_name;
 
 parser _stmt = delete_stmt | select_stmt;
-parser root = _stmt
+parser _root = _stmt
   .sep_by(SEMI)
   .skip(WHITESPACE);
-
-highlight select @ "keyword";
-highlight from @ "keyword";
-highlight delete @ "keyword";
-highlight NUM @ "number";
-highlight STR @ "string"

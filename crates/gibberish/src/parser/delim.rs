@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     ast::try_parse,
     parser::ptr::{ParserCache, ParserIndex},
@@ -77,6 +79,14 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             open = self.start.index
         )
         .unwrap()
+    }
+
+    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+        self.start.get_ref(cache).start_tokens(cache)
+    }
+
+    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+        false // TODO: Look into whether this is easy to support
     }
 }
 

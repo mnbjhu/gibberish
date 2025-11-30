@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -106,6 +106,16 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         )
         .unwrap()
     }
+
+    pub fn start_tokens(&self) -> HashSet<u32> {
+        let mut res = HashSet::new();
+        res.insert(self.0);
+        res
+    }
+
+    pub fn is_optional(&self) -> bool {
+        false
+    }
 }
 
 pub fn just(tok: u32, cache: &mut ParserCache) -> ParserIndex {
@@ -117,4 +127,89 @@ impl Display for Just {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Just({})", self.0)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use gibberish_core::{
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+
+    use crate::parser::tests::build_test_parser;
+
+    fn parse_just_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"
+        token num = "[0-9]+";
+        token whitespace = "\s+";
+        parser _root = num
+        "#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[test]
+    fn test_just() {
+        let (lang, lst) = parse_just_test("123");
+        assert_eq!("root", lang.syntax_name(&lst.name()));
+        assert_eq!(1, lst.as_group().children.len());
+
+        let token = lst.as_group().children.first().unwrap();
+        if let Node::Lexeme(l) = token {
+            assert_eq!("num", lang.token_name(&l.kind))
+        } else {
+            panic!("Expected a 'just' token but found {token:?}")
+        }
+    }
+
+    #[test]
+    fn test_just_error() {
+        let (lang, lst) = parse_just_test("   123");
+        assert_eq!("root", lang.syntax_name(&lst.name()));
+        assert_eq!(2, lst.as_group().children.len());
+
+        let error = &lst.as_group().children[0];
+        let token = &lst.as_group().children[1];
+        if let Node::Err(err) = &error {
+            assert_eq!(1, err.actual().len());
+            assert_eq!("whitespace", lang.token_name(&err.actual()[0].kind))
+        } else {
+            panic!("Expected an error node")
+        }
+        if let Node::Lexeme(l) = token {
+            assert_eq!("num", lang.token_name(&l.kind))
+        } else {
+            panic!("Expected a 'num' token but found {token:?}")
+        }
+    }
+
+    // #[test]
+    // fn test_just_missing() {
+    //     let (lang, lst) = parse_just_test("");
+    //     assert_eq!("root", lang.syntax_name(&lst.name()));
+    //     assert_eq!(1, lst.as_group().children.len());
+    // }
+
+    // #[test]
+    // fn test_keyword_lex() {
+    //     let parser = r#"
+    //     keyword just;
+    //     keyword other;
+    //
+    //     parser _root = just;
+    //     "#;
+    //     let lang = build_test_parser(parser);
+    //     let lst = parse(&lang, "just");
+    //     assert_eq!("root", lang.syntax_name(&lst.name()));
+    //     assert_eq!(1, lst.as_group().children.len());
+    //
+    //     let token = lst.as_group().children.first().unwrap();
+    //     if let Node::Lexeme(l) = token {
+    //         assert_eq!("just", lang.token_name(&l.kind))
+    //     } else {
+    //         panic!("Expected a 'just' token but found {token:?}")
+    //     }
+    // }
 }

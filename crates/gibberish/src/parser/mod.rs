@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{collections::HashSet, fmt::Write};
 
 use choice::Choice;
 use delim::Delim;
@@ -167,5 +167,59 @@ function :vec $expected_{id}() {{
             len = expected.len()
         )
         .unwrap();
+    }
+
+    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+        match self {
+            Parser::Just(just) => just.start_tokens(),
+            Parser::Choice(choice) => choice.start_tokens(cache),
+            Parser::Seq(seq) => seq.start_tokens(cache),
+            Parser::Sep(sep) => sep.start_tokens(cache),
+            Parser::Delim(delim) => delim.start_tokens(cache),
+            Parser::Named(named) => named.start_tokens(cache),
+            Parser::Skip(skip) => skip.start_tokens(cache),
+            Parser::UnSkip(un_skip) => todo!(),
+            Parser::Optional(optional) => optional.start_tokens(cache),
+            Parser::FoldOnce(fold_once) => fold_once.start_tokens(cache),
+            Parser::Repeated(repeated) => repeated.start_tokens(cache),
+            Parser::Empty => todo!(),
+        }
+    }
+
+    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+        match self {
+            Parser::Just(just) => just.is_optional(),
+            Parser::Choice(choice) => choice.is_optional(cache),
+            Parser::Seq(seq) => seq.is_optional(cache),
+            Parser::Sep(sep) => sep.is_optional(cache),
+            Parser::Delim(delim) => delim.is_optional(cache),
+            Parser::Named(named) => named.is_optional(cache),
+            Parser::Skip(skip) => skip.is_optional(cache),
+            Parser::UnSkip(un_skip) => todo!(),
+            Parser::Optional(optional) => true,
+            Parser::FoldOnce(fold_once) => fold_once.is_optional(cache),
+            Parser::Repeated(repeated) => repeated.is_optional(cache),
+            Parser::Empty => todo!(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write as _;
+
+    use gibberish_core::lang::CompiledLang;
+    use tempfile::NamedTempFile;
+
+    use crate::cli::{self, build::BuildKind};
+
+    pub fn build_test_parser(src: &'static str) -> CompiledLang {
+        let mut src_file = NamedTempFile::new().unwrap();
+        write!(&mut src_file, "{src}").unwrap();
+        let src_file_path = src_file.path();
+        let lib = NamedTempFile::new().unwrap();
+        let lib_path = lib.path();
+        cli::build::build(src_file_path, Some(lib_path), &BuildKind::Dynamic);
+        CompiledLang::load(lib_path)
     }
 }

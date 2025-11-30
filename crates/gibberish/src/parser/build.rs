@@ -10,7 +10,11 @@ pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut i
         parser.build_peak(index, f);
         parser.build_expected(index, f, builder);
     }
-
+    let after_eof = if parser.get_ref(&builder.cache).is_optional(&builder.cache) {
+        "bump_err"
+    } else {
+        "missing"
+    };
     write!(
         f,
         "
@@ -24,7 +28,11 @@ export function w $parse(l %state_ptr) {{
     jnz %res, @check_eof, @end
 @check_eof
     %is_eof =l ceql %res, 2
-    jnz %is_eof, @end, @bump_err
+    jnz %is_eof, @end, @{after_eof}
+@missing
+    %expected =:vec call $expected_{inner}()
+    call $missing(l %state_ptr, l %expected)
+    jmp @bump_err
 @bump_err
     call $bump_err(l %state_ptr)
     jmp @loop
@@ -39,7 +47,7 @@ export function w $parse(l %state_ptr) {{
 }}
 ",
         inner = parser.index,
-        root = builder.vars.len()
+        root = builder.vars.len(),
     )
     .unwrap()
 }
