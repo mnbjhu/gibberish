@@ -45,9 +45,10 @@ pub fn build_choice_regex(
         f,
         "
 # RegexChoice
-function l $lex_{id} (l %ptr, l %len) {{
+function l $lex_{id} (l %lexer_state) {{
 @start
-    %start =l loadl $offset_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
     jmp @part_0
 "
     )
@@ -63,8 +64,8 @@ function l $lex_{id} (l %ptr, l %len) {{
             f,
             "
 @part_{index}
-    storel %start, $offset_ptr
-    %res =w call $lex_{part}(l %ptr, l %len)
+    storel %start, %offset_ptr
+    %res =w call $lex_{part}(l %lexer_state)
     jnz %res, @pass, @{next}
 "
         )
@@ -77,7 +78,7 @@ function l $lex_{id} (l %ptr, l %len) {{
     ret 1
 
 @fail
-    storel %start, $offset_ptr
+    storel %start, %offset_ptr
     ret 0
 }}
 "
@@ -86,7 +87,7 @@ function l $lex_{id} (l %ptr, l %len) {{
     id
 }
 
-pub fn build_negated_chocie_regex<'a>(
+pub fn build_negated_chocie_regex(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
     options: &[OptionAst],
@@ -100,9 +101,12 @@ pub fn build_negated_chocie_regex<'a>(
         f,
         "
 # RegexNegatedChoice
-function l $lex_{id} (l %ptr, l %len) {{
+function l $lex_{id} (l %lexer_state) {{
 @start
-    %start =l loadl $offset_ptr
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
     jmp @option_0
 "
     )
@@ -118,7 +122,7 @@ function l $lex_{id} (l %ptr, l %len) {{
             f,
             "
 @option_{index}
-    %res =w call $lex_{part}(l %ptr, l %len)
+    %res =w call $lex_{part}(l %lexer_state)
     jnz %res, @fail, @{next}
 "
         )
@@ -128,17 +132,17 @@ function l $lex_{id} (l %ptr, l %len) {{
         f,
         "
 @pass
-    %offset =l loadl $offset_ptr
+    %offset =l loadl %offset_ptr
     %is_eof =l ceql %offset, %len
     jnz %is_eof, @eof, @inc
 @inc
-    call $inc_offset()
+    call $inc_offset(l %lexer_state)
     ret 1
 @eof
     ret 1
 
 @fail
-    storel %start, $offset_ptr
+    storel %start, %offset_ptr
     ret 0
 }}
 "

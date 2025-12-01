@@ -28,7 +28,7 @@ pub enum RegexAst {
     Error,
 }
 
-pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
+pub fn parse_regex(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     if let Some(special) = parse_special(regex, offset) {
         return Some(special);
     }
@@ -44,7 +44,7 @@ pub fn parse_regex<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     None
 }
 
-pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
+pub fn parse_special(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let current = regex.chars().nth(*offset);
     if let Some('.') = current {
         *offset += 1;
@@ -68,6 +68,8 @@ pub fn parse_special<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst>
             '*' => Some(RegexAst::Exact("*".to_string())),
             '|' => Some(RegexAst::Exact("|".to_string())),
             '.' => Some(RegexAst::Exact(".".to_string())),
+            '$' => Some(RegexAst::Exact("$".to_string())),
+            '^' => Some(RegexAst::Exact("^".to_string())),
             _ => None,
         };
         if res.is_some() {

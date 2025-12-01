@@ -1,6 +1,11 @@
 use std::fmt::Write;
 
+use thiserror::Error;
+
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_regex};
+
+#[derive(Debug, Error)]
+pub enum RegexError {}
 
 pub fn parse_seq(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let mut res = vec![];
@@ -35,9 +40,10 @@ pub fn build_seq_regex(
         f,
         "
 # RegexSeq
-function l $lex_{id} (l %ptr, l %len) {{
+function l $lex_{id} (l %lexer_state) {{
 @start
-    %start =l loadl $offset_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
     jmp @part_0
 "
     )
@@ -53,7 +59,7 @@ function l $lex_{id} (l %ptr, l %len) {{
             f,
             "
 @part_{index}
-    %res =w call $lex_{part}(l %ptr, l %len)
+    %res =w call $lex_{part}(l %lexer_state)
     jnz %res, @{next}, @fail
 "
         )
@@ -66,7 +72,7 @@ function l $lex_{id} (l %ptr, l %len) {{
     ret 1
 
 @fail
-    storel %start, $offset_ptr
+    storel %start, %offset_ptr
     ret 0
 }}
 "

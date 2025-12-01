@@ -656,3 +656,478 @@ function w $inc_offset(l %lexer_state) {
     storel %offset, %offset_ptr
     ret 0
 }
+
+# RegexRange
+function w $lex_2(l %lexer_state) {
+@start
+    %ptr =l loadl %lexer_state
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %lower =w cugew %current, 48
+    %upper =w culew %current, 57
+    %res =w and %lower, %upper
+    jnz %res, @pass, @fail
+@pass
+    call $inc_offset(l %lexer_state)
+    ret 1
+@fail
+    ret 0
+}
+
+# RegexChoice
+function l $lex_1 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    storel %start, %offset_ptr
+    %res =w call $lex_2(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+# Rep0Regex
+function w $lex_3 (l %lexer_state) {
+@start
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
+    %res =w call $lex_1(l %lexer_state)
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl %offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_1(l %lexer_state)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+@fail
+    ret 0
+}
+
+# RegexSeq
+function l $lex_0 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_3(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+function l $lex_num (l %lexer_state) {
+@start
+    %res =w call $lex_0(l %lexer_state)
+    jnz %res, @pass, @fail
+@pass
+    %group_ptr =l add %lexer_state, 24
+    %group =l loadl %group_ptr
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+
+function w $lex_5 (l %lexer_state) {
+@start
+    %ptr =l loadl %lexer_state
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    %index =l add %offset, %ptr
+    %current =w loadub %index
+    %space =w ceqw %current, 32
+    %lower =w cugew %current, 9
+    %upper =w culew %current, 13
+    %res =w and %lower, %upper
+    %res =w or %res, %space
+    jnz %res, @pass, @fail
+@fail
+    ret 0
+@pass
+    call $inc_offset(l %lexer_state)
+    ret 1
+}
+
+# Rep0Regex
+function w $lex_6 (l %lexer_state) {
+@start
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @fail, @check_start
+@check_start
+    %res =w call $lex_5(l %lexer_state)
+    jnz %res, @check_eof, @fail
+@check_eof
+    %offset =l loadl %offset_ptr
+    %eof =w ceql %offset, %len
+    jnz %eof, @pass, @loop
+@loop
+    %res =w call $lex_5(l %lexer_state)
+    jnz %res, @check_eof, @pass
+@pass
+    ret 1
+@fail
+    ret 0
+}
+
+# RegexSeq
+function l $lex_4 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_6(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+function l $lex_whitespace (l %lexer_state) {
+@start
+    %res =w call $lex_4(l %lexer_state)
+    jnz %res, @pass, @fail
+@pass
+    %group_ptr =l add %lexer_state, 24
+    %group =l loadl %group_ptr
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+export function :vec $lex(l %ptr, l %len) {
+@start
+    %lexer_state =l alloc8 32
+
+    %len_ptr =l add %lexer_state, 8
+    %offset_ptr =l add %lexer_state, 16
+    %group_end_ptr =l add %lexer_state, 24
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
+    %tokens =:vec call $new_vec(l 24)
+    %last_was_error =w copy 0
+    %total_offset =l copy 0
+    jmp @loop
+@loop
+    jnz %len, @check_num, @end
+
+@check_num
+    storel 0, %group_end_ptr
+    %res =l call $lex_num(l %lexer_state)
+    jnz %res, @bump_num, @check_whitespace
+@bump_num
+    %end =l add %total_offset, %res
+    %tok =:token call $new_token(l 0, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
+    %last_was_error =w copy 0
+    jmp @loop
+
+@check_whitespace
+    storel 0, %group_end_ptr
+    %res =l call $lex_whitespace(l %lexer_state)
+    jnz %res, @bump_whitespace, @fail
+@bump_whitespace
+    %end =l add %total_offset, %res
+    %tok =:token call $new_token(l 1, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
+    %last_was_error =w copy 0
+    jmp @loop
+
+@fail
+    jnz %last_was_error, @fail_again, @fail_first
+@fail_first
+    %end =l add %total_offset, 1
+    %tok =:token call $new_token(l 2, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    jmp @fail_finish
+@fail_again
+    %end =l add %total_offset, 1
+    %last_ptr =l call $last(l %tokens, l 24)
+    %last_end_ptr =l add %last_ptr, 16
+    %last_end =l loadl %last_end_ptr
+    %new_end =l add %last_end, 1
+    storel %new_end, %last_end_ptr
+    jmp @fail_finish
+
+@fail_finish
+    %total_offset =l copy %end
+    %ptr =l add %ptr, 1
+    %len =l sub %len, 1
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+    %last_was_error =w copy 1
+    jmp @loop
+    
+@end
+    ret %tokens
+}
+
+data $num_token_name = { b "num", b 0 }
+data $num_token_name_len = { l 3 }
+
+data $whitespace_token_name = { b "whitespace", b 0 }
+data $whitespace_token_name_len = { l 10 }
+
+data $err_token_name = { b "token_error", b 0}
+
+
+export function :str_slice $token_name(w %kind) {
+@num
+    %ptr =l copy $num_token_name
+    %len =l copy 3
+    %res =w ceqw %kind, 0
+    jnz %res, @found, @whitespace
+
+@whitespace
+    %ptr =l copy $whitespace_token_name
+    %len =l copy 10
+    %res =w ceqw %kind, 1
+    jnz %res, @found, @err
+
+@err
+    %ptr =l copy $err_token_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}
+function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {
+
+@check_0
+    %res =l ceql %id, 0
+    jnz %res, @do_0, @err
+@do_0
+    %ret =l call $peak_0(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@err
+    ret 0
+}
+
+
+# Parse Just
+function w $parse_0(l %state_ptr, w %recover) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 0
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_0(l %state_ptr, l %offset, w %recover) {
+@start
+    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
+    jnz %is_eof, @eof, @check_ok
+@eof
+    ret 2
+@check_ok
+    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
+    %res =l ceql %current_kind, 0
+    jnz %res, @ret_ok, @recover
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+data $expected_0_data = {l 0, l 0}
+
+function :vec $expected_0() {
+@start
+    %ptr =l call $malloc(l 16)
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_0_data, l 16)
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel 1, %len_ptr
+    storel 1, %cap_ptr
+    ret %res
+}
+
+data $root_group_id = { w 1 }
+
+export function w $parse(l %state_ptr) {
+@start
+    jmp @loop
+@loop
+    %res =l call $parse_0(l %state_ptr, w 1)
+    jnz %res, @check_eof, @end
+@check_eof
+    %is_eof =l ceql %res, 2
+    jnz %is_eof, @end, @missing
+@missing
+    %expected =:vec call $expected_0()
+    call $missing(l %state_ptr, l %expected)
+    jmp @bump_err
+@bump_err
+    call $bump_err(l %state_ptr)
+    jmp @loop
+@end
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @ret, @expected_eof
+@expected_eof
+    call $bump_err(l %state_ptr)
+    jmp @end
+@ret
+    ret 1
+}
+
+data $_root_group_name = { b "_root", b 0 }
+data $_root_group_name_len = { l 5 }
+
+data $root_group_name = { b "root", b 0 }
+data $root_group_name_len = { l 4 }
+
+data $err_group_name = { b "group_error", b 0}
+
+
+export function :str_slice $group_name(w %kind) {
+@_root
+    %ptr =l copy $_root_group_name
+    %len =l copy 5
+    %res =w ceqw %kind, 0
+    jnz %res, @found, @root
+
+@root
+    %ptr =l copy $root_group_name
+    %len =l copy 4
+    %res =w ceqw %kind, 1
+    jnz %res, @found, @err
+
+@err
+    %ptr =l copy $err_group_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}

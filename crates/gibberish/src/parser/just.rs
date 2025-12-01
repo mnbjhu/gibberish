@@ -136,12 +136,12 @@ mod tests {
         node::Node,
     };
     use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
 
     use crate::parser::tests::build_test_parser;
 
     fn parse_just_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
-        let parser = r#"
-        token num = "[0-9]+";
+        let parser = r#"token num = "[0-9]+";
         token whitespace = "\s+";
         parser _root = num
         "#;
@@ -150,6 +150,7 @@ mod tests {
         (lang, node)
     }
 
+    #[serial]
     #[test]
     fn test_just() {
         let (lang, lst) = parse_just_test("123");
@@ -164,6 +165,7 @@ mod tests {
         }
     }
 
+    #[serial]
     #[test]
     fn test_just_error() {
         let (lang, lst) = parse_just_test("   123");
@@ -185,31 +187,34 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_just_missing() {
-    //     let (lang, lst) = parse_just_test("");
-    //     assert_eq!("root", lang.syntax_name(&lst.name()));
-    //     assert_eq!(1, lst.as_group().children.len());
-    // }
+    #[serial]
+    #[test]
+    fn test_just_missing() {
+        let (lang, lst) = parse_just_test("");
+        assert_eq!("root", lang.syntax_name(&lst.name()));
+        assert_eq!(1, lst.as_group().children.len());
+    }
 
-    // #[test]
-    // fn test_keyword_lex() {
-    //     let parser = r#"
-    //     keyword just;
-    //     keyword other;
-    //
-    //     parser _root = just;
-    //     "#;
-    //     let lang = build_test_parser(parser);
-    //     let lst = parse(&lang, "just");
-    //     assert_eq!("root", lang.syntax_name(&lst.name()));
-    //     assert_eq!(1, lst.as_group().children.len());
-    //
-    //     let token = lst.as_group().children.first().unwrap();
-    //     if let Node::Lexeme(l) = token {
-    //         assert_eq!("just", lang.token_name(&l.kind))
-    //     } else {
-    //         panic!("Expected a 'just' token but found {token:?}")
-    //     }
-    // }
+    #[serial]
+    #[test]
+    fn test_keyword_lex() {
+        let parser = r#"keyword just;
+        keyword other;
+        parser _root = just"#;
+        let lang = build_test_parser(parser);
+        let lst = parse(&lang, "just");
+        assert_eq!("root", lang.syntax_name(&lst.name()));
+        assert_eq!(
+            1,
+            lst.as_group().children.len(),
+            "Expected one child but found {lst:?}"
+        );
+
+        let token = lst.as_group().children.first().unwrap();
+        if let Node::Lexeme(l) = token {
+            assert_eq!("just", lang.token_name(&l.kind))
+        } else {
+            panic!("Expected a 'just' token but found {token:?}")
+        }
+    }
 }

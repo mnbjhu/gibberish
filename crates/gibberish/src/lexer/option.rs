@@ -12,7 +12,7 @@ pub enum OptionAst {
     Regex(RegexAst),
 }
 
-pub fn parse_option<'a>(regex: &'a str, offset: &mut usize) -> Option<OptionAst> {
+pub fn parse_option(regex: &str, offset: &mut usize) -> Option<OptionAst> {
     if let Some(special) = parse_special(regex, offset) {
         return Some(OptionAst::Regex(special));
     }
@@ -42,7 +42,7 @@ impl Display for OptionAst {
     }
 }
 
-impl<'a> OptionAst {
+impl OptionAst {
     pub fn build(&self, state: &mut LexerBuilderState, f: &mut impl Write) -> usize {
         let id = state.id();
         match self {
@@ -50,9 +50,11 @@ impl<'a> OptionAst {
                 f,
                 "
 # RegexRange
-function w $lex_{id}(l %ptr, l %len) {{
+function w $lex_{id}(l %lexer_state) {{
 @start
-    %offset =l loadl $offset_ptr
+    %ptr =l loadl %lexer_state
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
     %index =l add %offset, %ptr
     %current =w loadub %index
     %lower =w cugew %current, {start}
@@ -60,7 +62,7 @@ function w $lex_{id}(l %ptr, l %len) {{
     %res =w and %lower, %upper
     jnz %res, @pass, @fail
 @pass
-    call $inc_offset()
+    call $inc_offset(l %lexer_state)
     ret 1
 @fail
     ret 0
@@ -74,12 +76,12 @@ function w $lex_{id}(l %ptr, l %len) {{
                 f,
                 "
 # RegexChar
-function w $lex_{id}(l %ptr, l %len) {{
+function w $lex_{id}(l %lexer_state) {{
 @start
-    %res =w call $cmp_current(l %ptr, l %len, w {char})
+    %res =w call $cmp_current(l %lexer_state, w {char})
     jnz %res, @pass, @fail
 @pass
-    call $inc_offset()
+    call $inc_offset(l %lexer_state)
     ret 1
 @fail
     ret 0
@@ -93,9 +95,9 @@ function w $lex_{id}(l %ptr, l %len) {{
                     f,
                     "
 # RegexRegexOption
-function w $lex_{id}(l %ptr, l %len) {{
+function w $lex_{id}(l %offset_ptr) {{
 @start
-    %res =w call $lex_{inner_id}(l %ptr, l %len)
+    %res =w call $lex_{inner_id}(l %offset_ptr)
     ret %res
 }}
 "

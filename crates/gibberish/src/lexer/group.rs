@@ -13,7 +13,7 @@ pub fn parse_capture(regex: &str, offset: &mut usize) -> bool {
     false
 }
 
-pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
+pub fn parse_group(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     if !matches!(regex.chars().nth(*offset), Some('(')) {
         return None;
     }
@@ -38,7 +38,7 @@ pub fn parse_group<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
     Some(RegexAst::Group { options, capture })
 }
 
-pub fn build_group_regex<'a>(
+pub fn build_group_regex(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
     options: &[RegexAst],
@@ -53,9 +53,11 @@ pub fn build_group_regex<'a>(
         f,
         "
 # RegexGroup
-function l $lex_{id} (l %ptr, l %len) {{
+function l $lex_{id} (l %lexer_state) {{
 @start
-    %start =l loadl $offset_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %group_end_ptr =l add %lexer_state, 24
+    %start =l loadl %offset_ptr
     jmp @part_0
 "
     )
@@ -71,8 +73,8 @@ function l $lex_{id} (l %ptr, l %len) {{
             f,
             "
 @part_{index}
-    storel %start, $offset_ptr
-    %res =w call $lex_{part}(l %ptr, l %len)
+    storel %start, %offset_ptr
+    %res =w call $lex_{part}(l %lexer_state)
     jnz %res, @pass, @{next}
 "
         )
@@ -82,7 +84,7 @@ function l $lex_{id} (l %ptr, l %len) {{
         f,
         "
 @pass
-    %offset =l loadl $offset_ptr
+    %offset =l loadl %offset_ptr
 "
     )
     .unwrap();
@@ -90,7 +92,7 @@ function l $lex_{id} (l %ptr, l %len) {{
         write!(
             f,
             "
-    storel %offset, $group_end
+    storel %offset, %group_end_ptr
 "
         )
         .unwrap();
@@ -100,7 +102,7 @@ function l $lex_{id} (l %ptr, l %len) {{
         "
     ret 1
 @fail
-    storel %start, $offset_ptr
+    storel %start, %offset_ptr
     ret 0
 }}
 "

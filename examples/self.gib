@@ -51,12 +51,4 @@ parser highlight_def = HIGHTLIGHT + _query;
 parser _stmt = kw_def | token_def | parser_def | highlight_def;
 parser _root = _stmt
   .sep_by(semi)
-  .skip(whitespace);
-
-highlight PARSER @"keyword";
-highlight KEYWORD @"keyword";
-highlight TOKEN @"keyword";
-highlight FOLD @"keyword";
-highlight HIGHTLIGHT @"keyword";
-highlight call_name: (ident @"function");
-highlight string @"string"
+  .skip(whitespace)

@@ -43,15 +43,19 @@ impl RegexAst {
                 write!(
                     f,
                     "
-function w $lex_{id} (l %ptr, l %len) {{
+# Rep0Regex
+function w $lex_{id} (l %lexer_state) {{
 @start
     jmp @loop
 @check_eof
-    %offset =l loadl $offset_ptr
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
     %eof =w ceql %offset, %len
     jnz %eof, @pass, @loop
 @loop
-    %res =w call $lex_{inner}(l %ptr, l %len)
+    %res =w call $lex_{inner}(l %lexer_state)
     jnz %res, @check_eof, @pass
 @pass
     ret 1
@@ -67,21 +71,24 @@ function w $lex_{id} (l %ptr, l %len) {{
                 write!(
                     f,
                     "
-
-function w $lex_{id} (l %ptr, l %len) {{
+# Rep0Regex
+function w $lex_{id} (l %lexer_state) {{
 @start
-    %offset =l loadl $offset_ptr
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
     %eof =w ceql %offset, %len
     jnz %eof, @fail, @check_start
 @check_start
-    %res =w call $lex_{inner}(l %ptr, l %len)
+    %res =w call $lex_{inner}(l %lexer_state)
     jnz %res, @check_eof, @fail
 @check_eof
-    %offset =l loadl $offset_ptr
+    %offset =l loadl %offset_ptr
     %eof =w ceql %offset, %len
     jnz %eof, @pass, @loop
 @loop
-    %res =w call $lex_{inner}(l %ptr, l %len)
+    %res =w call $lex_{inner}(l %lexer_state)
     jnz %res, @check_eof, @pass
 @pass
     ret 1
@@ -99,9 +106,11 @@ function w $lex_{id} (l %ptr, l %len) {{
                     f,
                     "
 
-function w $lex_{id} (l %ptr, l %len) {{
+function w $lex_{id} (l %lexer_state) {{
 @start
-    %offset =l loadl $offset_ptr
+    %ptr =l loadl %lexer_state
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
     %index =l add %offset, %ptr
     %current =w loadub %index
     %space =w ceqw %current, 32
@@ -113,7 +122,7 @@ function w $lex_{id} (l %ptr, l %len) {{
 @fail
     ret 0
 @pass
-    call $inc_offset()
+    call $inc_offset(l %lexer_state)
     ret 1
 }}
 "
@@ -127,9 +136,9 @@ function w $lex_{id} (l %ptr, l %len) {{
                     f,
                     "
 
-function w $lex_{id} (l %ptr, l %len) {{
+function w $lex_{id} (l %lexer_state) {{
 @pass
-    call $inc_offset()
+    call $inc_offset(l %lexer_state)
     ret 1
 }}
 "
@@ -137,7 +146,7 @@ function w $lex_{id} (l %ptr, l %len) {{
                 .unwrap();
                 id
             }
-            RegexAst::Error => panic!("Should exist in this phase of compile"),
+            RegexAst::Error => panic!("Shouldn't exist in this phase of compile"),
         }
     }
 }
@@ -216,6 +225,17 @@ fn create_lex_function(f: &mut impl Write, names: &[(String, RegexAst)]) {
         "
 export function :vec $lex(l %ptr, l %len) {{
 @start
+    %lexer_state =l alloc8 32
+
+    %len_ptr =l add %lexer_state, 8
+    %offset_ptr =l add %lexer_state, 16
+    %group_end_ptr =l add %lexer_state, 24
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
     %tokens =:vec call $new_vec(l 24)
     %last_was_error =w copy 0
     %total_offset =l copy 0
@@ -237,8 +257,8 @@ export function :vec $lex(l %ptr, l %len) {{
             f,
             "
 @check_{name}
-    storel 0, $group_end
-    %res =l call $lex_{name}(l %ptr, l %len)
+    storel 0, %group_end_ptr
+    %res =l call $lex_{name}(l %lexer_state)
     jnz %res, @bump_{name}, @{next}
 @bump_{name}
     %end =l add %total_offset, %res
@@ -247,8 +267,12 @@ export function :vec $lex(l %ptr, l %len) {{
     %total_offset =l copy %end
     %ptr =l add %ptr, %res
     %len =l sub %len, %res
-    storel 0, $offset_ptr
-    storel 0, $group_end
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
     %last_was_error =w copy 0
     jmp @loop
 "
@@ -278,8 +302,8 @@ export function :vec $lex(l %ptr, l %len) {{
     %total_offset =l copy %end
     %ptr =l add %ptr, 1
     %len =l sub %len, 1
-    storel 0, $offset_ptr
-    storel 0, $group_end
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
     %last_was_error =w copy 1
     jmp @loop
     
@@ -302,17 +326,19 @@ pub fn build_token_parser(
     write!(
         f,
         "
-function l $lex_{name} (l %ptr, l %len) {{
+function l $lex_{name} (l %lexer_state) {{
 @start
-    %res =w call $lex_{id}(l %ptr, l %len)
+    %res =w call $lex_{id}(l %lexer_state)
     jnz %res, @pass, @fail
 @pass
-    %group =l loadl $group_end
+    %group_ptr =l add %lexer_state, 24
+    %group =l loadl %group_ptr
     jnz %group, @ret_group, @ret_all
 @ret_group
     ret %group
 @ret_all
-    %offset =l loadl $offset_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
     ret %offset
 @fail
     ret 0

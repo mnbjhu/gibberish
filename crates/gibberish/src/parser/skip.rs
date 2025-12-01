@@ -16,6 +16,7 @@ impl Skip {
     pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.inner.get_ref(cache).expected(cache)
     }
+
     pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,

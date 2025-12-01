@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::lexer::{RegexAst, build::LexerBuilderState};
 
-pub fn parse_exact<'a>(regex: &'a str, offset: &mut usize) -> Option<RegexAst> {
+pub fn parse_exact(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let start = *offset;
     loop {
         match regex.chars().nth(*offset) {
@@ -23,9 +23,10 @@ pub fn build_exact_regex(f: &mut impl Write, state: &mut LexerBuilderState, text
         f,
         "
 # Exact
-function l $lex_{id} (l %ptr, l %len) {{
+function l $lex_{id} (l %lexer_state) {{
 @start
-    %start =l loadl $offset_ptr
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
     jmp @part_0
 "
     )
@@ -41,8 +42,8 @@ function l $lex_{id} (l %ptr, l %len) {{
             f,
             "
 @part_{index}
-    %res =w call $cmp_current(l %ptr, l %len, w {})
-    call $inc_offset()
+    %res =w call $cmp_current(l %lexer_state, w {})
+    call $inc_offset(l %lexer_state)
     jnz %res, @{next}, @fail
 ",
             part as u8
@@ -56,7 +57,7 @@ function l $lex_{id} (l %ptr, l %len) {{
     ret 1
 
 @fail
-    storel %start, $offset_ptr
+    storel %start, %offset_ptr
     ret 0
 }}
 "
