@@ -24,10 +24,6 @@ impl Skip {
 # Parse Skip
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
-    %after_skipped =l call $after_skipped(l %state_ptr)
-    %res =l call $peak_{inner}(l %state_ptr, l %after_skipped, w 1)
-    jnz %res, @ret, @parse
-@parse
     %skipped =l call $skip(l %state_ptr, l {kind})
     %res =l call $parse_{inner}(l %state_ptr, w %recover)
     jnz %skipped, @unskip, @ret
@@ -43,7 +39,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
         .unwrap()
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "

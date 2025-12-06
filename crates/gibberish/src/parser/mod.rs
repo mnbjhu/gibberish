@@ -13,7 +13,13 @@ use tracing::debug;
 
 use crate::{
     ast::builder::ParserBuilder,
-    parser::{fold_once::FoldOnce, ptr::ParserCache, repeated::Repeated, unskip::UnSkip},
+    parser::{
+        fold_once::FoldOnce,
+        ptr::{ParserCache, ParserIndex},
+        rename::Rename,
+        repeated::Repeated,
+        unskip::UnSkip,
+    },
 };
 
 pub mod build;
@@ -24,6 +30,7 @@ pub mod just;
 pub mod named;
 pub mod optional;
 pub mod ptr;
+pub mod rename;
 pub mod repeated;
 pub mod sep;
 pub mod seq;
@@ -43,6 +50,7 @@ pub enum Parser {
     Optional(Optional),
     FoldOnce(FoldOnce),
     Repeated(Repeated),
+    Rename(Rename),
     Empty,
 }
 
@@ -62,6 +70,7 @@ impl Parser {
             Parser::FoldOnce(fold_once) => fold_once.expected(cache),
             Parser::Empty => todo!(),
             Parser::Repeated(repeated) => repeated.expected(cache),
+            Parser::Rename(rename) => rename.expected(cache),
         }
     }
 
@@ -79,41 +88,66 @@ impl Parser {
             Parser::FoldOnce(_) => "FoldOnce".to_string(),
             Parser::Empty => todo!(),
             Parser::Repeated(_) => "Repeated".to_string(),
+            Parser::Rename(_) => "Rename".to_string(),
         }
     }
 
-    pub fn build_parse(&self, id: usize, f: &mut impl Write) {
+    pub fn build_parse(&self, cache: &ParserCache, id: usize, f: &mut impl Write) {
         match self {
-            Parser::Just(just) => just.build_parse(id, f),
-            Parser::Choice(choice) => choice.build_parse(id, f),
-            Parser::Seq(seq) => seq.build_parse(id, f),
+            Parser::Just(just) => just.build_parse(cache, id, f),
+            Parser::Choice(choice) => choice.build_parse(cache, id, f),
+            Parser::Seq(seq) => seq.build_parse(cache, id, f),
             Parser::Sep(sep) => sep.build_parse(id, f),
             Parser::Delim(delim) => delim.build_parse(id, f),
             Parser::Named(named) => named.build_parse(id, f),
             Parser::Skip(skip) => skip.build_parse(id, f),
-            Parser::UnSkip(_) => todo!(),
+            Parser::UnSkip(unskip) => unskip.build_parse(id, f),
             Parser::Optional(optional) => optional.build_parse(id, f),
             Parser::FoldOnce(fold_once) => fold_once.build_parse(id, f),
             Parser::Repeated(repeated) => repeated.build_parse(id, f),
             Parser::Empty => todo!(),
+            Parser::Rename(rename) => rename.build_parse(id, f),
         }
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl Write) {
-        match self {
-            Parser::Just(just) => just.build_peak(id, f),
-            Parser::Choice(choice) => choice.build_peak(id, f),
-            Parser::Seq(seq) => seq.build_peak(id, f),
-            Parser::Sep(sep) => sep.build_peak(id, f),
-            Parser::Delim(delim) => delim.build_peak(id, f),
-            Parser::Named(named) => named.build_peak(id, f),
-            Parser::Skip(skip) => skip.build_peak(id, f),
-            Parser::UnSkip(_) => todo!(),
-            Parser::Optional(optional) => optional.build_peak(id, f),
-            Parser::FoldOnce(fold_once) => fold_once.build_peak(id, f),
-            Parser::Repeated(repeated) => repeated.build_peak(id, f),
-            Parser::Empty => todo!(),
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl Write) {
+        let options = self.start_tokens(cache);
+
+        write!(
+            f,
+            "
+function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
+@start
+    %current =l call $current_kind(l %state_ptr)
+    jmp @check_0
+",
+        )
+        .unwrap();
+        for (index, option) in options.iter().enumerate() {
+            let next = if index + 1 == options.len() {
+                "@ret_err"
+            } else {
+                &format!("@check_{}", index + 1)
+            };
+            write!(
+                f,
+                "
+@check_{index}
+    %res =l ceql %current, {option}
+    jnz %res, @ret_ok, {next}",
+            )
+            .unwrap();
         }
+        write!(
+            f,
+            "
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}}"
+        )
+        .unwrap();
     }
 
     pub fn build_expected(&self, id: usize, f: &mut impl Write, builder: &ParserBuilder) {
@@ -178,11 +212,12 @@ function :vec $expected_{id}() {{
             Parser::Delim(delim) => delim.start_tokens(cache),
             Parser::Named(named) => named.start_tokens(cache),
             Parser::Skip(skip) => skip.start_tokens(cache),
-            Parser::UnSkip(un_skip) => todo!(),
+            Parser::UnSkip(un_skip) => un_skip.start_tokens(cache),
             Parser::Optional(optional) => optional.start_tokens(cache),
             Parser::FoldOnce(fold_once) => fold_once.start_tokens(cache),
             Parser::Repeated(repeated) => repeated.start_tokens(cache),
             Parser::Empty => todo!(),
+            Parser::Rename(rename) => rename.start_tokens(cache),
         }
     }
 
@@ -195,10 +230,32 @@ function :vec $expected_{id}() {{
             Parser::Delim(delim) => delim.is_optional(cache),
             Parser::Named(named) => named.is_optional(cache),
             Parser::Skip(skip) => skip.is_optional(cache),
-            Parser::UnSkip(un_skip) => todo!(),
-            Parser::Optional(optional) => true,
+            Parser::UnSkip(un_skip) => un_skip.is_optional(cache),
+            Parser::Optional(_) => true,
             Parser::FoldOnce(fold_once) => fold_once.is_optional(cache),
             Parser::Repeated(repeated) => repeated.is_optional(cache),
+            Parser::Empty => todo!(),
+            Parser::Rename(rename) => rename.is_optional(cache),
+        }
+    }
+
+    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+        match self {
+            Parser::Just(just) => {
+                assert_eq!(just.0, token);
+                None
+            }
+            Parser::Choice(choice) => todo!(),
+            Parser::Seq(seq) => seq.after_token(token, cache),
+            Parser::Sep(sep) => todo!(),
+            Parser::Delim(delim) => todo!(),
+            Parser::Named(named) => todo!(),
+            Parser::Skip(skip) => todo!(),
+            Parser::UnSkip(un_skip) => todo!(),
+            Parser::Optional(optional) => todo!(),
+            Parser::FoldOnce(fold_once) => todo!(),
+            Parser::Repeated(repeated) => todo!(),
+            Parser::Rename(rename) => todo!(),
             Parser::Empty => todo!(),
         }
     }
@@ -221,5 +278,23 @@ mod tests {
         let lib_path = lib.path();
         cli::build::build(src_file_path, Some(lib_path), &BuildKind::Dynamic);
         CompiledLang::load(lib_path)
+    }
+
+    #[macro_export]
+    macro_rules! assert_syntax_kind {
+        ($lang:ident, $node:expr, $name:ident) => {{
+            assert_eq!($lang.syntax_name(&$node.as_group().kind), stringify!($name));
+        }};
+    }
+
+    #[macro_export]
+    macro_rules! assert_token_kind {
+        ($lang:ident, $node:expr, $name:ident) => {{
+            if let Node::Lexeme(l) = $node {
+                assert_eq!($lang.token_name(&l.kind), stringify!($name));
+            } else {
+                panic!("Expected a lexeme but found {:?}", $node);
+            };
+        }};
     }
 }

@@ -1,15 +1,16 @@
 use crate::lsp::ServerState;
-use crate::{dsl::lexer::RuntimeLang, lsp::span_to_range_str};
+use crate::lsp::span_to_range_str;
 use async_lsp::lsp_types::{
     DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse, SymbolKind,
 };
 use futures::{FutureExt as _, future::BoxFuture};
-use gibberish_tree::{
-    lang::CompiledLang,
-    node::{Group, Node},
-};
+use gibberish_core::lang::CompiledLang;
+use gibberish_core::lang::Lang;
+use gibberish_core::node::Group;
+use gibberish_core::node::Node;
+use gibberish_dyn_lib::bindings::parse;
 
-pub fn symbols(group: Group<CompiledLang>, txt: &str, lang: &RuntimeLang) -> Vec<DocumentSymbol> {
+pub fn symbols(group: &Group<CompiledLang>, txt: &str, lang: &CompiledLang) -> Vec<DocumentSymbol> {
     let mut ret = vec![];
     for child in &group.children {
         let span = child.span();
@@ -25,7 +26,7 @@ pub fn symbols(group: Group<CompiledLang>, txt: &str, lang: &RuntimeLang) -> Vec
             deprecated: None,
             range,
             selection_range: range,
-            children: Some(group.symbols(txt, lang)),
+            children: Some(symbols(group, txt, lang)),
         };
         ret.push(s);
     }
@@ -39,7 +40,6 @@ pub fn get_document_symbols(
     let db = st.db.clone(); // move Arc<DashMap<...>>
     let uri = msg.text_document.uri; // move params
     let parser = st.parser.clone();
-    let cache = st.cache.clone();
 
     async move {
         let path = uri.to_file_path().unwrap();
@@ -50,10 +50,12 @@ pub fn get_document_symbols(
             .map(|v| v.clone()) // clone String out of the Ref
             .unwrap_or_default();
 
-        let ast = parser.parse(&text, &cache);
-        Ok(Some(DocumentSymbolResponse::Nested(
-            ast.as_group().symbols(&text, &cache.lang),
-        )))
+        let ast = parse(&parser.lock().unwrap(), &text);
+        Ok(Some(DocumentSymbolResponse::Nested(symbols(
+            ast.as_group(),
+            &text,
+            &parser.lock().unwrap(),
+        ))))
     }
     .boxed() // -> BoxFuture<'static, _> (Send if inner is Send)
 }

@@ -126,6 +126,19 @@ impl<'a> CallAst<'a> {
                     }
                     expr = expr.or_not(&mut builder.cache);
                 }
+                "rename" => {
+                    let args = member.args().collect::<Vec<_>>();
+                    if args.len() != 1 {
+                        panic!("'rename' expected 0 arg but {} were found", args.len())
+                    }
+                    let ExprAst::Ident(lexeme) = args[0] else {
+                        panic!("Expected an ident");
+                    };
+                    let Some(name) = builder.vars.iter().position(|it| it.0 == lexeme.text) else {
+                        panic!("Parser not found '{}'", lexeme.text);
+                    };
+                    expr = expr.rename(name as u32, &mut builder.cache);
+                }
                 name => builder.error(
                     &format!("Function not found '{name}'"),
                     member.name().span.clone(),

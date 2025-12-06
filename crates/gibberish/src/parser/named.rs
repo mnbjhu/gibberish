@@ -23,6 +23,22 @@ impl Named {
 # Parse Named
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %res =l call $peak_{inner}(l %state_ptr, l 0, w 0)
+    jnz %res, @check_skip, @parse
+@check_skip
+    %current_kind =l call $current_kind(l %state_ptr)
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @parse
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@parse
     call $enter_group(l %state_ptr, w {name})
     %res =l call $parse_{inner}(l %state_ptr, w %recover)
     jnz %res, @remove_group, @exit
@@ -33,6 +49,8 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     %stack_ptr =l add %state_ptr, 24
     call $pop(l %stack_ptr, l 32)
     ret %res
+@eof
+    ret 2
 }}",
             name = self.name,
             inner = self.inner.index,
@@ -40,7 +58,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
         .unwrap()
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "

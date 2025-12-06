@@ -125,23 +125,22 @@ parser _assignable_instr = add_instr | mul_instr  |sub_instr | cmp_instr | copy_
 
 
 parser assignment = temp + (eqw | eql | eqb | (eq + type_name)) + _assignable_instr;
-parser _stmt = assignment | _assignable_instr | _unassignable_instr;
+parser _stmt = (assignment | _assignable_instr | _unassignable_instr);
 
 parser func_arg = ty + temp;
 parser func_args = func_arg.sep_by(comma).delim_by(l_paren, r_paren);
 
-parser block = label + _stmt.sep_by_padded(newline.repeated());
-parser func_body = (newline.repeated().or_not() + block.repeated()).delim_by(l_brace, r_brace);
+parser block = label + _stmt.repeated();
+parser func_body = l_brace + block.repeated() + r_brace;
 
-parser function_def = function + ty + global + func_args + func_body;
-parser export_function_def = export + function + ty + global + func_args + func_body;
+parser function_def = export.or_not() + function + ty + global + func_args + func_body;
 
 parser data_part = ty + (int | string);
-parser data_def = data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
+parser data_def = export.or_not() + data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
 
 parser type_part = ty + int.or_not();
 parser alignment = align + int;
 parser type_def = type + type_name + eq + alignment.or_not() + type_part.sep_by(comma).delim_by(l_brace, r_brace);
-parser _decl = (function_def | export_function_def | data_def | type_def).unskip(newline);
+parser _decl = data_def | function_def | type_def;
 
-parser root = _decl.repeated().skip(ws).skip(comment).skip(newline)
+parser _root = _decl.repeated().skip(comment).skip(newline).skip(ws)

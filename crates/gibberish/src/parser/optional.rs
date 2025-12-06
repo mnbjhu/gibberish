@@ -21,15 +21,15 @@ impl Optional {
 # Parse Optional
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
-    call $parse_{inner}(l %state_ptr, w %recover)
-    ret 0
+    %res =w call $parse_{inner}(l %state_ptr, w %recover)
+    ret %res
 }}",
             inner = self.0.index,
         )
         .unwrap()
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "

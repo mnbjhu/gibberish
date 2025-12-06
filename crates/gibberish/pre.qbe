@@ -54,7 +54,7 @@ export function w $unskip(l %state_ptr, l %token_kind) {
 @start
     %skip_ptr =l add %state_ptr, 80
     %already =l call $contains_long(l %skip_ptr, l %token_kind)
-    jnz %already, @already, @remove
+    jnz %already, @remove, @already
 @already
     ret 0
 @remove
@@ -66,12 +66,23 @@ export function w $unskip(l %state_ptr, l %token_kind) {
 function w $remove_long(l %vec, l %index) {
 @start
     %len_ptr =l add %vec, 8
-    %len =l loadl %len_ptr
-    %end =l mul %len, 8
-    %offset =l mul %index, 8
-    %after =l add %index, 8
-    %cpy_size =l sub %end, %after
-    call $memcpy(l %offset, l %after, l %cpy_size)
+    %len     =l loadl %len_ptr
+    %ptr     =l loadl %vec
+
+    # bytes to move = (len - index - 1) * 8
+    %len_minus_index =l sub %len, %index
+    %len_minus_index =l sub %len_minus_index, 1
+    %cpy_size =l mul %len_minus_index, 8
+
+    # dst = ptr + index*8
+    %offset  =l mul %index, 8
+    %dst_ptr =l add %ptr, %offset
+
+    # src = dst + 8
+    %src_ptr =l add %dst_ptr, 8
+
+    call $memcpy(l %dst_ptr, l %src_ptr, l %cpy_size)
+
     %len =l sub %len, 1
     storel %len, %len_ptr
     ret 1

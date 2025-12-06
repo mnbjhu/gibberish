@@ -6,8 +6,8 @@ pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut i
     build_lexer_qbe(&builder.lexer, f);
     build_parse_by_id(builder, f);
     for (index, parser) in builder.cache.parsers.iter().enumerate() {
-        parser.build_parse(index, f);
-        parser.build_peak(index, f);
+        parser.build_parse(&builder.cache, index, f);
+        parser.build_peak(&builder.cache, index, f);
         parser.build_expected(index, f, builder);
     }
     write!(

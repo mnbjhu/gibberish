@@ -18,8 +18,9 @@ pub struct Sep {
 
 impl Sep {
     pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.sep.get_ref(cache).expected(cache)
+        self.item.get_ref(cache).expected(cache)
     }
+
     pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
@@ -65,8 +66,10 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             "
 @ret_ok
     call $pop_delim(l %state_ptr)
+    call $pop_delim(l %state_ptr)
     ret 0
 @ret_err
+    call $pop_delim(l %state_ptr)
     call $pop_delim(l %state_ptr)
     ret %res
 }}",
@@ -74,7 +77,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
         .unwrap()
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "
@@ -94,7 +97,7 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     }
 
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.at_least == 0
+        false // TODO: Fix
     }
 }
 
@@ -115,5 +118,117 @@ impl ParserIndex {
             at_least: 0,
         })
         .cache(cache)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use gibberish_core::{
+        err::{Expected, ParseError},
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
+
+    use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
+
+    fn parse_sep_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"token num = "[0-9]+";
+        token whitespace = "\s+";
+        token comma = ",";
+        parser _root = num.sep_by(comma)
+        "#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[serial]
+    #[test]
+    fn test_single() {
+        let (lang, node) = parse_sep_test("123");
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(children.len(), 1);
+        assert_token_kind!(lang, &children[0], num);
+    }
+
+    #[serial]
+    #[test]
+    fn test_empty() {
+        let (lang, node) = parse_sep_test("");
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(children.len(), 1);
+        let Node::Err(ParseError::MissingError { expected, .. }) = &children[0] else {
+            panic!(
+                "Expected the last node to be a missing error but got {:?}",
+                &children[0]
+            )
+        };
+        assert_eq!(expected.len(), 1);
+        let Expected::Token(t) = &expected[0] else {
+            panic!("Expected a missing token");
+        };
+        assert_eq!(lang.token_name(t), "num");
+    }
+
+    #[serial]
+    #[test]
+    fn test_multi() {
+        let (lang, node) = parse_sep_test("123,123");
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(children.len(), 3);
+        assert_token_kind!(lang, &children[0], num);
+        assert_token_kind!(lang, &children[1], comma);
+        assert_token_kind!(lang, &children[2], num);
+    }
+
+    #[serial]
+    #[test]
+    fn test_missing_last() {
+        let (lang, node) = parse_sep_test("123,");
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(children.len(), 3);
+        assert_token_kind!(lang, &children[0], num);
+        assert_token_kind!(lang, &children[1], comma);
+        let Node::Err(ParseError::MissingError { expected, .. }) = &children[2] else {
+            panic!(
+                "Expected the last node to be a missing error but got {:?}",
+                &children[2]
+            )
+        };
+        assert_eq!(expected.len(), 1);
+        let Expected::Token(t) = &expected[0] else {
+            panic!("Expected a missing token");
+        };
+        assert_eq!(lang.token_name(t), "num");
+    }
+
+    #[serial]
+    #[test]
+    fn test_missing_between() {
+        let (lang, node) = parse_sep_test("123,,123");
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(children.len(), 5);
+        assert_token_kind!(lang, &children[0], num);
+        assert_token_kind!(lang, &children[1], comma);
+        assert_token_kind!(lang, &children[3], comma);
+        assert_token_kind!(lang, &children[4], num);
+        let Node::Err(ParseError::MissingError { expected, .. }) = &children[2] else {
+            panic!(
+                "Expected the middle node to be a missing error but got {:?}",
+                &children[2]
+            )
+        };
+        assert_eq!(expected.len(), 1);
+        let Expected::Token(t) = &expected[0] else {
+            panic!("Expected a missing token");
+        };
+        assert_eq!(lang.token_name(t), "num");
     }
 }

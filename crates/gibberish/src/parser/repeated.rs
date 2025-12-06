@@ -49,7 +49,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
         .unwrap()
     }
 
-    pub fn build_peak(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "

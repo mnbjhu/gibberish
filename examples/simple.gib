@@ -1,4 +1,8 @@
 token num = "[0-9]+";
 token whitespace = "\s+";
-
-parser _root = num
+token comma = ",";
+token l_bracket = "\[";
+token r_bracket = "\]";
+parser items = num.sep_by(comma);
+parser _brackets = l_bracket + items + r_bracket;
+parser _root = _brackets

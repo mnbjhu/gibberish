@@ -2,53 +2,43 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
-
-use super::Parser;
+use crate::parser::{
+    Parser,
+    ptr::{ParserCache, ParserIndex},
+};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct UnSkip {
-    token: u32,
-    inner: ParserIndex,
+pub struct Rename {
+    pub inner: ParserIndex,
+    pub name: u32,
 }
 
-impl UnSkip {
+impl Rename {
     pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
         self.inner.get_ref(cache).expected(cache)
     }
+
     pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "
-# Parse Unskip
+
+# Parse Rename
 function w $parse_{id}(l %state_ptr, w %recover) {{
 @start
-    %unskipped =l call $unskip(l %state_ptr, l {kind})
     %res =l call $parse_{inner}(l %state_ptr, w %recover)
-    jnz %unskipped, @skip, @ret
-@skip
-    call $skip(l %state_ptr, l {kind})
-    ret %res
-@ret
+    jnz %res, @ret_err, @rename
+@rename
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %kind_ptr =l add %current_group, 4
+    storew {name}, %kind_ptr
+    ret 0
+@ret_err
     ret %res
 }}",
             inner = self.inner.index,
-            kind = self.token
-        )
-        .unwrap()
-    }
-
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %res =l call $peak_{inner}(l %state_ptr, l %offset, w %recover)
-    ret %res
-}}
-",
-            inner = self.inner.index
+            name = self.name,
         )
         .unwrap()
     }
@@ -63,7 +53,7 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
 }
 
 impl ParserIndex {
-    pub fn unskip(self, token: u32, cache: &mut ParserCache) -> ParserIndex {
-        Parser::UnSkip(UnSkip { token, inner: self }).cache(cache)
+    pub fn rename(self, name: u32, cache: &mut ParserCache) -> ParserIndex {
+        Parser::Rename(Rename { inner: self, name }).cache(cache)
     }
 }

@@ -11,6 +11,7 @@ use crate::cli::generate::generate;
 use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
 use crate::cli::watch::watch_custom;
+use crate::lsp::main_loop;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -110,7 +111,7 @@ impl Command {
                     watch(path, !hide_errors, !hide_tokens).unwrap()
                 }
             }
-            Command::Lsp { .. } => todo!(),
+            Command::Lsp { path } => main_loop(path).await,
             Command::Build { path, output, kind } => {
                 build(path, output.as_ref().map(PathBuf::as_path), kind)
             }
