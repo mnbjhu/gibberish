@@ -64,7 +64,9 @@ path = "src/lib.rs"
 gibberish-core = "0.1.0"
 "#
     );
-    write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
+    if !crate_dir.join("Cargo.toml").exists() {
+        write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
+    }
 
     let build_rs = format!(
         "
@@ -99,6 +101,12 @@ fn main() {{
         writeln!(&mut syntax_body, "\t{name} = {},", index).unwrap();
     }
     writeln!(&mut syntax_body, "\tRoot = {},", builder.vars.len()).unwrap();
+    writeln!(
+        &mut syntax_body,
+        "\tUnmatched = {},",
+        builder.vars.len() + 1
+    )
+    .unwrap();
 
     let lib_rs = format!(
         "
