@@ -56,22 +56,6 @@ impl<'a> CallAst<'a> {
                     }
                     expr = expr.sep_by(args[0].clone(), &mut builder.cache)
                 }
-                "sep_by_padded" => {
-                    let args = member
-                        .args()
-                        .map(|it| it.build(builder))
-                        .collect::<Vec<_>>();
-                    if args.len() != 1 {
-                        builder.error(
-                            &format!(
-                                "'sep_by_padded' expected one arg but {} were found",
-                                args.len()
-                            ),
-                            span.clone(),
-                        )
-                    }
-                    expr = expr.sep_by_extra(args[0].clone(), &mut builder.cache)
-                }
                 "delim_by" => {
                     let args = member
                         .args()

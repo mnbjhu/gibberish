@@ -4,7 +4,11 @@ use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
     ast::builder::ParserBuilder,
-    parser::ptr::{ParserCache, ParserIndex},
+    parser::{
+        just::just,
+        ptr::{ParserCache, ParserIndex},
+        seq::seq,
+    },
 };
 
 use super::Parser;
@@ -88,6 +92,76 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
 
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         false // TODO: Look into whether this is easy to support
+    }
+
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+        let mut parsers = vec![];
+        for (index, p) in self.options.iter().enumerate() {
+            if p.get_ref(&builder.cache)
+                .start_tokens(&builder.cache)
+                .contains(&token)
+            {
+                parsers.push(index);
+            }
+        }
+        if parsers.is_empty() {
+            panic!()
+        } else if parsers.len() == 1 {
+            return self.options[parsers[0]]
+                .get_ref(&builder.cache)
+                .clone()
+                .after_token(token, builder);
+        }
+        let require_named = self
+            .options
+            .iter()
+            .all(|it| matches!(it.get_ref(&builder.cache), Parser::Named(_)));
+        let mut default = None;
+        let rest = parsers
+            .iter()
+            .filter_map(|index| {
+                if let Some(rest) = self.options[*index]
+                    .get_ref(&builder.cache)
+                    .clone()
+                    .after_token(token, builder)
+                {
+                    Some(rest)
+                } else {
+                    if require_named {
+                        let name = self.options[*index]
+                            .get_ref(&builder.cache)
+                            .get_name(&builder.cache)
+                            .unwrap();
+                        if default.is_none() {
+                            default = Some(name);
+                        } else {
+                            panic!("Expected named")
+                        }
+                    }
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        if default.is_none() {
+            default = Some(u32::MAX);
+        }
+        let option = if rest.is_empty() {
+            panic!("Found 0 intersect");
+        } else {
+            seq(
+                vec![
+                    just(token, &mut builder.cache),
+                    Parser::Choice(Choice {
+                        options: rest,
+                        default,
+                    })
+                    .cache(&mut builder.cache)
+                    .reduce_conflicts(builder, 0)?,
+                ],
+                &mut builder.cache,
+            )
+        };
+        Some(option)
     }
 }
 

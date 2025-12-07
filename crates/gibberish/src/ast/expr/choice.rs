@@ -83,53 +83,9 @@ impl ParserIndex {
                 .options
                 .iter()
                 .all(|it| matches!(it.get_ref(&builder.cache), Parser::Named(_)));
-            let mut default = None;
             let mut options = Vec::new();
             for (token, parsers) in intersects {
-                let rest = parsers
-                    .iter()
-                    .filter_map(|index| {
-                        if let Some(rest) = choice.options[*index]
-                            .get_ref(&builder.cache)
-                            .clone()
-                            .after_token(token, &mut builder.cache)
-                        {
-                            Some(rest)
-                        } else {
-                            if require_named {
-                                let name = choice.options[*index]
-                                    .get_ref(&builder.cache)
-                                    .get_name(&builder.cache)
-                                    .unwrap();
-                                if default.is_none() {
-                                    default = Some(name);
-                                } else {
-                                    panic!("Expected named")
-                                }
-                            }
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                if default.is_none() {
-                    default = Some(u32::MAX);
-                }
-                let option = if rest.is_empty() {
-                    panic!("Found 0 intersect");
-                } else {
-                    seq(
-                        vec![
-                            just(token, &mut builder.cache),
-                            Parser::Choice(Choice {
-                                options: rest,
-                                default,
-                            })
-                            .cache(&mut builder.cache)
-                            .reduce_conflicts(builder, depth + 1)?,
-                        ],
-                        &mut builder.cache,
-                    )
-                };
+                let option = choice.after_token(token, builder)?;
                 options.push(option);
             }
             for item in choice.options {
@@ -147,3 +103,5 @@ impl ParserIndex {
         }
     }
 }
+
+impl Choice {}

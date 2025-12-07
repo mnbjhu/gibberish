@@ -2,7 +2,13 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::{
+        ptr::{ParserCache, ParserIndex},
+        rename::Rename,
+    },
+};
 
 use super::Parser;
 
@@ -84,6 +90,26 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
 
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         self.first.get_ref(cache).is_optional(cache)
+    }
+
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+        let first = self
+            .first
+            .get_ref(&builder.cache)
+            .clone()
+            .after_token(token, builder);
+        if let Some(first) = first {
+            Some(first.fold_once(self.name, self.next.clone(), &mut builder.cache))
+        } else {
+            Some(
+                Parser::Rename(Rename {
+                    inner: self.next.clone(),
+                    name: self.name,
+                })
+                .cache(&mut builder.cache)
+                .or_not(&mut builder.cache),
+            )
+        }
     }
 }
 

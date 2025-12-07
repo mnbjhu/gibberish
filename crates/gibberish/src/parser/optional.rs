@@ -2,9 +2,12 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::{
-    Parser,
-    ptr::{ParserCache, ParserIndex},
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::{
+        Parser,
+        ptr::{ParserCache, ParserIndex},
+    },
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -52,8 +55,11 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         true
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
-        self.0.get_ref(cache).clone().after_token(token, cache)
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+        self.0
+            .get_ref(&builder.cache)
+            .clone()
+            .after_token(token, builder)
     }
 }
 

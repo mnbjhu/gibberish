@@ -173,6 +173,24 @@ function :vec $expected_{id}() {{
             .unwrap();
             return;
         }
+
+        if let Parser::Sep(sep) = self
+            && sep.at_least == 0
+        {
+            write!(
+                f,
+                "
+function :vec $expected_{id}() {{
+@start
+    %res =l alloc8 24
+    storel 0, %res
+    ret %res
+}}
+",
+            )
+            .unwrap();
+            return;
+        }
         let expected = self.expected(&builder.cache);
         write!(f, "\ndata $expected_{id}_data = {{").unwrap();
         expected.iter().enumerate().for_each(|(index, it)| {
@@ -248,23 +266,23 @@ function :vec $expected_{id}() {{
         }
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
         match self {
             Parser::Just(just) => {
                 assert_eq!(just.0, token);
                 None
             }
-            Parser::Choice(choice) => todo!(),
-            Parser::Seq(seq) => seq.after_token(token, cache),
+            Parser::Choice(choice) => choice.after_token(token, builder),
+            Parser::Seq(seq) => seq.after_token(token, builder),
             Parser::Sep(sep) => todo!(),
             Parser::Delim(delim) => todo!(),
-            Parser::Named(named) => named.after_token(token, cache),
+            Parser::Named(named) => named.after_token(token, builder),
             Parser::Skip(skip) => todo!(),
             Parser::UnSkip(un_skip) => todo!(),
-            Parser::Optional(optional) => optional.after_token(token, cache),
-            Parser::FoldOnce(fold_once) => todo!(),
+            Parser::Optional(optional) => optional.after_token(token, builder),
+            Parser::FoldOnce(fold_once) => fold_once.after_token(token, builder),
             Parser::Repeated(repeated) => todo!(),
-            Parser::Rename(rename) => rename.after_token(token, cache),
+            Parser::Rename(rename) => rename.after_token(token, builder),
             Parser::Empty => todo!(),
             Parser::Checkpoint(checkpoint) => todo!(),
         }

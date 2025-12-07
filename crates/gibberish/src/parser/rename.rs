@@ -2,9 +2,12 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::{
-    Parser,
-    ptr::{ParserCache, ParserIndex},
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::{
+        Parser,
+        ptr::{ParserCache, ParserIndex},
+    },
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -48,17 +51,17 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.inner.get_ref(cache).is_optional(cache)
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
         self.inner
-            .get_ref(cache)
+            .get_ref(&builder.cache)
             .clone()
-            .after_token(token, cache)
+            .after_token(token, builder)
             .map(|it| {
                 Parser::Rename(Rename {
                     inner: it,
                     name: self.name,
                 })
-                .cache(cache)
+                .cache(&mut builder.cache)
             })
     }
 }

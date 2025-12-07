@@ -2,9 +2,12 @@ use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::{
-    ptr::{ParserCache, ParserIndex},
-    rename::Rename,
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::{
+        ptr::{ParserCache, ParserIndex},
+        rename::Rename,
+    },
 };
 
 use super::Parser;
@@ -84,17 +87,17 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         self.inner.get_ref(cache).is_optional(cache)
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
         self.inner
-            .get_ref(cache)
+            .get_ref(&builder.cache)
             .clone()
-            .after_token(token, cache)
+            .after_token(token, builder)
             .map(|it| {
                 Parser::Rename(Rename {
                     inner: it,
                     name: self.name,
                 })
-                .cache(cache)
+                .cache(&mut builder.cache)
             })
     }
 }

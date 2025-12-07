@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use gibberish_core::err::Expected;
 use gibberish_core::lang::CompiledLang;
 
+use crate::ast::builder::ParserBuilder;
 use crate::parser::Parser;
 use crate::parser::seq::{Seq, seq};
 
@@ -73,17 +74,22 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         true
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
-        if let Some(after) = self.0.get_ref(cache).clone().after_token(token, cache) {
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+        if let Some(after) = self
+            .0
+            .get_ref(&builder.cache)
+            .clone()
+            .after_token(token, builder)
+        {
             Some(seq(
                 vec![
                     after,
-                    Parser::Repeated(Repeated(self.0.clone())).cache(cache),
+                    Parser::Repeated(Repeated(self.0.clone())).cache(&mut builder.cache),
                 ],
-                cache,
+                &mut builder.cache,
             ))
         } else {
-            Some(Parser::Repeated(self.clone()).cache(cache))
+            Some(Parser::Repeated(self.clone()).cache(&mut builder.cache))
         }
     }
 }

@@ -172,26 +172,32 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.0.iter().all(|it| it.get_ref(cache).is_optional(cache))
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
         for (index, item) in self.0.iter().enumerate() {
-            let item = item.get_ref(cache).clone();
-            if item.start_tokens(cache).contains(&token) {
+            let item = item.get_ref(&builder.cache).clone();
+            if item.start_tokens(&builder.cache).contains(&token) {
                 let mut new_seq = self.0[index..].to_vec();
                 if new_seq.is_empty() {
                     return None;
                 }
                 if new_seq.len() == 1 {
-                    return new_seq[0].get_ref(cache).clone().after_token(token, cache);
+                    return new_seq[0]
+                        .get_ref(&builder.cache)
+                        .clone()
+                        .after_token(token, builder);
                 }
-                let first = new_seq[0].get_ref(cache).clone().after_token(token, cache);
+                let first = new_seq[0]
+                    .get_ref(&builder.cache)
+                    .clone()
+                    .after_token(token, builder);
                 if let Some(first) = first {
                     new_seq[0] = first;
                 } else {
                     new_seq.remove(0);
                 };
-                return Some(Parser::Seq(Seq(new_seq)).cache(cache));
+                return Some(Parser::Seq(Seq(new_seq)).cache(&mut builder.cache));
             }
-            if !item.is_optional(cache) {
+            if !item.is_optional(&builder.cache) {
                 break;
             }
         }

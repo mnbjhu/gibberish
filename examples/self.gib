@@ -28,11 +28,15 @@ parser _expr;
 parser named = ident;
 parser _atom = _expr.delim_by(l_paren, r_paren) | named;
 parser call_name = ident;
-parser call = dot + call_name + _expr.sep_by(comma).delim_by(l_paren, r_paren);
+parser named_param = ident + eq + (int | string);
+parser _arg;
+parser args = _arg.sep_by(comma).delim_by(l_paren, r_paren);
+parser call = dot + call_name + args;
 parser member_call = _atom fold call.repeated();
 parser seq = member_call fold (plus + member_call).repeated();
 parser choice = seq fold (bar + seq).repeated();
 parser _expr = choice;
+parser _arg =  _expr | named_param;
 
 parser kw_def = KEYWORD + ident;
 parser token_def = TOKEN + ident + eq + string;
@@ -43,7 +47,8 @@ parser parser_def = PARSER + ident + (eq + fold_stmt).or_not();
 parser _query;
 parser child_query = _query.sep_by(comma).delim_by(l_paren, r_paren);
 parser group_query = named + (colon + child_query).or_not();
-parser labelled_query = group_query fold at + string;
+parser label = at + string;
+parser labelled_query = group_query fold label;
 parser _query = labelled_query;
 
 parser highlight_def = HIGHTLIGHT + _query;
