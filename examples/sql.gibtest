@@ -1,2 +1,1 @@
-select abc * (123 + "Hello"), one_more from table;
-delete from thing
+define 

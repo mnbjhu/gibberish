@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
-    ast::try_parse,
+    ast::{builder::ParserBuilder, try_parse},
     parser::ptr::{ParserCache, ParserIndex},
 };
 
@@ -21,7 +21,7 @@ impl Seq {
             .expected(cache)
     }
 
-    pub fn build_parse(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
         let new_delims_len = self.0.len() - 1;
         let magic = new_delims_len + 3;
 
@@ -29,7 +29,7 @@ impl Seq {
             f,
             "
 # Parse Seq
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @add_delims
     %delim_stack_ptr =l add %state_ptr, 56
     %delim_stack_len_ptr =l add %state_ptr, 64
@@ -53,7 +53,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
 
         for (i, parser) in self.0.iter().enumerate() {
             last_optional_index = i;
-            if !parser.get_ref(cache).is_optional(cache) {
+            if !parser.get_ref(&builder.cache).is_optional(&builder.cache) {
                 break;
             }
         }
@@ -74,7 +74,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
                 f,
                 "
 @check_start_{index}
-    %res =l call $parse_{option_index}(l %state_ptr, w %recover)
+    %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, {fail}, {pass}",
                 option_index = option.index,
             )
@@ -127,7 +127,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
             .unwrap();
             try_parse(part.index, &format!("{index}"), next, f);
         }
-        writeln!(f, "\t@ret_err",).unwrap();
+        writeln!(f, "\n\t@ret_err",).unwrap();
         for _ in self.0[1..].iter() {
             writeln!(f, "\tcall $pop(l %delim_stack_ptr, l 8)",).unwrap()
         }
@@ -186,10 +186,10 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
                 let first = new_seq[0].get_ref(cache).clone().after_token(token, cache);
                 if let Some(first) = first {
                     new_seq[0] = first;
-                    Some(Parser::Seq(Seq(new_seq)).cache(cache));
                 } else {
-                    Some(Parser::Seq(Seq(new_seq)).cache(cache));
-                }
+                    new_seq.remove(0);
+                };
+                return Some(Parser::Seq(Seq(new_seq)).cache(cache));
             }
             if !item.is_optional(cache) {
                 break;

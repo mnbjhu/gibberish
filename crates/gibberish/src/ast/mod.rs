@@ -49,7 +49,7 @@ pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Writ
         f,
         "
 @try_parse_{name}
-    %res =l call $parse_{id}(l %state_ptr, w %recover)
+    %res =l call $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     %is_err =l ceql 1, %res
     jnz %is_err, @bump_err_{name}, {after}
 @bump_err_{name}

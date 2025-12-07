@@ -24,15 +24,12 @@ impl Rename {
             "
 
 # Parse Rename
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
-    %res =l call $parse_{inner}(l %state_ptr, w %recover)
+    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @rename
 @rename
-    %stack_ptr =l add %state_ptr, 24
-    %current_group =l call $last(l %stack_ptr, l 32)
-    %kind_ptr =l add %current_group, 4
-    storew {name}, %kind_ptr
+    call $group_at(l %state_ptr, w {name}, l %unmatched_checkpoint)
     ret 0
 @ret_err
     ret %res

@@ -6,7 +6,7 @@ pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut i
     build_lexer_qbe(&builder.lexer, f);
     build_parse_by_id(builder, f);
     for (index, parser) in builder.cache.parsers.iter().enumerate() {
-        parser.build_parse(&builder.cache, index, f);
+        parser.build_parse(builder, index, f);
         parser.build_peak(&builder.cache, index, f);
         parser.build_expected(index, f, builder);
     }
@@ -19,7 +19,7 @@ export function w $parse(l %state_ptr) {{
 @start
     jmp @loop
 @loop
-    %res =l call $parse_{inner}(l %state_ptr, w 1)
+    %res =l call $parse_{inner}(l %state_ptr, w 1, l 0)
     jnz %res, @check_eof, @end
 @check_eof
     %is_eof =l ceql %res, 2

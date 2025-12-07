@@ -24,7 +24,7 @@ impl Named {
             f,
             "
 # Parse Named
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     jmp @check_eof
 @check_eof
@@ -43,7 +43,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     jmp @check_eof
 @parse
     call $enter_group(l %state_ptr, w {name})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover)
+    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @remove_group, @exit
 @exit
     call $exit_group(l %state_ptr)
@@ -90,7 +90,7 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
             .clone()
             .after_token(token, cache)
             .map(|it| {
-                Parser::Named(Named {
+                Parser::Rename(Rename {
                     inner: it,
                     name: self.name,
                 })

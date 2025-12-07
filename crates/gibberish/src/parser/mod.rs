@@ -14,6 +14,7 @@ use tracing::debug;
 use crate::{
     ast::builder::ParserBuilder,
     parser::{
+        checkpoint::Checkpoint,
         fold_once::FoldOnce,
         ptr::{ParserCache, ParserIndex},
         rename::Rename,
@@ -23,6 +24,7 @@ use crate::{
 };
 
 pub mod build;
+pub mod checkpoint;
 pub mod choice;
 pub mod delim;
 pub mod fold_once;
@@ -52,6 +54,7 @@ pub enum Parser {
     FoldOnce(FoldOnce),
     Repeated(Repeated),
     Rename(Rename),
+    Checkpoint(Checkpoint),
     Empty,
 }
 
@@ -72,6 +75,7 @@ impl Parser {
             Parser::Empty => todo!(),
             Parser::Repeated(repeated) => repeated.expected(cache),
             Parser::Rename(rename) => rename.expected(cache),
+            Parser::Checkpoint(checkpoint) => checkpoint.expected(cache),
         }
     }
 
@@ -90,14 +94,15 @@ impl Parser {
             Parser::Empty => todo!(),
             Parser::Repeated(_) => "Repeated".to_string(),
             Parser::Rename(_) => "Rename".to_string(),
+            Parser::Checkpoint(_) => "Checkpoint".to_string(),
         }
     }
 
-    pub fn build_parse(&self, cache: &ParserCache, id: usize, f: &mut impl Write) {
+    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl Write) {
         match self {
-            Parser::Just(just) => just.build_parse(cache, id, f),
-            Parser::Choice(choice) => choice.build_parse(cache, id, f),
-            Parser::Seq(seq) => seq.build_parse(cache, id, f),
+            Parser::Just(just) => just.build_parse(builder, id, f),
+            Parser::Choice(choice) => choice.build_parse(builder, id, f),
+            Parser::Seq(seq) => seq.build_parse(builder, id, f),
             Parser::Sep(sep) => sep.build_parse(id, f),
             Parser::Delim(delim) => delim.build_parse(id, f),
             Parser::Named(named) => named.build_parse(id, f),
@@ -108,6 +113,7 @@ impl Parser {
             Parser::Repeated(repeated) => repeated.build_parse(id, f),
             Parser::Empty => todo!(),
             Parser::Rename(rename) => rename.build_parse(id, f),
+            Parser::Checkpoint(checkpoint) => checkpoint.build_parse(id, f),
         }
     }
 
@@ -219,6 +225,7 @@ function :vec $expected_{id}() {{
             Parser::Repeated(repeated) => repeated.start_tokens(cache),
             Parser::Empty => todo!(),
             Parser::Rename(rename) => rename.start_tokens(cache),
+            Parser::Checkpoint(checkpoint) => checkpoint.start_tokens(cache),
         }
     }
 
@@ -237,6 +244,7 @@ function :vec $expected_{id}() {{
             Parser::Repeated(repeated) => repeated.is_optional(cache),
             Parser::Empty => todo!(),
             Parser::Rename(rename) => rename.is_optional(cache),
+            Parser::Checkpoint(checkpoint) => checkpoint.is_optional(cache),
         }
     }
 
@@ -250,13 +258,33 @@ function :vec $expected_{id}() {{
             Parser::Seq(seq) => seq.after_token(token, cache),
             Parser::Sep(sep) => todo!(),
             Parser::Delim(delim) => todo!(),
-            Parser::Named(named) => todo!(),
+            Parser::Named(named) => named.after_token(token, cache),
             Parser::Skip(skip) => todo!(),
             Parser::UnSkip(un_skip) => todo!(),
-            Parser::Optional(optional) => todo!(),
+            Parser::Optional(optional) => optional.after_token(token, cache),
             Parser::FoldOnce(fold_once) => todo!(),
             Parser::Repeated(repeated) => todo!(),
-            Parser::Rename(rename) => todo!(),
+            Parser::Rename(rename) => rename.after_token(token, cache),
+            Parser::Empty => todo!(),
+            Parser::Checkpoint(checkpoint) => todo!(),
+        }
+    }
+
+    pub fn get_name(&self, cache: &ParserCache) -> Option<u32> {
+        match self {
+            Parser::Just(just) => None,
+            Parser::Choice(choice) => None,
+            Parser::Seq(seq) => None,
+            Parser::Sep(sep) => None,
+            Parser::Delim(delim) => todo!(),
+            Parser::Named(named) => Some(named.name),
+            Parser::Skip(skip) => skip.inner.get_ref(cache).get_name(cache),
+            Parser::UnSkip(un_skip) => un_skip.inner.get_ref(cache).get_name(cache),
+            Parser::Optional(optional) => todo!(),
+            Parser::FoldOnce(fold_once) => Some(fold_once.name),
+            Parser::Repeated(repeated) => None,
+            Parser::Rename(rename) => Some(rename.name),
+            Parser::Checkpoint(checkpoint) => None,
             Parser::Empty => todo!(),
         }
     }

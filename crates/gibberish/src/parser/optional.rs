@@ -19,9 +19,9 @@ impl Optional {
             f,
             "
 # Parse Optional
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
-    %res =w call $parse_{inner}(l %state_ptr, w %recover)
+    %res =w call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     ret %res
 }}",
             inner = self.0.index,

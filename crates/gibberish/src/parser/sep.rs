@@ -26,11 +26,11 @@ impl Sep {
             f,
             "
 # Parse Sep
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %item_index =l call $push_delim(l %state_ptr, l {item})
     %sep_index =l call $push_delim(l %state_ptr, l {sep})
-    %res =l call $parse_{item}(l %state_ptr, w %recover)
+    %res =l call $parse_{item}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @try_parse_sep
 @check_sep
     jnz %res, @check_sep_eof, @try_parse_item

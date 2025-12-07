@@ -8,8 +8,8 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct UnSkip {
-    token: u32,
-    inner: ParserIndex,
+    pub token: u32,
+    pub inner: ParserIndex,
 }
 
 impl UnSkip {
@@ -21,10 +21,10 @@ impl UnSkip {
             f,
             "
 # Parse Unskip
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %unskipped =l call $unskip(l %state_ptr, l {kind})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover)
+    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %unskipped, @skip, @ret
 @skip
     call $skip(l %state_ptr, l {kind})

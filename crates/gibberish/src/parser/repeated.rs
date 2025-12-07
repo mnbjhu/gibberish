@@ -21,10 +21,10 @@ impl Repeated {
             f,
             "
 # Parse Rep0
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     call $push_delim(l %state_ptr, l {inner})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover)
+    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @check_eof
 @check_eof
     %is_eof =w call $is_eof(l %state_ptr)

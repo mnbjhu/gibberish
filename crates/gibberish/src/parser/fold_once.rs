@@ -22,7 +22,7 @@ impl FoldOnce {
             f,
             "
 # Parse Fold
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     jmp @check_eof
 @check_eof
@@ -41,7 +41,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     jmp @check_eof
 @parse
     %checkpoint =l call $checkpoint(l %state_ptr)
-    %res =l call $parse_{first}(l %state_ptr, w %recover)
+    %res =l call $parse_{first}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @parse_next
 @parse_next
     %res =l call $parse_{next}(l %state_ptr, w %recover)

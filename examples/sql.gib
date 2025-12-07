@@ -5,6 +5,10 @@ keyword define;
 keyword table;
 keyword field;
 keyword on;
+keyword struct;
+keyword enum;
+keyword void;
+keyword type;
 
 token NUM = "[0-9]+";
 token STR = "\"[^\"]*\"";
@@ -32,10 +36,14 @@ parser table_name = IDENT;
 
 parser select_stmt = select + _expr.sep_by(COMMA) + from + table_name;
 parser delete_stmt = delete + from + IDENT;
-parser define_table_stmt = define + table + table_name;
-parser define_field_stmt = define + field + field_name on table_name;
 
-parser _stmt = delete_stmt | select_stmt;
-parser _root = _stmt
-  .sep_by(SEMI)
-  .skip(WHITESPACE);
+parser define_table_stmt = define + table + table_name + SEMI;
+parser define_field_stmt = define + field + field_name + on + table_name + SEMI;
+parser define_enum_stmt = define + type + enum + table_name;
+parser define_struct_stmt = define + type + struct + table_name;
+parser define_void_stmt = define + type + void;
+
+parser _define_stmt = define_enum_stmt | define_field_stmt | define_table_stmt | define_struct_stmt | define_void_stmt;
+
+parser _stmt = delete_stmt | select_stmt | _define_stmt;
+parser _root = _stmt .sep_by(SEMI) .skip(WHITESPACE)

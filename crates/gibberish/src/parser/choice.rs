@@ -2,13 +2,17 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::ptr::{ParserCache, ParserIndex},
+};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Choice {
     pub options: Vec<ParserIndex>,
+    pub default: Option<u32>,
 }
 
 impl Choice {
@@ -19,16 +23,37 @@ impl Choice {
             .collect()
     }
 
-    pub fn build_parse(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
+        let ret_err = match self.default {
+            Some(u32::MAX) => &format!(
+                "\n@ret_err
+    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
+    ret %res
+",
+                default = builder.vars.len() + 1
+            ),
+            Some(default) => &format!(
+                "\n@ret_err
+    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
+    ret %res
+",
+            ),
+            None => {
+                "\n@ret_err
+    ret %res
+"
+            }
+        };
         write!(
             f,
             "
-function w $parse_{id}(l %state_ptr, w %recover) {{",
+# Build Choice
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         )
         .unwrap();
         for (index, option) in self.options.iter().enumerate() {
             let next = if index + 1 == self.options.len() {
-                "@ret"
+                "@ret_err"
             } else {
                 &format!("@check_{}", index + 1)
             };
@@ -36,7 +61,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{",
                 f,
                 "
 @check_{index}
-    %res =l call $parse_{option_index}(l %state_ptr, w %recover)
+    %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, {next}, @ret",
                 option_index = option.index
             )
@@ -47,39 +72,7 @@ function w $parse_{id}(l %state_ptr, w %recover) {{",
             "
 @ret
     ret %res
-}}"
-        )
-        .unwrap();
-    }
-
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{",
-        )
-        .unwrap();
-        for (index, option) in self.options.iter().enumerate() {
-            let next = if index + 1 == self.options.len() {
-                "@ret"
-            } else {
-                &format!("@check_{}", index + 1)
-            };
-            write!(
-                f,
-                "
-@check_{index}
-    %res =l call $peak_{option_index}(l %state_ptr, l %offset, w %recover)
-    jnz %res, {next}, @ret",
-                option_index = option.index
-            )
-            .unwrap();
-        }
-        write!(
-            f,
-            "
-@ret
-    ret %res
+{ret_err}
 }}"
         )
         .unwrap();
@@ -99,5 +92,9 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{",
 }
 
 pub fn choice(options: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
-    Parser::Choice(Choice { options }).cache(cache)
+    Parser::Choice(Choice {
+        options,
+        default: None,
+    })
+    .cache(cache)
 }

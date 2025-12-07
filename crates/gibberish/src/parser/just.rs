@@ -2,7 +2,10 @@ use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
+use crate::{
+    ast::builder::ParserBuilder,
+    parser::ptr::{ParserCache, ParserIndex},
+};
 
 use super::Parser;
 
@@ -14,13 +17,13 @@ impl Just {
         vec![Expected::Token(self.0)]
     }
 
-    pub fn build_parse(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
         write!(
             f,
             "
 
 # Parse Just
-function w $parse_{id}(l %state_ptr, w %recover) {{
+function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     jmp @check_eof
 @check_eof
