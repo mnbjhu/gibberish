@@ -20,14 +20,7 @@ impl<'a> TokenDefAst<'a> {
 
     pub fn build(&self, builder: &mut ParserBuilder) {
         let Some(value) = self.value() else { return };
-        let mut text = value.text.clone();
-        text.remove(0);
-        text.pop();
-        text = text.replace("\\\\", "\\");
-        text = text.replace("\\\"", "\"");
-        text = text.replace("\\n", "\n");
-        text = text.replace("\\t", "\t");
-        text = text.replace("\\f", "\x0C");
+        let text = rust_string(&value.text);
         let regex = parse_seq(&text, &mut 0);
         if let Some(regex) = regex {
             builder.lexer.push((self.name().text.to_string(), regex));
@@ -38,4 +31,16 @@ impl<'a> TokenDefAst<'a> {
                 .push((self.name().text.to_string(), RegexAst::Error));
         }
     }
+}
+
+pub fn rust_string(value: &str) -> String {
+    let mut text = value.to_string();
+    text.remove(0);
+    text.pop();
+    text = text.replace("\\\\", "\\");
+    text = text.replace("\\\"", "\"");
+    text = text.replace("\\n", "\n");
+    text = text.replace("\\t", "\t");
+    text = text.replace("\\f", "\x0C");
+    text
 }

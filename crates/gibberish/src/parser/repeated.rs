@@ -74,22 +74,31 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         true
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
-        if let Some(after) = self
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
+        match self
             .0
             .get_ref(&builder.cache)
             .clone()
             .after_token(token, builder)
         {
-            Some(seq(
-                vec![
-                    after,
-                    Parser::Repeated(Repeated(self.0.clone())).cache(&mut builder.cache),
-                ],
-                &mut builder.cache,
-            ))
-        } else {
-            Some(Parser::Repeated(self.clone()).cache(&mut builder.cache))
+            (Some(after), default) => (
+                Some(seq(
+                    vec![
+                        after,
+                        Parser::Repeated(Repeated(self.0.clone())).cache(&mut builder.cache),
+                    ],
+                    &mut builder.cache,
+                )),
+                default,
+            ),
+            (None, default) => (
+                Some(Parser::Repeated(self.clone()).cache(&mut builder.cache)),
+                default,
+            ),
         }
     }
 }

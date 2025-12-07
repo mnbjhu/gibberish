@@ -55,7 +55,11 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         true
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
         self.0
             .get_ref(&builder.cache)
             .clone()

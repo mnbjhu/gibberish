@@ -92,23 +92,32 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
         self.first.get_ref(cache).is_optional(cache)
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
         let first = self
             .first
             .get_ref(&builder.cache)
             .clone()
             .after_token(token, builder);
-        if let Some(first) = first {
-            Some(first.fold_once(self.name, self.next.clone(), &mut builder.cache))
-        } else {
-            Some(
-                Parser::Rename(Rename {
-                    inner: self.next.clone(),
-                    name: self.name,
-                })
-                .cache(&mut builder.cache)
-                .or_not(&mut builder.cache),
-            )
+        match first {
+            (Some(first), default) => (
+                Some(first.fold_once(self.name, self.next.clone(), &mut builder.cache)),
+                default,
+            ),
+            (None, default) => (
+                Some(
+                    Parser::Rename(Rename {
+                        inner: self.next.clone(),
+                        name: self.name,
+                    })
+                    .cache(&mut builder.cache)
+                    .or_not(&mut builder.cache),
+                ),
+                default,
+            ),
         }
     }
 }

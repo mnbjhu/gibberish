@@ -94,7 +94,11 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         false // TODO: Look into whether this is easy to support
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
         let mut parsers = vec![];
         for (index, p) in self.options.iter().enumerate() {
             if p.get_ref(&builder.cache)
@@ -120,25 +124,50 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         let rest = parsers
             .iter()
             .filter_map(|index| {
-                if let Some(rest) = self.options[*index]
+                match self.options[*index]
                     .get_ref(&builder.cache)
                     .clone()
                     .after_token(token, builder)
                 {
-                    Some(rest)
-                } else {
-                    if require_named {
-                        let name = self.options[*index]
-                            .get_ref(&builder.cache)
-                            .get_name(&builder.cache)
-                            .unwrap();
+                    (Some(rest), Some(d)) => {
+                        // if rest.get_ref(&builder.cache).is_optional(&builder.cache) {
+                        //     panic!("default already set")
+                        // }
                         if default.is_none() {
-                            default = Some(name);
+                            default = Some(d);
                         } else {
-                            panic!("Expected named")
+                            panic!("default is already set")
                         }
+                        Some(rest)
                     }
-                    None
+                    (Some(rest), None) => {
+                        if rest.get_ref(&builder.cache).is_optional(&builder.cache) {
+                            let name = self.options[*index]
+                                .get_ref(&builder.cache)
+                                .get_name(&builder.cache)
+                                .unwrap();
+                            if default.is_none() {
+                                default = Some(name);
+                            } else {
+                                panic!("default is already set")
+                            }
+                        }
+                        Some(rest)
+                    }
+                    (None, d) => {
+                        if require_named {
+                            let name = self.options[*index]
+                                .get_ref(&builder.cache)
+                                .get_name(&builder.cache)
+                                .unwrap();
+                            if default.is_none() && d.is_some() {
+                                default = d;
+                            } else {
+                                panic!("Expected named")
+                            }
+                        }
+                        None
+                    }
                 }
             })
             .collect::<Vec<_>>();
@@ -148,20 +177,22 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         let option = if rest.is_empty() {
             panic!("Found 0 intersect");
         } else {
+            let mut after = Parser::Choice(Choice {
+                options: rest,
+                default,
+            })
+            .cache(&mut builder.cache)
+            .reduce_conflicts(builder, 0)
+            .unwrap();
+            if default.is_some() {
+                after = after.or_not(&mut builder.cache)
+            }
             seq(
-                vec![
-                    just(token, &mut builder.cache),
-                    Parser::Choice(Choice {
-                        options: rest,
-                        default,
-                    })
-                    .cache(&mut builder.cache)
-                    .reduce_conflicts(builder, 0)?,
-                ],
+                vec![just(token, &mut builder.cache), after],
                 &mut builder.cache,
             )
         };
-        Some(option)
+        (Some(option), None)
     }
 }
 

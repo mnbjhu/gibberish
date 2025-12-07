@@ -7,6 +7,7 @@ use crate::parser::ptr::ParserIndex;
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
 
+pub mod arg;
 pub mod call;
 pub mod choice;
 pub mod ident;

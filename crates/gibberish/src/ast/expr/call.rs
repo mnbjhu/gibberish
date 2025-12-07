@@ -1,8 +1,16 @@
+use std::collections::HashMap;
+
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken as T};
 
 use crate::{
-    ast::{builder::ParserBuilder, expr::ExprAst},
+    ast::{
+        builder::ParserBuilder,
+        expr::{
+            ExprAst,
+            arg::{ArgAst, NamedParamAst},
+        },
+    },
     parser::{Parser, ptr::ParserIndex},
 };
 
@@ -31,7 +39,7 @@ impl<'a> CallAst<'a> {
             match member.name().text.as_str() {
                 "repeated" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if !args.is_empty() {
@@ -44,7 +52,7 @@ impl<'a> CallAst<'a> {
                 }
                 "sep_by" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
@@ -54,11 +62,21 @@ impl<'a> CallAst<'a> {
                         );
                         panic!()
                     }
-                    expr = expr.sep_by(args[0].clone(), &mut builder.cache)
+                    let named = member.named_args().collect::<HashMap<_, _>>();
+                    let mut at_least = 1;
+                    let at_least_value = named.get("at_least");
+                    if let Some(at_least_value) = at_least_value {
+                        if let StringOrInt::Int(at_least_value) = at_least_value {
+                            at_least = *at_least_value
+                        } else {
+                            panic!("Expected an int")
+                        }
+                    }
+                    expr = expr.sep_by_extra(args[0].clone(), at_least, &mut builder.cache)
                 }
                 "delim_by" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 2 {
@@ -71,7 +89,7 @@ impl<'a> CallAst<'a> {
                 }
                 "skip" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
@@ -88,7 +106,7 @@ impl<'a> CallAst<'a> {
                 }
                 "unskip" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if args.len() != 1 {
@@ -102,7 +120,7 @@ impl<'a> CallAst<'a> {
                 }
                 "or_not" => {
                     let args = member
-                        .args()
+                        .parser_args()
                         .map(|it| it.build(builder))
                         .collect::<Vec<_>>();
                     if !args.is_empty() {
@@ -111,7 +129,7 @@ impl<'a> CallAst<'a> {
                     expr = expr.or_not(&mut builder.cache);
                 }
                 "rename" => {
-                    let args = member.args().collect::<Vec<_>>();
+                    let args = member.parser_args().collect::<Vec<_>>();
                     if args.len() != 1 {
                         panic!("'rename' expected 0 arg but {} were found", args.len())
                     }
@@ -144,14 +162,32 @@ impl<'a> CallArmAst<'a> {
             .lexeme_by_kind(T::Ident)
             .unwrap()
     }
-
-    pub fn args(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        let ret: Box<dyn Iterator<Item = ExprAst<'a>>> =
+    pub fn args(&self) -> impl Iterator<Item = ArgAst<'a>> {
+        let ret: Box<dyn Iterator<Item = ArgAst<'a>>> =
             if let Some(args) = self.0.green_node_by_name(S::Args) {
-                Box::new(args.green_children().map(ExprAst::from))
+                Box::new(args.green_children().map(ArgAst::from))
             } else {
                 Box::new(std::iter::empty())
             };
         ret
     }
+
+    pub fn parser_args(&self) -> impl Iterator<Item = ExprAst<'a>> {
+        self.args().filter_map(|it| match it {
+            ArgAst::Expr(expr_ast) => Some(expr_ast),
+            ArgAst::Named(_) => None,
+        })
+    }
+
+    pub fn named_args(&self) -> impl Iterator<Item = (String, StringOrInt)> {
+        self.args().filter_map(|it| match it {
+            ArgAst::Expr(_) => None,
+            ArgAst::Named(p) => p.value().map(|value| (p.name(), value)),
+        })
+    }
+}
+
+pub enum StringOrInt {
+    String(String),
+    Int(usize),
 }

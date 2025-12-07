@@ -455,9 +455,9 @@ dependencies = [
 
 [[package]]
 name = "gibberish-gibberish-parser"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efcb7599e452212c7d9ef2cbfc5af28a0b507aa4a4920125cb201286bbfeb08d"
+checksum = "3b1d82edbfc995a1598e21e3c068de9045653d1ac59728e8a9d949924257aba8"
 dependencies = [
  "gibberish-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

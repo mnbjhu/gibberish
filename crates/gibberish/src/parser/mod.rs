@@ -266,11 +266,15 @@ function :vec $expected_{id}() {{
         }
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
         match self {
             Parser::Just(just) => {
                 assert_eq!(just.0, token);
-                None
+                (None, None)
             }
             Parser::Choice(choice) => choice.after_token(token, builder),
             Parser::Seq(seq) => seq.after_token(token, builder),

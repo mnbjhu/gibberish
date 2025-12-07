@@ -172,13 +172,17 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.0.iter().all(|it| it.get_ref(cache).is_optional(cache))
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(
+        &self,
+        token: u32,
+        builder: &mut ParserBuilder,
+    ) -> (Option<ParserIndex>, Option<u32>) {
         for (index, item) in self.0.iter().enumerate() {
             let item = item.get_ref(&builder.cache).clone();
             if item.start_tokens(&builder.cache).contains(&token) {
                 let mut new_seq = self.0[index..].to_vec();
                 if new_seq.is_empty() {
-                    return None;
+                    return (None, None);
                 }
                 if new_seq.len() == 1 {
                     return new_seq[0]
@@ -190,18 +194,26 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
                     .get_ref(&builder.cache)
                     .clone()
                     .after_token(token, builder);
-                if let Some(first) = first {
-                    new_seq[0] = first;
-                } else {
-                    new_seq.remove(0);
+                let default = match first {
+                    (Some(first), default) => {
+                        new_seq[0] = first;
+                        default
+                    }
+                    (None, default) => {
+                        new_seq.remove(0);
+                        default
+                    }
                 };
-                return Some(Parser::Seq(Seq(new_seq)).cache(&mut builder.cache));
+                return (
+                    Some(Parser::Seq(Seq(new_seq)).cache(&mut builder.cache)),
+                    default,
+                );
             }
             if !item.is_optional(&builder.cache) {
                 break;
             }
         }
-        None
+        (None, None)
     }
 }
 
