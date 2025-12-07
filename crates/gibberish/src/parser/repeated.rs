@@ -4,6 +4,7 @@ use gibberish_core::err::Expected;
 use gibberish_core::lang::CompiledLang;
 
 use crate::parser::Parser;
+use crate::parser::seq::{Seq, seq};
 
 use crate::ast::try_parse;
 use crate::parser::ptr::{ParserCache, ParserIndex};
@@ -70,6 +71,20 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
 
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         true
+    }
+
+    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+        if let Some(after) = self.0.get_ref(cache).clone().after_token(token, cache) {
+            Some(seq(
+                vec![
+                    after,
+                    Parser::Repeated(Repeated(self.0.clone())).cache(cache),
+                ],
+                cache,
+            ))
+        } else {
+            Some(Parser::Repeated(self.clone()).cache(cache))
+        }
     }
 }
 

@@ -35,6 +35,7 @@ pub mod repeated;
 pub mod sep;
 pub mod seq;
 pub mod skip;
+pub mod unmatched;
 pub mod unskip;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

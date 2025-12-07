@@ -51,6 +51,10 @@ function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         true
     }
+
+    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+        self.0.get_ref(cache).clone().after_token(token, cache)
+    }
 }
 
 impl ParserIndex {

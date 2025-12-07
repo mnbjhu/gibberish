@@ -40,56 +40,18 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     call $bump(l %state_ptr)
     jmp @check_eof
 @parse
-    call $enter_group(l %state_ptr, w {name})
+    %checkpoint =l call $checkpoint(l %state_ptr)
     %res =l call $parse_{first}(l %state_ptr, w %recover)
-    jnz %res, @remove_group, @parse_next
+    jnz %res, @ret_err, @parse_next
 @parse_next
     %res =l call $parse_{next}(l %state_ptr, w %recover)
-    jnz %res, @disolve_group, @exit
-@disolve_group
-    %stack_ptr =l add %state_ptr, 24
-    %current_group =l call $last(l %stack_ptr, l 32)
-    call $pop(l %stack_ptr, l 32)
-    %outer_group =l call $last(l %stack_ptr, l 32)
-
-    %current_ptr_ptr =l add %current_group, 8
-    %current_len_ptr =l add %current_group, 16
-    %current_len =l loadl %current_len_ptr
-    %current_ptr =l loadl %current_ptr_ptr
-    %current_size =l mul %current_len, 32
-
-    %outer_ptr_ptr =l add %outer_group, 8
-    %outer_len_ptr =l add %outer_group, 16
-    %outer_cap_ptr =l add %outer_group, 24
-    %outer_len =l loadl %outer_len_ptr
-    %outer_len_ptr =l add %outer_group, 16
-    %outer_len =l loadl %outer_len_ptr
-    %outer_ptr =l loadl %outer_ptr_ptr
-    %outer_size =l mul %outer_len, 32
-
-    %new_len =l add %current_len, %outer_len
-    %new_cap =l mul %new_len, 2
-    %new_size =l mul %new_len, 64
-    %new_ptr =l call $malloc(l %new_size)
-    %added_ptr =l add %new_ptr, %outer_size
-
-    call $memcpy(l %new_ptr, l %outer_ptr, l %outer_size)
-    call $memcpy(l %added_ptr, l %current_ptr, l %current_size)
-
-    call $free(l %outer_ptr)
-    call $free(l %current_ptr)
-
-    storel %new_ptr, %outer_ptr_ptr
-    storel %new_len, %outer_len_ptr
-    storel %new_cap, %outer_cap_ptr
-
+    jnz %res, @ret_ok, @create_group
+@create_group
+    call $group_at(l %state_ptr, w {name}, l %checkpoint)
     ret 0
-@exit
-    call $exit_group(l %state_ptr)
-    ret %res
-@remove_group
-    %stack_ptr =l add %state_ptr, 24
-    call $pop(l %stack_ptr, l 32)
+@ret_ok
+    ret 0
+@ret_err
     ret %res
 @eof
     ret 2

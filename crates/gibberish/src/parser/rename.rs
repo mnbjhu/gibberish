@@ -50,6 +50,20 @@ function w $parse_{id}(l %state_ptr, w %recover) {{
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         self.inner.get_ref(cache).is_optional(cache)
     }
+
+    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
+        self.inner
+            .get_ref(cache)
+            .clone()
+            .after_token(token, cache)
+            .map(|it| {
+                Parser::Rename(Rename {
+                    inner: it,
+                    name: self.name,
+                })
+                .cache(cache)
+            })
+    }
 }
 
 impl ParserIndex {

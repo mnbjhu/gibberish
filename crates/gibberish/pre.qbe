@@ -667,3 +667,46 @@ function w $inc_offset(l %lexer_state) {
     storel %offset, %offset_ptr
     ret 0
 }
+
+function w $checkpoint(l %state_ptr) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %current_len_ptr =l add %current_group, 16
+    %len =l loadl %current_len_ptr
+    ret %len
+}
+
+function w $group_at(l %state_ptr, w %group_kind, l %checkpoint) {
+@start
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+
+    %current_len_ptr =l add %current_group, 16
+    %current_len =l loadl %current_len_ptr
+    %current_ptr_ptr =l add %current_group, 8
+    %current_ptr =l loadl %current_ptr_ptr
+
+    %new_group_len =l sub %current_len, %checkpoint
+    %new_group_start =l mul %checkpoint, 32
+    %new_group_start =l add %new_group_start, %current_ptr
+    %new_group_size =l mul %new_group_len, 32
+
+    %new_group_ptr =l call $malloc(l %new_group_size)
+    call $memcpy(l %new_group_ptr, l %new_group_start, l %new_group_size)
+
+    %new_group_kind_ptr =l add %new_group_start, 4
+    %new_group_ptr_ptr =l add %new_group_start, 8
+    %new_group_len_ptr =l add %new_group_start, 16
+    %new_group_cap_ptr =l add %new_group_start, 24
+
+    storew 1, %new_group_start
+    storew %group_kind, %new_group_kind_ptr
+    storel %new_group_ptr, %new_group_ptr_ptr
+    storel %new_group_len, %new_group_len_ptr
+    storel %new_group_len, %new_group_cap_ptr
+
+    %current_len =l add %checkpoint, 1
+    storel %current_len, %current_len_ptr
+    ret 1
+}
