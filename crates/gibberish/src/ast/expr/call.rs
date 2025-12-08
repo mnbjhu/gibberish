@@ -175,14 +175,14 @@ impl<'a> CallArmAst<'a> {
     pub fn parser_args(&self) -> impl Iterator<Item = ExprAst<'a>> {
         self.args().filter_map(|it| match it {
             ArgAst::Expr(expr_ast) => Some(expr_ast),
-            ArgAst::Named(_) => None,
+            // ArgAst::Named(_) => None,
         })
     }
 
     pub fn named_args(&self) -> impl Iterator<Item = (String, StringOrInt)> {
         self.args().filter_map(|it| match it {
             ArgAst::Expr(_) => None,
-            ArgAst::Named(p) => p.value().map(|value| (p.name(), value)),
+            // ArgAst::Named(p) => p.value().map(|value| (p.name(), value)),
         })
     }
 }

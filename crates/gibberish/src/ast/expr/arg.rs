@@ -9,16 +9,16 @@ use crate::ast::{
 #[derive(Clone, Copy)]
 pub enum ArgAst<'a> {
     Expr(ExprAst<'a>),
-    Named(NamedParamAst<'a>),
+    // Named(NamedParamAst<'a>),
 }
 
 impl<'a> From<&'a Group<Gibberish>> for ArgAst<'a> {
     fn from(value: &'a Group<Gibberish>) -> Self {
-        if value.kind == GibberishSyntax::NamedParam {
-            ArgAst::Named(NamedParamAst(value))
-        } else {
-            ArgAst::Expr(ExprAst::from(value))
-        }
+        // if value.kind == GibberishSyntax::NamedParam {
+        //     ArgAst::Named(NamedParamAst(value))
+        // } else {
+        ArgAst::Expr(ExprAst::from(value))
+        // }
     }
 }
 
