@@ -199,8 +199,8 @@ function :vec $expected_{id}() {{
             }
             let (kind, id) = match it {
                 Expected::Token(id) => (0, id),
-                Expected::Label(id) => (1, id),
-                Expected::Group(id) => (2, id),
+                Expected::Group(id) => (1, id),
+                Expected::Label(id) => (2, id),
             };
             write!(f, "l {kind}, l {id}",).unwrap()
         });

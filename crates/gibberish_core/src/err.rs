@@ -109,7 +109,7 @@ impl<L: Lang> Expected<L> {
     pub fn debug_name(&self, lang: &L) -> String {
         match self {
             Expected::Token(t) => lang.token_name(t),
-            Expected::Label(_) => todo!(),
+            Expected::Label(l) => lang.syntax_name(l),
             Expected::Group(g) => lang.syntax_name(g),
         }
     }

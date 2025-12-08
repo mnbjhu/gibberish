@@ -141,11 +141,13 @@ impl Display for {struct_name} {{
 pub struct {struct_name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
 pub enum {struct_name}Token {{
     {token_body}
 }}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
 pub enum {struct_name}Syntax {{
     {syntax_body}
 }}
