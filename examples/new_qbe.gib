@@ -133,22 +133,14 @@ parser func_args = func_arg.sep_by(comma).delim_by(l_paren, r_paren);
 parser block = label + _stmt.repeated();
 parser func_body = l_brace + block.repeated() + r_brace;
 
-parser function_def = function + ty + global + func_args + func_body;
-parser _function_def = function + ty + global + func_args + func_body;
+parser function_def = export.or_not() + function + ty + global + func_args + func_body;
 
 parser data_part = ty + (int | string);
-parser data_def = data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
-parser _data_def = data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
+parser data_def = export.or_not() + data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
 
 parser type_part = ty + int.or_not();
 parser alignment = align + int;
 parser type_def = type + type_name + eq + alignment.or_not() + type_part.sep_by(comma).delim_by(l_brace, r_brace);
-parser _type_def = type + type_name + eq + alignment.or_not() + type_part.sep_by(comma).delim_by(l_brace, r_brace);
+parser _decl = data_def | function_def | type_def;
 
-parser decl = export.or_not() + (
-  _data_def.rename(data_def) | 
-  _function_def.rename(function_def) |
-  _type_def.rename(type_def)
-);
-
-parser _root = decl.repeated().skip(comment).skip(newline).skip(ws)
+parser _root = _decl.repeated().skip(comment).skip(newline).skip(ws)

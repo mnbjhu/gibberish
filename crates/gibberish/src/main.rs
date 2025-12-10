@@ -1,13 +1,11 @@
 use clap::Parser;
 use cli::command::Command;
 
-mod api;
+mod ast;
 mod cli;
-mod dsl;
-// mod json;
-// mod lsp;
-// mod parser;
-// mod query;
+mod lexer;
+mod lsp;
+mod parser;
 mod report;
 
 #[tokio::main]

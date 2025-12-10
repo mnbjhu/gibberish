@@ -5,15 +5,13 @@ use std::{fs, path::Path};
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
-use crate::api::ptr::ParserIndex;
-use crate::dsl::build::build_parser_qbe;
+use crate::ast::builder::ParserBuilder;
+use crate::parser::build::build_parser_qbe;
+use crate::parser::ptr::ParserIndex;
 
-use crate::dsl::lexer::RuntimeLang;
-use crate::dsl::lexer::build::create_name_function;
-use crate::dsl::{
-    ast::RootAst,
-    parser::{ParserBuilder, build_parser},
-};
+use crate::ast::RootAst;
+use crate::lexer::build::create_name_function;
+use crate::report::{report_errors, report_parse_error};
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
@@ -45,9 +43,10 @@ pub fn build_qbe_str(parser_file: &Path) -> String {
 }
 
 impl ParserBuilder {
-    pub fn build_qbe(&self, parser: ParserIndex<RuntimeLang>) -> String {
+    pub fn build_qbe(&self, parser: ParserIndex) -> String {
         let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
         group_names.push("root");
+        group_names.push("unmatched");
         let mut res = String::new();
         let pre = include_str!("../../pre.qbe");
         write!(&mut res, "{}", pre).unwrap();
@@ -57,13 +56,14 @@ impl ParserBuilder {
     }
 }
 
-pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex<RuntimeLang>) {
+pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex) {
     let parser_text = fs::read_to_string(parser_file).unwrap();
     let res = Gibberish::parse(&parser_text);
-    let dsl_ast = RootAst(res.as_group());
     let parser_filename = parser_file.to_str().unwrap();
+    report_errors(&res, &parser_text, parser_filename, &Gibberish);
+    let dsl_ast = RootAst(res.as_group());
     let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
-    let parser = build_parser(dsl_ast, &mut builder);
+    let parser = dsl_ast.build_parser(&mut builder);
     (builder, parser)
 }
 
@@ -85,8 +85,10 @@ pub fn build_static_lib(qbe_text: &str, out: &Path) {
         .status()
         .unwrap();
     Command::new("cc")
+        .arg("-g")
+        .arg("-fno-omit-frame-pointer")
         .arg("-c")
-        .arg("-fPIC")
+        // .arg("-fPIC")
         .arg(&lib_path)
         .arg("-o")
         .arg(&lib_o_path)

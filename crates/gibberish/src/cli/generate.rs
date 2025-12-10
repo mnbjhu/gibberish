@@ -1,4 +1,5 @@
 use std::fmt::Write as _;
+use std::fs::{remove_dir, remove_dir_all};
 use std::{
     env::current_dir,
     fs::{self, create_dir},
@@ -6,16 +7,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
-use crate::{
-    cli::build::{build_dynamic_lib, build_qbe_str, build_static_lib},
-    dsl::parser::ParserBuilder,
-};
+use crate::cli::build::{build_dynamic_lib, build_static_lib};
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
     let (builder, parser) = build_parser_from_src(src);
     let qbe_str = builder.build_qbe(parser);
+    let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
     build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
     build_dynamic_lib(&qbe_str, &PathBuf::from(format!("lib/{name}-parser.so")));
@@ -66,13 +66,16 @@ path = "src/lib.rs"
 gibberish-core = "0.1.0"
 "#
     );
-    write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
+    if !crate_dir.join("Cargo.toml").exists() {
+        write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
+    }
 
     let build_rs = format!(
         "
 fn main() {{
     println!(\"cargo:rustc-link-search=native=lib\");
     println!(\"cargo:rustc-link-lib=static={name}-parser\");
+    println!(\"cargo:rerun-if-changed=lib/lib{name}-parser.a\");
 }}
 "
     );
@@ -101,6 +104,12 @@ fn main() {{
         writeln!(&mut syntax_body, "\t{name} = {},", index).unwrap();
     }
     writeln!(&mut syntax_body, "\tRoot = {},", builder.vars.len()).unwrap();
+    writeln!(
+        &mut syntax_body,
+        "\tUnmatched = {},",
+        builder.vars.len() + 1
+    )
+    .unwrap();
 
     let lib_rs = format!(
         "
@@ -135,11 +144,13 @@ impl Display for {struct_name} {{
 pub struct {struct_name};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
 pub enum {struct_name}Token {{
     {token_body}
 }}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
 pub enum {struct_name}Syntax {{
     {syntax_body}
 }}

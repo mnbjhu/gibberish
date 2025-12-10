@@ -10,7 +10,8 @@ use crate::cli::build::{BuildKind, build};
 use crate::cli::generate::generate;
 use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
-// use crate::cli::query::query;
+use crate::cli::watch::watch_custom;
+use crate::lsp::main_loop;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -43,15 +44,10 @@ pub enum Command {
         hide_errors: bool,
         #[clap(short('t'), long)]
         hide_tokens: bool,
+        #[clap(long)]
+        parser_src: Option<PathBuf>,
     },
 
-    // Query {
-    //     #[clap(long)]
-    //     src: PathBuf,
-    //     #[clap(long)]
-    //     parser_src: PathBuf,
-    //     query: String,
-    // },
     /// Starts an lsp for the specified syntax file
     Lsp { path: PathBuf },
 
@@ -107,16 +103,15 @@ impl Command {
                 path,
                 hide_errors,
                 hide_tokens,
-            } => watch(path, !hide_errors, !hide_tokens).unwrap(),
-            // Command::Lsp { path } => main_loop(path).await,
-            Command::Lsp { path } => todo!(),
-            // Command::Query {
-            //     src,
-            //     parser_src,
-            //     query: q,
-            // } => {
-            //     query(parser_src, src, q);
-            // }
+                parser_src,
+            } => {
+                if let Some(src) = parser_src {
+                    watch_custom(path, !hide_errors, !hide_tokens, src).unwrap()
+                } else {
+                    watch(path, !hide_errors, !hide_tokens).unwrap()
+                }
+            }
+            Command::Lsp { path } => main_loop(path).await,
             Command::Build { path, output, kind } => {
                 build(path, output.as_ref().map(PathBuf::as_path), kind)
             }
