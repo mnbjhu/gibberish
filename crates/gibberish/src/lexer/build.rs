@@ -259,22 +259,17 @@ export function :vec $lex(l %ptr, l %len) {{
 @check_{name}
     storel 0, %group_end_ptr
     %res =l call $lex_{name}(l %lexer_state)
-    jnz %res, @bump_{name}, @{next}
+    jnz %res, @check_overflow_{name}, @{next}
+@check_overflow_{name}
+    %overflow =l cugtl %res, %len
+    jnz %overflow, @end, @bump_{name}
 @bump_{name}
     %end =l add %total_offset, %res
     %tok =:token call $new_token(l {index}, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
     %total_offset =l copy %end
-    %ptr =l add %ptr, %res
-    %len =l sub %len, %res
+    jmp @finish_loop
 
-    storel %ptr, %lexer_state
-    storel %len, %len_ptr
-    storel 0, %offset_ptr
-    storel 0, %group_end_ptr
-
-    %last_was_error =w copy 0
-    jmp @loop
 "
         )
         .unwrap();
@@ -282,6 +277,16 @@ export function :vec $lex(l %ptr, l %len) {{
     write!(
         f,
         "
+@finish_loop
+    %ptr =l add %ptr, %res
+    %len =l sub %len, %res
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+    storel 0, %offset_ptr
+    storel 0, %group_end_ptr
+
+    %last_was_error =w copy 0
+    jmp @loop
 @fail
     jnz %last_was_error, @fail_again, @fail_first
 @fail_first

@@ -274,6 +274,10 @@ impl<L: Lang> Group<L> {
         }
         Ok(())
     }
+
+    pub fn lexemes(&self) -> impl Iterator<Item = &Lexeme<L>> {
+        self.children.iter().flat_map(|it| it.lexemes())
+    }
 }
 
 pub struct LexemeIter<'a, L: Lang> {

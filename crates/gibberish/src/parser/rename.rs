@@ -27,7 +27,7 @@ impl Rename {
             "
 
 # Parse Rename
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @rename

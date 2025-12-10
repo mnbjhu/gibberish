@@ -85,8 +85,10 @@ pub fn build_static_lib(qbe_text: &str, out: &Path) {
         .status()
         .unwrap();
     Command::new("cc")
+        .arg("-g")
+        .arg("-fno-omit-frame-pointer")
         .arg("-c")
-        .arg("-fPIC")
+        // .arg("-fPIC")
         .arg(&lib_path)
         .arg("-o")
         .arg(&lib_o_path)

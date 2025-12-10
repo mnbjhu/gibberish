@@ -25,7 +25,7 @@ impl Delim {
             f,
             "
 # Parse Delim
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %res =l call $parse_{open}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @add_delim

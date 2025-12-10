@@ -1,4 +1,5 @@
 use std::fmt::Write as _;
+use std::fs::{remove_dir, remove_dir_all};
 use std::{
     env::current_dir,
     fs::{self, create_dir},
@@ -14,6 +15,7 @@ pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
     let (builder, parser) = build_parser_from_src(src);
     let qbe_str = builder.build_qbe(parser);
+    let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
     build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
     build_dynamic_lib(&qbe_str, &PathBuf::from(format!("lib/{name}-parser.so")));
@@ -73,6 +75,7 @@ gibberish-core = "0.1.0"
 fn main() {{
     println!(\"cargo:rustc-link-search=native=lib\");
     println!(\"cargo:rustc-link-lib=static={name}-parser\");
+    println!(\"cargo:rerun-if-changed=lib/lib{name}-parser.a\");
 }}
 "
     );

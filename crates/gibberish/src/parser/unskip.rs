@@ -21,7 +21,7 @@ impl UnSkip {
             f,
             "
 # Parse Unskip
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %unskipped =l call $unskip(l %state_ptr, l {kind})
     %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)

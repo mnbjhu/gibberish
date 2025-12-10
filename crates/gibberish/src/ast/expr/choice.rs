@@ -30,8 +30,6 @@ impl<'a> ChoiceAst<'a> {
     pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         let items = self.iter().map(|it| it.build(builder)).collect::<Vec<_>>();
         build_choice(items, &mut builder.cache)
-            .reduce_conflicts(builder, 0)
-            .expect("Failed to reduce options")
     }
 }
 

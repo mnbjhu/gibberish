@@ -22,7 +22,7 @@ impl Skip {
             f,
             "
 # Parse Skip
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %skipped =l call $skip(l %state_ptr, l {kind})
     %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)

@@ -15,15 +15,6 @@ data $err_just = { b "Err just %d\n", b 0 }
 # <stack: 3> <tokens: 3> <offset: 1> <delim_stack: 3> <skip: 3>
 type :state = { l 3, l 3, l, l 3, l 3 }
 
-export function :vec $test_vec_contains() {
-@start
-    %vec =:vec call $new_vec(l 8)
-    call $push_long(l %vec, l 0)
-    call $push_long(l %vec, l 1)
-    call $push_long(l %vec, l 2)
-    #%res =l call $contains_long(l %vec, l 1)
-    ret %vec
-}
 
 function w $is_eof(l %state_ptr) {
 @start
@@ -69,16 +60,13 @@ function w $remove_long(l %vec, l %index) {
     %len     =l loadl %len_ptr
     %ptr     =l loadl %vec
 
-    # bytes to move = (len - index - 1) * 8
     %len_minus_index =l sub %len, %index
     %len_minus_index =l sub %len_minus_index, 1
     %cpy_size =l mul %len_minus_index, 8
 
-    # dst = ptr + index*8
     %offset  =l mul %index, 8
     %dst_ptr =l add %ptr, %offset
 
-    # src = dst + 8
     %src_ptr =l add %dst_ptr, 8
 
     call $memcpy(l %dst_ptr, l %src_ptr, l %cpy_size)
@@ -532,16 +520,13 @@ export function w $free_node(l %n) {
     %is0 =w ceqw %kind, 0
     jnz %is0, @case0, @check1
 @check1
-    # ---- check kind == 1 ----
     %is1 =w ceqw %kind, 1
     jnz %is1, @case1, @check2
 @check2
-    # ---- check kind == 2 ----
     %is2 =w ceqw %kind, 2
     jnz %is2, @case2, @check3
 
 @check3
-    # ---- check kind == 3 ----
     %is3 =w ceqw %kind, 3
     jnz %is3, @case3, @end
 
@@ -592,59 +577,43 @@ export function w $free_node(l %n) {
 
 export function w $free_state(l %s) {
 @start
-    # ---- free tokens RawVec<Lexeme> ----
-    # tokens.ptr at offset 0
     %tokptr_ptr =l add %s, 0
     %tokptr     =l loadl %tokptr_ptr
     call $free(l %tokptr)
 
-    # ---- free stack RawVec<NodeData> (recursively with free_node) ----
-    # stack.ptr at offset 24
     %stackptr_ptr =l add %s, 24
     %stackptr     =l loadl %stackptr_ptr
 
-    # stack.len at offset 32
     %stacklen_ptr =l add %s, 32
     %stacklen     =l loadl %stacklen_ptr
 
-    # i = 0
     %i =l copy 0
     jmp @stack_loop
 
 @stack_loop
-    # while (i < stacklen)
     %cmp =w cultl %i, %stacklen
     jnz %cmp, @stack_loop_body, @stack_loop_done
 
 @stack_loop_body
-    # node_i = stackptr + i * 32  (sizeof(NodeData) == 32)
     %off  =l mul %i, 32
     %node =l add %stackptr, %off
 
-    # recursively free this node
     call $free_node(l %node)
 
-    # i++
     %i =l add %i, 1
     jmp @stack_loop
 
 @stack_loop_done
-    # free(stack.ptr)
     call $free(l %stackptr)
 
-    # ---- free delim_stack RawVec<usize> ----
-    # delim_stack.ptr at offset 56
     %delimptr_ptr =l add %s, 56
     %delimptr     =l loadl %delimptr_ptr
     call $free(l %delimptr)
 
-    # ---- free skip RawVec<usize> ----
-    # skip.ptr at offset 80
     %skipptr_ptr =l add %s, 80
     %skipptr     =l loadl %skipptr_ptr
     call $free(l %skipptr)
 
-    # done (StateData itself is not freed here)
     ret 1
 }
 

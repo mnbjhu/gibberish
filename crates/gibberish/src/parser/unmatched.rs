@@ -105,7 +105,7 @@ impl Unmatched {
             f,
             "
 
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     %checkpoint =l call $checkpoint(l %state_ptr)
     %res =l call $parse_{id}_with_checkpoint(l %state_ptr, w %recover, l %checkpoint)
@@ -116,7 +116,7 @@ function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         write!(
             f,
             "
-function w $parse_{id}_with_checkpoint(l %state_ptr, w %recover, l %checkpoint) {{",
+function l $parse_{id}_with_checkpoint(l %state_ptr, w %recover, l %checkpoint) {{",
         )
         .unwrap();
         for (index, option) in self.options.iter().enumerate() {

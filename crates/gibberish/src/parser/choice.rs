@@ -52,7 +52,7 @@ impl Choice {
             f,
             "
 # Build Choice
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         )
         .unwrap();
         for (index, option) in self.options.iter().enumerate() {

@@ -28,7 +28,7 @@ impl FoldOnce {
             f,
             "
 # Parse Fold
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @start
     jmp @check_eof
 @check_eof

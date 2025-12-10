@@ -29,7 +29,7 @@ impl Seq {
             f,
             "
 # Parse Seq
-function w $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
+function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @add_delims
     %delim_stack_ptr =l add %state_ptr, 56
     %delim_stack_len_ptr =l add %state_ptr, 64
