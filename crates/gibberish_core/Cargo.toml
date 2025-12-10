@@ -1,6 +1,6 @@
 [package]
 name = "gibberish-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Core types and functions for Gibberish parsers"
 license = "MIT"                                                          # or whatever you actually use
