@@ -11,11 +11,11 @@ pub struct CallAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> CallAst<'a> {
     pub fn target(&self) -> ExprAst<'a> {
-        self.0.green_children().next().unwrap().into()
+        self.0.groups().next().unwrap().into()
     }
 
     pub fn arms(&self) -> impl Iterator<Item = CallArmAst<'a>> {
-        self.0.green_children().filter_map(|it| {
+        self.0.groups().filter_map(|it| {
             if it.kind == S::Call {
                 Some(CallArmAst(it))
             } else {
@@ -139,16 +139,16 @@ pub struct CallArmAst<'a>(pub &'a Group<Gibberish>);
 impl<'a> CallArmAst<'a> {
     pub fn name(&self) -> &'a Lexeme<Gibberish> {
         self.0
-            .green_node_by_name(S::CallName)
+            .group_by_kind(S::CallName)
             .unwrap()
-            .lexeme_by_kind(T::Ident)
+            .token_by_kind(T::Ident)
             .unwrap()
     }
 
     pub fn args(&self) -> impl Iterator<Item = ExprAst<'a>> {
         let ret: Box<dyn Iterator<Item = ExprAst<'a>>> =
-            if let Some(args) = self.0.green_node_by_name(S::Args) {
-                Box::new(args.green_children().map(ExprAst::from))
+            if let Some(args) = self.0.group_by_kind(S::Args) {
+                Box::new(args.groups().map(ExprAst::from))
             } else {
                 Box::new(std::iter::empty())
             };

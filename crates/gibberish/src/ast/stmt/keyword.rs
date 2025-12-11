@@ -11,7 +11,7 @@ pub struct KeywordDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> KeywordDefAst<'a> {
     pub fn name(&self) -> &'a Lexeme<Gibberish> {
-        self.0.lexeme_by_kind(GibberishToken::Ident).unwrap()
+        self.0.token_by_kind(GibberishToken::Ident).unwrap()
     }
 
     pub fn build(&self, builder: &mut ParserBuilder) {

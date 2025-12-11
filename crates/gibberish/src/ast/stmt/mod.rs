@@ -27,7 +27,7 @@ impl<'a> From<&'a Group<Gibberish>> for StmtAst<'a> {
     fn from(value: &'a Group<Gibberish>) -> Self {
         match value.kind {
             S::ParserDef => {
-                if let Some(expr) = value.green_children().next()
+                if let Some(expr) = value.groups().next()
                     && expr.kind == S::FoldStmt
                 {
                     return StmtAst::Fold(FoldDefAst(value));

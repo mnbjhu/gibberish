@@ -13,21 +13,21 @@ pub struct FoldDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> FoldDefAst<'a> {
     pub fn name(&self) -> &'a Lexeme<Gibberish> {
-        self.0.lexeme_by_kind(T::Ident).unwrap()
+        self.0.token_by_kind(T::Ident).unwrap()
     }
 
     fn fold(&self) -> &'a Group<Gibberish> {
-        let res = self.0.green_node_by_name(S::FoldStmt).unwrap();
+        let res = self.0.group_by_kind(S::FoldStmt).unwrap();
         assert_eq!(res.kind, S::FoldStmt);
         res
     }
 
     pub fn first(&self) -> ExprAst<'a> {
-        self.fold().green_children().next().unwrap().into()
+        self.fold().groups().next().unwrap().into()
     }
 
     pub fn next(&self) -> Option<ExprAst<'a>> {
-        let mut iter = self.fold().green_children();
+        let mut iter = self.fold().groups();
         iter.next().unwrap();
         iter.next().map(|it| it.into())
     }

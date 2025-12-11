@@ -417,7 +417,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
- "gibberish-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gibberish-core",
  "gibberish-gibberish-parser",
  "gibberish_dyn_lib",
  "logos",
@@ -437,17 +437,7 @@ dependencies = [
 
 [[package]]
 name = "gibberish-core"
-version = "0.1.0"
-dependencies = [
- "ansi_term",
- "libloading",
-]
-
-[[package]]
-name = "gibberish-core"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f96f54cfd41f5c377f760725ce311684d576ec20f0c33f3b7952845ad9da437e"
+version = "0.2.0"
 dependencies = [
  "ansi_term",
  "libloading",
@@ -456,10 +446,8 @@ dependencies = [
 [[package]]
 name = "gibberish-gibberish-parser"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "745a64151157cec349454a0e2cd6cbcaac7bdada37544b51c5b35b27d0d2ab56"
 dependencies = [
- "gibberish-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gibberish-core",
 ]
 
 [[package]]
@@ -467,7 +455,7 @@ name = "gibberish_dyn_lib"
 version = "0.1.0"
 dependencies = [
  "clap",
- "gibberish-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gibberish-core",
  "libloading",
  "notify",
  "safer-ffi",

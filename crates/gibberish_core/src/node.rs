@@ -105,7 +105,7 @@ impl<L: Lang> Node<L> {
         }
     }
 
-    pub fn green_children(&self) -> impl Iterator<Item = &Group<L>> {
+    pub fn groups(&self) -> impl Iterator<Item = &Group<L>> {
         match self {
             Node::Group(Group { children, .. }) => children.iter().filter_map(|it| match it {
                 Node::Group(group) => Some(group),
@@ -126,36 +126,6 @@ impl<L: Lang> Node<L> {
             Node::Err(err) if err.span().start <= offset && offset <= err.span().end => Some(self),
             _ => None,
         }
-    }
-}
-
-impl<L: Lang> Group<L> {
-    pub fn name(&self) -> L::Syntax {
-        self.kind.clone()
-    }
-
-    pub fn green_children(&self) -> impl Iterator<Item = &Group<L>> {
-        self.children.iter().filter_map(|it| match it {
-            Node::Group(group) => Some(group),
-            Node::Lexeme(_) => None,
-            Node::Err(_) => None,
-        })
-    }
-
-    pub fn green_node_by_name(&self, name: L::Syntax) -> Option<&Group<L>> {
-        self.green_children().find(|it| it.kind == name)
-    }
-
-    pub fn lexeme_by_kind(&self, name: L::Token) -> Option<&Lexeme<L>> {
-        self.children.iter().find_map(|it| {
-            if let Node::Lexeme(l) = it
-                && l.kind == name
-            {
-                Some(l)
-            } else {
-                None
-            }
-        })
     }
 }
 
@@ -190,12 +160,21 @@ impl<L: Lang> ParseError<L> {
 
 impl<L: Lang> Node<L> {
     /// Iterate over all `Lexeme`s inside this node (DFS, left-to-right).
-    pub fn lexemes(&self) -> LexemeIter<'_, L> {
-        LexemeIter { stack: vec![self] }
+    pub fn all_tokens(&self) -> LexemeIter<'_, L> {
+        LexemeIter {
+            stack: vec![NodeOrLexeme::Node(self)],
+        }
     }
 
-    pub fn errors(&self) -> ErrorIter<'_, L> {
+    pub fn all_errors(&self) -> ErrorIter<'_, L> {
         ErrorIter {
+            stack: vec![self],
+            offset: 0,
+        }
+    }
+
+    pub fn all_leading_errors(&self) -> LeadingErrorIter<'_, L> {
+        LeadingErrorIter {
             stack: vec![self],
             offset: 0,
         }
@@ -240,12 +219,66 @@ impl<L: Lang> Node<L> {
 }
 
 impl<L: Lang> Group<L> {
-    pub fn errors(&self) -> ErrorIter<'_, L> {
+    pub fn all_errors(&self) -> ErrorIter<'_, L> {
         let mut stack = vec![];
         for child in self.children.iter().rev() {
             stack.push(child);
         }
         ErrorIter { stack, offset: 0 }
+    }
+
+    pub fn all_leading_errors(&self) -> LeadingErrorIter<'_, L> {
+        let mut stack = vec![];
+        for child in self.children.iter().rev() {
+            stack.push(child);
+        }
+        LeadingErrorIter { stack, offset: 0 }
+    }
+
+    pub fn all_tokens(&self) -> impl Iterator<Item = &Lexeme<L>> {
+        self.children.iter().flat_map(|it| it.all_tokens())
+    }
+
+    pub fn name(&self) -> L::Syntax {
+        self.kind.clone()
+    }
+
+    pub fn groups(&self) -> impl Iterator<Item = &Group<L>> {
+        self.children.iter().filter_map(|it| match it {
+            Node::Group(group) => Some(group),
+            Node::Lexeme(_) => None,
+            Node::Err(_) => None,
+        })
+    }
+
+    pub fn group_at(&self, offset: usize) -> Option<&Group<L>> {
+        self.groups().find(|it| it.span().contains(&offset))
+    }
+
+    pub fn group_by_kind(&self, name: L::Syntax) -> Option<&Group<L>> {
+        self.groups().find(|it| it.kind == name)
+    }
+
+    pub fn tokens(&self) -> impl Iterator<Item = &Lexeme<L>> {
+        self.children.iter().filter_map(|it| {
+            if let Node::Lexeme(l) = it {
+                Some(l)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn token_by_kind(&self, name: L::Token) -> Option<&Lexeme<L>> {
+        self.children.iter().find_map(|it| {
+            if let Node::Lexeme(l) = it
+                && l.kind == name
+            {
+                Some(l)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn start_offset(&self) -> usize {
@@ -275,34 +308,82 @@ impl<L: Lang> Group<L> {
         Ok(())
     }
 
-    pub fn lexemes(&self) -> impl Iterator<Item = &Lexeme<L>> {
-        self.children.iter().flat_map(|it| it.lexemes())
+    pub fn errors(&self) -> impl Iterator<Item = &ParseError<L>> {
+        self.children
+            .iter()
+            .filter_map(|it| if let Node::Err(e) = it { Some(e) } else { None })
     }
 }
 
 pub struct LexemeIter<'a, L: Lang> {
-    stack: Vec<&'a Node<L>>,
+    stack: Vec<NodeOrLexeme<'a, L>>,
+}
+
+enum NodeOrLexeme<'a, L: Lang> {
+    Node(&'a Node<L>),
+    Lexeme(&'a Lexeme<L>),
 }
 
 impl<'a, L: Lang> Iterator for LexemeIter<'a, L> {
     type Item = &'a Lexeme<L>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node_lex) = self.stack.pop() {
+            match node_lex {
+                NodeOrLexeme::Node(node) => match node {
+                    Node::Lexeme(l) => return Some(l),
+                    Node::Group(g) => {
+                        // push children in reverse so we visit in original order
+                        for child in g.children.iter().rev() {
+                            self.stack.push(NodeOrLexeme::Node(child));
+                        }
+                    }
+                    Node::Err(ParseError::Unexpected { actual, .. }) => {
+                        for tok in actual {
+                            self.stack.push(NodeOrLexeme::Lexeme(tok));
+                        }
+                    }
+                    Node::Err(ParseError::MissingError { .. }) => {}
+                },
+                NodeOrLexeme::Lexeme(l) => return Some(l),
+            }
+        }
+        None
+    }
+}
+
+pub struct LeadingErrorIter<'a, L: Lang> {
+    stack: Vec<&'a Node<L>>,
+    offset: usize,
+}
+
+impl<'a, L: Lang> Iterator for LeadingErrorIter<'a, L> {
+    type Item = (usize, &'a ParseError<L>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut first = None;
         while let Some(node) = self.stack.pop() {
             match node {
-                Node::Lexeme(l) => return Some(l),
+                Node::Lexeme(l) => {
+                    if first.is_some() {
+                        return first;
+                    }
+                    self.offset = l.span.end;
+                }
                 Node::Group(g) => {
                     // push children in reverse so we visit in original order
                     for child in g.children.iter().rev() {
                         self.stack.push(child);
                     }
                 }
-                Node::Err(_) => {
-                    // ParseError contents are not part of the tree proper; skip.
+                Node::Err(e) => {
+                    if first.is_none() {
+                        first = Some((self.offset, e))
+                    }
                 }
             }
         }
-        None
+        first
     }
 }
 
