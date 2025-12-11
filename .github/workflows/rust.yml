@@ -17,12 +17,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install QBE
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git
-          git clone https://c9x.me/git/qbe.git
-          cd qbe
-          make
-          sudo make install
+          # Download official QBE 1.2 release tarball
+          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
+          tar -xf qbe.tar.xz
+
+          # Build and install
+          cd qbe-1.2
+          make -j"$(nproc)"
+          sudo install qbe /usr/local/bin/qbe
       - name: Build
         run: cargo build --verbose
       - name: Run tests
