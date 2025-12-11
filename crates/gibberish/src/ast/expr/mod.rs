@@ -26,7 +26,7 @@ use gibberish_gibberish_parser::GibberishToken as T;
 impl<'a> From<&'a Group<Gibberish>> for ExprAst<'a> {
     fn from(value: &'a Group<Gibberish>) -> Self {
         match value.kind {
-            S::Named => ExprAst::Ident(value.lexeme_by_kind(T::Ident).unwrap()),
+            S::Named => ExprAst::Ident(value.token_by_kind(T::Ident).unwrap()),
             S::Seq => ExprAst::Seq(SeqAst(value)),
             S::Choice => ExprAst::Choice(ChoiceAst(value)),
             S::MemberCall => ExprAst::Call(CallAst(value)),

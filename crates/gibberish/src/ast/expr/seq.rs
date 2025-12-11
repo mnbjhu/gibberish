@@ -11,7 +11,7 @@ pub struct SeqAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> SeqAst<'a> {
     pub fn iter(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        self.0.green_children().map(ExprAst::from)
+        self.0.groups().map(ExprAst::from)
     }
     pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
         let items = self.iter().map(|it| it.build(builder)).collect::<Vec<_>>();

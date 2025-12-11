@@ -24,7 +24,7 @@ pub struct ChoiceAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> ChoiceAst<'a> {
     pub fn iter(&self) -> impl Iterator<Item = ExprAst<'a>> {
-        self.0.green_children().map(ExprAst::from)
+        self.0.groups().map(ExprAst::from)
     }
 
     pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {

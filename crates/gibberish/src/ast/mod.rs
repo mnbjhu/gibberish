@@ -16,7 +16,7 @@ pub struct RootAst<'a>(pub &'a Group<Gibberish>);
 impl<'a> RootAst<'a> {
     pub fn iter(&self) -> impl Iterator<Item = StmtAst<'a>> {
         assert_eq!(self.0.kind, GibberishSyntax::Root);
-        self.0.green_children().map(StmtAst::from)
+        self.0.groups().map(StmtAst::from)
     }
 
     pub fn build_parser(self, builder: &mut ParserBuilder) -> ParserIndex {

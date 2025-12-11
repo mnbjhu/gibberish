@@ -11,11 +11,11 @@ pub struct ParserDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> ParserDefAst<'a> {
     pub fn name(&self) -> &'a Lexeme<Gibberish> {
-        self.0.lexeme_by_kind(GibberishToken::Ident).unwrap()
+        self.0.token_by_kind(GibberishToken::Ident).unwrap()
     }
 
     pub fn expr(&self) -> Option<ExprAst<'a>> {
-        self.0.green_children().next().map(ExprAst::from)
+        self.0.groups().next().map(ExprAst::from)
     }
 
     pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
