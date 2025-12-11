@@ -79,7 +79,9 @@ fn main() {{
 }}
 "
     );
-    write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
+    if !crate_dir.join("build.rs").exists() {
+        write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
+    }
 
     let mut token_body = String::new();
     for (name, _) in &builder.lexer {

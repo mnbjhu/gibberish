@@ -3,5 +3,6 @@ members = [
   "crates/gibberish",
   "crates/gibberish_core",
   "crates/gibberish_dyn_lib",
+  "crates/gibberish_parser",
 ]
 resolver = "2"
