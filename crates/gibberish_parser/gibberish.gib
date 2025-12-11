@@ -1,0 +1,56 @@
+token KEYWORD = "(keyword)[^_a-zA-Z]";
+token PARSER = "(parser)[^_a-zA-Z]";
+token TOKEN = "(token)[^_a-zA-Z]";
+token HIGHTLIGHT = "(highlight)[^_a-zA-Z]";
+token FOLD = "(fold)[^_a-zA-Z]";
+
+token whitespace = "[ \t\n]+"; 
+token int = "[0-9]+";
+token colon = ":";
+token comma = ",";
+token bar = "\|";
+token dot = "\.";
+token l_bracket = "\[";
+token r_bracket = "\]";
+token l_paren = "\(";
+token r_paren = "\)";
+token l_brace = "\{";
+token r_brace = "\}";
+token plus = "\+";
+token eq = "=";
+token ident = "[_a-zA-Z][_a-zA-Z0-9]*";
+token semi = ";";
+token string = "\"(?:\\\\.|[^\"\\\\])*\"";
+token at = "@";
+
+
+parser _expr;
+parser named = ident;
+parser _atom = _expr.delim_by(l_paren, r_paren) | named;
+parser call_name = ident;
+parser args = _expr.sep_by(comma).delim_by(l_paren, r_paren);
+parser call = dot + call_name + args;
+parser member_call = _atom fold call.repeated();
+parser seq = member_call fold (plus + member_call).repeated();
+parser choice = seq fold (bar + seq).repeated();
+parser _expr = choice;
+
+parser kw_def = KEYWORD + ident;
+parser token_def = TOKEN + ident + eq + string;
+
+parser fold_stmt = _expr fold FOLD + _expr;
+parser parser_def = PARSER + ident + (eq + fold_stmt).or_not();
+
+parser _query;
+parser child_query = _query.sep_by(comma).delim_by(l_paren, r_paren);
+parser group_query = named + (colon + child_query).or_not();
+parser label = at + string;
+parser labelled_query = group_query fold label;
+parser _query = labelled_query;
+
+parser highlight_def = HIGHTLIGHT + _query;
+
+parser _stmt = kw_def | token_def | parser_def | highlight_def;
+parser _root = _stmt
+  .sep_by(semi)
+  .skip(whitespace)
