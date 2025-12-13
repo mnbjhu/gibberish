@@ -32,21 +32,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         .unwrap()
     }
 
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %res =l call $peak_{inner}(l %state_ptr, l %offset, w %recover)
-    ret %res
-}}
-",
-            inner = self.0.index
-        )
-        .unwrap()
-    }
-
     pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
         self.0.get_ref(cache).start_tokens(cache)
     }

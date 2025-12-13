@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    u32,
-};
+use std::collections::{HashMap, HashSet};
 
 use gibberish_core::node::Group;
 use gibberish_gibberish_parser::Gibberish;
@@ -13,9 +10,7 @@ use crate::{
         Parser,
         checkpoint::Checkpoint,
         choice::{Choice, choice as build_choice},
-        just::just,
         ptr::ParserIndex,
-        seq::seq,
     },
 };
 

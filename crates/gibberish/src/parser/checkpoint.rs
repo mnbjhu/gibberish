@@ -1,10 +1,8 @@
-use std::{collections::HashSet, fmt::Display};
+use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::parser::ptr::{ParserCache, ParserIndex};
-
-use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Checkpoint(pub ParserIndex);
@@ -53,9 +51,5 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
     pub fn is_optional(&self, cache: &ParserCache) -> bool {
         self.0.get_ref(cache).is_optional(cache)
-    }
-
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
-        panic!("Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??")
     }
 }

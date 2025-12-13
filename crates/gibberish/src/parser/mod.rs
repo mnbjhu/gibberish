@@ -37,7 +37,6 @@ pub mod repeated;
 pub mod sep;
 pub mod seq;
 pub mod skip;
-pub mod unmatched;
 pub mod unskip;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -284,7 +283,9 @@ function :vec $expected_{id}() {{
             Parser::Repeated(repeated) => todo!(),
             Parser::Rename(rename) => rename.after_token(token, builder),
             Parser::Empty => todo!(),
-            Parser::Checkpoint(checkpoint) => todo!(),
+            Parser::Checkpoint(checkpoint) => panic!(
+                "Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??"
+            ),
         }
     }
 
@@ -313,17 +314,17 @@ mod tests {
     use std::io::Write as _;
 
     use gibberish_core::lang::CompiledLang;
-    use tempfile::NamedTempFile;
+    use tempfile::Builder;
 
-    use crate::cli::{self, build::BuildKind};
+    use crate::cli::{self};
 
     pub fn build_test_parser(src: &'static str) -> CompiledLang {
-        let mut src_file = NamedTempFile::new().unwrap();
+        let mut src_file = Builder::new().suffix(".gib").tempfile().unwrap();
         write!(&mut src_file, "{src}").unwrap();
         let src_file_path = src_file.path();
-        let lib = NamedTempFile::new().unwrap();
+        let lib = Builder::new().suffix(".so").tempfile().unwrap();
         let lib_path = lib.path();
-        cli::build::build(src_file_path, Some(lib_path), &BuildKind::Dynamic);
+        cli::build::build(src_file_path, Some(lib_path));
         CompiledLang::load(lib_path)
     }
 

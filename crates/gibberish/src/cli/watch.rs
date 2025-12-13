@@ -1,4 +1,3 @@
-use gibberish_core::lang::CompiledLang;
 use gibberish_dyn_lib::bindings::parse;
 use gibberish_gibberish_parser::Gibberish;
 use notify::{Event, RecursiveMode, Result as NotifyResult, Watcher as _, recommended_watcher};
@@ -8,6 +7,8 @@ use std::{
     path::Path,
     sync::mpsc,
 };
+
+use crate::cli::parse::load_parser;
 
 /// ANSI-clear + move cursor to top-left
 fn clear_screen() {
@@ -40,15 +41,10 @@ pub fn watch(path: &Path, errors: bool, tokens: bool) -> NotifyResult<()> {
     Ok(())
 }
 
-pub fn watch_custom(
-    path: &Path,
-    errors: bool,
-    tokens: bool,
-    parser_src: &Path,
-) -> NotifyResult<()> {
+pub fn watch_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) -> NotifyResult<()> {
     clear_screen();
     let text = fs::read_to_string(path).expect("read error");
-    let lang = CompiledLang::load(parser_src);
+    let lang = load_parser(parser);
     parse(&lang, &text).debug_print(errors, tokens, &lang);
     let (tx, rx) = mpsc::channel::<NotifyResult<Event>>();
     let mut watcher = recommended_watcher(tx)?;

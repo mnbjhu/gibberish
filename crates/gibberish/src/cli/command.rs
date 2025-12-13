@@ -6,12 +6,11 @@ use tracing_subscriber::layer::SubscriberExt as _;
 use tracing_subscriber::util::SubscriberInitExt as _;
 use tracing_subscriber::{EnvFilter, fmt};
 
-use crate::cli::build::{BuildKind, build};
+use crate::cli::build::build;
 use crate::cli::generate::generate;
 use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
 use crate::cli::watch::watch_custom;
-use crate::lsp::main_loop;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -19,45 +18,39 @@ use super::{lex::lex, parse::parse, watch::watch};
 pub enum Command {
     /// Lexes a file
     Lex {
-        #[clap(long)]
         src: PathBuf,
 
-        #[clap(long)]
-        parser_src: Option<PathBuf>,
+        #[clap(short, long)]
+        parser: Option<PathBuf>,
     },
 
-    /// Parses a file
+    /// Parses a file and shows the generated LST
     Parse {
         path: PathBuf,
         #[clap(short('e'), long)]
         hide_errors: bool,
         #[clap(short('t'), long)]
         hide_tokens: bool,
-        #[clap(long)]
-        parser_src: Option<PathBuf>,
+        #[clap(short, long)]
+        parser: Option<PathBuf>,
     },
 
-    /// Show the generate LST for a file as it changes
+    /// Watches a file, parses it and shows the generated LST
     Watch {
         path: PathBuf,
         #[clap(short('e'), long)]
         hide_errors: bool,
         #[clap(short('t'), long)]
         hide_tokens: bool,
-        #[clap(long)]
-        parser_src: Option<PathBuf>,
+        #[clap(short, long)]
+        parser: Option<PathBuf>,
     },
-
-    /// Starts an lsp for the specified syntax file
-    Lsp { path: PathBuf },
 
     /// Builds a parser
     Build {
         path: PathBuf,
-        #[clap(long)]
+        #[clap(short, long)]
         output: Option<PathBuf>,
-        #[clap(long)]
-        kind: BuildKind,
     },
 
     /// Generate libraries and api's for parser
@@ -79,7 +72,7 @@ impl Command {
         match self {
             Command::Lex {
                 src: path,
-                parser_src,
+                parser: parser_src,
             } => {
                 if let Some(parser_src) = parser_src {
                     lex_custom(path, parser_src)
@@ -91,7 +84,7 @@ impl Command {
                 path,
                 hide_errors,
                 hide_tokens,
-                parser_src,
+                parser: parser_src,
             } => {
                 if let Some(parser_src) = parser_src {
                     parse_custom(path, !hide_errors, !hide_tokens, parser_src)
@@ -103,7 +96,7 @@ impl Command {
                 path,
                 hide_errors,
                 hide_tokens,
-                parser_src,
+                parser: parser_src,
             } => {
                 if let Some(src) = parser_src {
                     watch_custom(path, !hide_errors, !hide_tokens, src).unwrap()
@@ -111,10 +104,7 @@ impl Command {
                     watch(path, !hide_errors, !hide_tokens).unwrap()
                 }
             }
-            Command::Lsp { path } => main_loop(path).await,
-            Command::Build { path, output, kind } => {
-                build(path, output.as_ref().map(PathBuf::as_path), kind)
-            }
+            Command::Build { path, output } => build(path, output.as_ref().map(PathBuf::as_path)),
             Command::Generate { path } => generate(path),
         }
     }

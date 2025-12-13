@@ -1,11 +1,13 @@
 use std::fmt::Write as _;
-use std::fs::{remove_dir, remove_dir_all};
+use std::fs::remove_dir_all;
 use std::{
     env::current_dir,
     fs::{self, create_dir},
     io::{self, Write as _},
     path::{Path, PathBuf},
 };
+
+use tempfile::NamedTempFile;
 
 use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
@@ -18,7 +20,10 @@ pub fn generate(src: &Path) {
     let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
     build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
-    build_dynamic_lib(&qbe_str, &PathBuf::from(format!("lib/{name}-parser.so")));
+    let qbe = NamedTempFile::new().unwrap();
+    let qbe_path = qbe.path().to_path_buf();
+    fs::write(&qbe, qbe_str).unwrap();
+    build_dynamic_lib(&qbe_path, &PathBuf::from(format!("lib/{name}-parser.so")));
     build_crate(name, current_dir().unwrap(), &builder);
 }
 

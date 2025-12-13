@@ -5,7 +5,7 @@ use gibberish_core::lang::CompiledLang;
 
 use crate::ast::builder::ParserBuilder;
 use crate::parser::Parser;
-use crate::parser::seq::{Seq, seq};
+use crate::parser::seq::seq;
 
 use crate::ast::try_parse;
 use crate::parser::ptr::{ParserCache, ParserIndex};
@@ -47,21 +47,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     call $pop_delim(l %state_ptr)
     ret %res
 }}",
-        )
-        .unwrap()
-    }
-
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %res =l call $peak_{inner}(l %state_ptr, l %offset, w %recover)
-    ret %res
-}}
-",
-            inner = self.0.index
         )
         .unwrap()
     }

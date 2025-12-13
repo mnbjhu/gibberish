@@ -6,12 +6,13 @@ use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
 use crate::ast::builder::ParserBuilder;
+use crate::cli::parse::{DYN_LIB_EXT, QBE_EXT, STATIC_LIB_EXT};
 use crate::parser::build::build_parser_qbe;
 use crate::parser::ptr::ParserIndex;
 
 use crate::ast::RootAst;
 use crate::lexer::build::create_name_function;
-use crate::report::{report_errors, report_parse_error};
+use crate::report::report_errors;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
@@ -20,16 +21,33 @@ pub enum BuildKind {
     Dynamic,
 }
 
-pub fn build(parser_file: &Path, output: Option<&Path>, kind: &BuildKind) {
+impl BuildKind {
+    pub fn from_path(path: &Path) -> Self {
+        match path.extension().unwrap().to_str().unwrap() {
+            DYN_LIB_EXT => BuildKind::Dynamic,
+            STATIC_LIB_EXT => BuildKind::Static,
+            QBE_EXT => BuildKind::Qbe,
+            _ => panic!(
+                "File format not supported: expected output file ending .{}, .{} or .{}",
+                DYN_LIB_EXT, STATIC_LIB_EXT, QBE_EXT
+            ),
+        }
+    }
+}
+
+pub fn build(parser_file: &Path, output: Option<&Path>) {
     let res = build_qbe_str(parser_file);
     if let Some(out) = output {
-        match kind {
+        match BuildKind::from_path(out) {
             BuildKind::Qbe => fs::write(out, res).unwrap(),
             BuildKind::Static => {
                 build_static_lib(&res, out);
             }
             BuildKind::Dynamic => {
-                build_dynamic_lib(&res, out);
+                let qbe = NamedTempFile::new().unwrap();
+                let qbe_path = qbe.path().to_path_buf();
+                fs::write(&qbe, res).unwrap();
+                build_dynamic_lib(&qbe_path, out);
             }
         }
     } else {
@@ -102,20 +120,16 @@ pub fn build_static_lib(qbe_text: &str, out: &Path) {
         .unwrap();
 }
 
-pub fn build_dynamic_lib(qbe_text: &str, out: &Path) {
-    let qbe = NamedTempFile::new().unwrap();
-    let qbe_path = qbe.path().to_path_buf();
-
+pub fn build_dynamic_lib(qbe_path: &Path, out: &Path) {
     let lib = Builder::new().suffix(".s").tempfile().unwrap();
     let lib_path = lib.path().to_path_buf();
 
     let obj = Builder::new().suffix(".o").tempfile().unwrap();
     let obj_path = obj.path().to_path_buf();
-    fs::write(&qbe_path, qbe_text).unwrap();
     Command::new("qbe")
         .arg("-o")
         .arg(&lib_path)
-        .arg(&qbe_path)
+        .arg(qbe_path)
         .status()
         .unwrap();
 

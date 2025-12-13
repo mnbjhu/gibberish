@@ -268,7 +268,7 @@ parser _root = _brackets"#;
         assert_eq!(
             children.len(),
             3,
-            "Expected 5 children but got {:?}",
+            "Expected 3 children but got {:?}",
             node.as_group().children
         );
         assert_token_kind!(lang, &children[0], l_bracket);
