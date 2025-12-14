@@ -181,6 +181,7 @@ mod conflict_tests {
         node::Node,
     };
     use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -198,6 +199,7 @@ mod conflict_tests {
         (lang, node)
     }
 
+    #[serial]
     #[test]
     fn test_def_table() {
         let (lang, node) = parse_test("define table");
@@ -225,5 +227,35 @@ mod conflict_tests {
         assert_token_kind!(lang, &children[0], define);
         assert_token_kind!(lang, &children[1], whitespace);
         assert_token_kind!(lang, &children[2], table);
+    }
+
+    #[serial]
+    #[test]
+    fn test_def_field() {
+        let (lang, node) = parse_test("define field");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            1,
+            "Expected 1 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_syntax_kind!(lang, &children[0], def_field);
+
+        let children = &children[0].as_group().children;
+        assert_eq!(
+            children.len(),
+            3,
+            "Expected 3 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], define);
+        assert_token_kind!(lang, &children[1], whitespace);
+        assert_token_kind!(lang, &children[2], field);
     }
 }
