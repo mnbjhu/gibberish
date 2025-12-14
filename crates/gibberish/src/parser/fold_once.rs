@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
-    ast::builder::ParserBuilder,
+    ast::{builder::ParserBuilder, try_parse},
     parser::{
         ptr::{ParserCache, ParserIndex},
         rename::Rename,
@@ -47,10 +47,23 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     jmp @check_eof
 @parse
     %checkpoint =l call $checkpoint(l %state_ptr)
+    %break_index =l call $push_delim(l %state_ptr, l {next})
     %res =l call $parse_{first}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, @ret_err, @parse_next
-@parse_next
-    %res =l call $parse_{next}(l %state_ptr, w %recover)
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_break, @try_parse_next
+@check_break
+    %is_next =l ceql %res, %break_index
+    jnz %is_next, @try_parse_next, @ret_err
+",
+            first = self.first.index,
+            next = self.next.index,
+        )
+        .unwrap();
+        try_parse(self.next.index, "next", "@check_next", f);
+        write!(
+            f,
+            "
+@check_next
     jnz %res, @ret_ok, @create_group
 @create_group
     call $group_at(l %state_ptr, w {name}, l %checkpoint)
@@ -63,8 +76,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     ret 2
 }}",
             name = self.name,
-            first = self.first.index,
-            next = self.next.index,
         )
         .unwrap()
     }

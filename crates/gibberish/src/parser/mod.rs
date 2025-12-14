@@ -157,7 +157,7 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     }
 
     pub fn build_expected(&self, id: usize, f: &mut impl Write, builder: &ParserBuilder) {
-        if let Parser::Optional(_) = self {
+        if self.is_optional(&builder.cache) {
             write!(
                 f,
                 "
@@ -173,23 +173,6 @@ function :vec $expected_{id}() {{
             return;
         }
 
-        if let Parser::Sep(sep) = self
-            && sep.at_least == 0
-        {
-            write!(
-                f,
-                "
-function :vec $expected_{id}() {{
-@start
-    %res =l alloc8 24
-    storel 0, %res
-    ret %res
-}}
-",
-            )
-            .unwrap();
-            return;
-        }
         let expected = self.expected(&builder.cache);
         write!(f, "\ndata $expected_{id}_data = {{").unwrap();
         expected.iter().enumerate().for_each(|(index, it)| {

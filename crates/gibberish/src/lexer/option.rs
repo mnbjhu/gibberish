@@ -52,9 +52,14 @@ impl OptionAst {
 # RegexRange
 function w $lex_{id}(l %lexer_state) {{
 @start
+    %len_ptr =l add %lexer_state, 8
+    %len =l loadl %len_ptr
     %ptr =l loadl %lexer_state
     %offset_ptr =l add %lexer_state, 16
     %offset =l loadl %offset_ptr
+    %is_eof =w ceql %offset, %len
+    jnz %is_eof, @fail, @cmp
+@cmp
     %index =l add %offset, %ptr
     %current =w loadub %index
     %lower =w cugew %current, {start}

@@ -172,3 +172,58 @@ pub fn choice(options: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex
     })
     .cache(cache)
 }
+
+#[cfg(test)]
+mod conflict_tests {
+
+    use gibberish_core::{
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+
+    use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
+
+    fn parse_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"keyword define;
+        keyword table;
+        keyword field;
+        token whitespace = "\\s+";
+        parser def_table = define + table;
+        parser def_field = define + field;
+        parser _def = (def_table | def_field).skip(whitespace)
+        "#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[test]
+    fn test_def_table() {
+        let (lang, node) = parse_test("define table");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            1,
+            "Expected 1 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_syntax_kind!(lang, &children[0], def_table);
+
+        let children = &children[0].as_group().children;
+        assert_eq!(
+            children.len(),
+            3,
+            "Expected 3 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], define);
+        assert_token_kind!(lang, &children[1], whitespace);
+        assert_token_kind!(lang, &children[2], table);
+    }
+}

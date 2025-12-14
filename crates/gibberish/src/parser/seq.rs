@@ -81,17 +81,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
             .unwrap();
         }
 
-        //         write!(
-        //             f,
-        //             "
-        // @parse_first
-        //     %res =l call $parse_{first_part}(l %state_ptr, w %recover)
-        //     jnz %res, @ret_err, @remove_delim_1
-        // ",
-        //             first_part = first.index,
-        //         )
-        //         .unwrap();
-
         for (index, part) in self.0.iter().enumerate() {
             if index == 0 {
                 continue;
@@ -207,6 +196,49 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
 pub fn seq(parts: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
     Parser::Seq(Seq(parts)).cache(cache)
+}
+
+#[cfg(test)]
+mod seq_test {
+    use gibberish_core::{
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
+
+    use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
+
+    fn parse_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"keyword first;
+keyword second;
+token whitespace = "\s+";
+parser _root = (first + second).skip(whitespace)
+        "#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[serial]
+    #[test]
+    fn test_ok() {
+        let (lang, node) = parse_test("first second");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            3,
+            "Expected 2 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], first);
+        assert_token_kind!(lang, &children[1], whitespace);
+        assert_token_kind!(lang, &children[2], second);
+    }
 }
 
 #[cfg(test)]
