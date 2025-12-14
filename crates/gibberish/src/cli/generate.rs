@@ -15,7 +15,7 @@ use crate::cli::build::{build_dynamic_lib, build_static_lib};
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
-    let (builder, parser) = build_parser_from_src(src);
+    let (mut builder, parser) = build_parser_from_src(src);
     let qbe_str = builder.build_qbe(parser);
     let _ = remove_dir_all("lib");
     let _ = create_dir("lib");

@@ -4,26 +4,30 @@ use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
     ast::{builder::ParserBuilder, try_parse},
-    parser::{
-        ptr::{ParserCache, ParserIndex},
-        rename::Rename,
-    },
+    parser::rename::Rename,
 };
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FoldOnce {
-    pub name: u32,
-    pub first: ParserIndex,
-    pub next: ParserIndex,
+    pub name: String,
+    pub first: Box<Parser>,
+    pub next: Box<Parser>,
 }
 
 impl FoldOnce {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.first.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.first.expected(builder)
     }
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let first = self.first.build(builder, f);
+        let next = self.next.build(builder, f);
         write!(
             f,
             "
@@ -55,11 +59,9 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     %is_next =l ceql %res, %break_index
     jnz %is_next, @try_parse_next, @ret_err
 ",
-            first = self.first.index,
-            next = self.next.index,
         )
         .unwrap();
-        try_parse(self.next.index, "next", "@check_next", f);
+        try_parse(next, "next", "@check_next", f);
         write!(
             f,
             "
@@ -80,42 +82,36 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         .unwrap()
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.first.get_ref(cache).start_tokens(cache)
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
+        self.first.start_tokens(builder)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.first.get_ref(cache).is_optional(cache)
+    pub fn is_optional(&self, cache: &ParserBuilder) -> bool {
+        self.first.is_optional(cache)
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
-        let first = self
-            .first
-            .get_ref(&builder.cache)
-            .clone()
-            .after_token(token, builder);
+    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
+        let first = self.first.clone().after_token(token, builder);
         if let Some(first) = first {
-            Some(first.fold_once(self.name, self.next.clone(), &mut builder.cache))
+            Some(first.fold_once(self.name.clone(), self.next.as_ref().clone()))
         } else {
             Some(
                 Parser::Rename(Rename {
                     inner: self.next.clone(),
-                    name: self.name,
+                    name: self.name.clone(),
                 })
-                .cache(&mut builder.cache)
-                .or_not(&mut builder.cache),
+                .or_not(),
             )
         }
     }
 }
 
-impl ParserIndex {
-    pub fn fold_once(self, name: u32, next: ParserIndex, cache: &mut ParserCache) -> ParserIndex {
+impl Parser {
+    pub fn fold_once(self, name: String, next: Parser) -> Parser {
         Parser::FoldOnce(FoldOnce {
             name,
-            first: self,
-            next,
+            first: Box::new(self),
+            next: Box::new(next),
         })
-        .cache(cache)
     }
 }

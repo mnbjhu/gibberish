@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken
 
 use crate::{
     ast::{builder::ParserBuilder, expr::ExprAst},
-    parser::{Parser, ptr::ParserIndex},
+    parser::Parser,
 };
 
 #[derive(Clone, Copy)]
@@ -24,7 +24,7 @@ impl<'a> CallAst<'a> {
         })
     }
 
-    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
+    pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
         let mut expr = self.target().build(builder);
         for member in self.arms() {
             let span = &member.name().span;
@@ -40,7 +40,7 @@ impl<'a> CallAst<'a> {
                             span.clone(),
                         );
                     }
-                    expr = expr.repeated(&mut builder.cache)
+                    expr = expr.repeated()
                 }
                 "sep_by" => {
                     let args = member
@@ -54,7 +54,7 @@ impl<'a> CallAst<'a> {
                         );
                         panic!()
                     }
-                    expr = expr.sep_by(args[0].clone(), &mut builder.cache)
+                    expr = expr.sep_by(args[0].clone())
                 }
                 "delim_by" => {
                     let args = member
@@ -67,7 +67,7 @@ impl<'a> CallAst<'a> {
                             span.clone(),
                         )
                     }
-                    expr = expr.delim_by(args[0].clone(), args[1].clone(), &mut builder.cache)
+                    expr = expr.delim_by(args[0].clone(), args[1].clone())
                 }
                 "skip" => {
                     let args = member
@@ -80,8 +80,8 @@ impl<'a> CallAst<'a> {
                             span.clone(),
                         )
                     }
-                    if let Parser::Just(tok) = args[0].get_ref(&builder.cache) {
-                        expr = expr.skip(tok.0, &mut builder.cache)
+                    if let Parser::Just(tok) = args[0].clone() {
+                        expr = expr.skip(tok.0)
                     } else {
                         builder.error("Expected a token but found a parser", span.clone())
                     }
@@ -94,8 +94,8 @@ impl<'a> CallAst<'a> {
                     if args.len() != 1 {
                         panic!("'unskip' expected 1 arg but {} were found", args.len())
                     }
-                    if let Parser::Just(tok) = args[0].get_ref(&builder.cache) {
-                        expr = expr.unskip(tok.0, &mut builder.cache)
+                    if let Parser::Just(tok) = args[0].clone() {
+                        expr = expr.unskip(tok.0)
                     } else {
                         panic!("Expected a token but found a parser")
                     }
@@ -108,7 +108,7 @@ impl<'a> CallAst<'a> {
                     if !args.is_empty() {
                         panic!("'or_not' expected 0 arg but {} were found", args.len())
                     }
-                    expr = expr.or_not(&mut builder.cache);
+                    expr = expr.or_not();
                 }
                 "rename" => {
                     let args = member.args().collect::<Vec<_>>();
@@ -121,7 +121,7 @@ impl<'a> CallAst<'a> {
                     let Some(name) = builder.vars.iter().position(|it| it.0 == lexeme.text) else {
                         panic!("Parser not found '{}'", lexeme.text);
                     };
-                    expr = expr.rename(name as u32, &mut builder.cache);
+                    expr = expr.rename(lexeme.text.clone());
                 }
                 name => builder.error(
                     &format!("Function not found '{name}'"),

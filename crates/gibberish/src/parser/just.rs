@@ -2,22 +2,25 @@ use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::builder::ParserBuilder,
-    parser::ptr::{ParserCache, ParserIndex},
-};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Just(pub u32);
+pub struct Just(pub String);
 
 impl Just {
-    pub fn expected(&self) -> Vec<Expected<CompiledLang>> {
-        vec![Expected::Token(self.0)]
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        let token_id = builder
+            .lexer
+            .iter()
+            .position(|(it, _)| it == &self.0)
+            .unwrap();
+        vec![Expected::Token(token_id as u32)]
     }
 
-    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(&self, id: usize, builder: &ParserBuilder, f: &mut impl std::fmt::Write) {
+        let kind = builder.get_token_id(&self.0);
         write!(
             f,
             "
@@ -66,14 +69,13 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret_err
     ret 1
 }}",
-            kind = self.0
         )
         .unwrap()
     }
 
-    pub fn start_tokens(&self) -> HashSet<u32> {
+    pub fn start_tokens(&self, _: &ParserBuilder) -> HashSet<String> {
         let mut res = HashSet::new();
-        res.insert(self.0);
+        res.insert(self.0.clone());
         res
     }
 
@@ -82,9 +84,9 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     }
 }
 
-pub fn just(tok: u32, cache: &mut ParserCache) -> ParserIndex {
+pub fn just(tok: String) -> Parser {
     let p = Parser::Just(Just(tok));
-    p.cache(cache)
+    p
 }
 
 impl Display for Just {

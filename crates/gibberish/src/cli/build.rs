@@ -8,10 +8,10 @@ use tempfile::{Builder, NamedTempFile};
 use crate::ast::builder::ParserBuilder;
 use crate::cli::parse::{DYN_LIB_EXT, QBE_EXT, STATIC_LIB_EXT};
 use crate::parser::build::build_parser_qbe;
-use crate::parser::ptr::ParserIndex;
 
 use crate::ast::RootAst;
 use crate::lexer::build::create_name_function;
+use crate::parser::Parser;
 use crate::report::report_errors;
 
 #[derive(Clone, clap::ValueEnum)]
@@ -56,25 +56,25 @@ pub fn build(parser_file: &Path, output: Option<&Path>) {
 }
 
 pub fn build_qbe_str(parser_file: &Path) -> String {
-    let (builder, parser) = build_parser_from_src(parser_file);
+    let (mut builder, parser) = build_parser_from_src(parser_file);
     builder.build_qbe(parser)
 }
 
 impl ParserBuilder {
-    pub fn build_qbe(&self, parser: ParserIndex) -> String {
+    pub fn build_qbe(&mut self, parser: Parser) -> String {
         let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
         group_names.push("root");
         group_names.push("unmatched");
         let mut res = String::new();
         let pre = include_str!("../../pre.qbe");
         write!(&mut res, "{}", pre).unwrap();
-        build_parser_qbe(&parser, self, &mut res);
         create_name_function(&mut res, "group", &group_names);
+        build_parser_qbe(&parser, self, &mut res);
         res
     }
 }
 
-pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, ParserIndex) {
+pub fn build_parser_from_src(parser_file: &Path) -> (ParserBuilder, Parser) {
     let parser_text = fs::read_to_string(parser_file).unwrap();
     let res = Gibberish::parse(&parser_text);
     let parser_filename = parser_file.to_str().unwrap();

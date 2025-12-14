@@ -3,10 +3,10 @@ use gibberish_gibberish_parser::Gibberish;
 
 use crate::{
     ast::builder::ParserBuilder,
-    parser::{just::just, ptr::ParserIndex},
+    parser::{Parser, just::just},
 };
 
-pub fn build_ident(builder: &mut ParserBuilder, lexeme: &Lexeme<Gibberish>) -> ParserIndex {
+pub fn build_ident(builder: &mut ParserBuilder, lexeme: &Lexeme<Gibberish>) -> Parser {
     if let Some(p) = builder
         .vars
         .iter()
@@ -23,6 +23,6 @@ pub fn build_ident(builder: &mut ParserBuilder, lexeme: &Lexeme<Gibberish>) -> P
             builder.error("Name not found", lexeme.span.clone());
             panic!("Unable to build parser")
         }
-        just(tok.unwrap() as u32, &mut builder.cache)
+        just(lexeme.text.clone())
     }
 }

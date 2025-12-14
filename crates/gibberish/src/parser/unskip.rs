@@ -2,21 +2,27 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct UnSkip {
-    pub token: u32,
-    pub inner: ParserIndex,
+    pub token: String,
+    pub inner: Box<Parser>,
 }
 
 impl UnSkip {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.inner.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.inner.expected(builder)
     }
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let inner = self.inner.build(builder, f);
         write!(
             f,
             "
@@ -32,23 +38,25 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret
     ret %res
 }}",
-            inner = self.inner.index,
-            kind = self.token
+            kind = builder.get_token_id(&self.token)
         )
         .unwrap()
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.inner.get_ref(cache).start_tokens(cache)
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
+        self.inner.start_tokens(builder)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.inner.get_ref(cache).is_optional(cache)
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
+        self.inner.is_optional(builder)
     }
 }
 
-impl ParserIndex {
-    pub fn unskip(self, token: u32, cache: &mut ParserCache) -> ParserIndex {
-        Parser::UnSkip(UnSkip { token, inner: self }).cache(cache)
+impl Parser {
+    pub fn unskip(self, token: String) -> Parser {
+        Parser::UnSkip(UnSkip {
+            token,
+            inner: Box::new(self),
+        })
     }
 }

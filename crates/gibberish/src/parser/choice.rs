@@ -4,32 +4,38 @@ use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
     ast::builder::ParserBuilder,
-    parser::{
-        just::just,
-        ptr::{ParserCache, ParserIndex},
-        seq::seq,
-    },
+    parser::{just::just, seq::seq},
 };
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Choice {
-    pub options: Vec<ParserIndex>,
-    pub default: Option<u32>,
+    pub options: Vec<Parser>,
+    pub default: Option<String>,
 }
 
 impl Choice {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         self.options
             .iter()
-            .flat_map(|it| it.get_ref(cache).expected(cache))
+            .flat_map(|it| it.expected(builder))
             .collect()
     }
 
-    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
-        let ret_err = match self.default {
-            Some(u32::MAX) => &format!(
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let options = self
+            .options
+            .iter()
+            .map(|it| it.build(builder, f))
+            .collect::<Vec<_>>();
+        let ret_err = match &self.default {
+            Some(d) if d == "%group_at_default%" => &format!(
                 "\n@ret_err
     call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
     ret %res
@@ -55,8 +61,8 @@ impl Choice {
 function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         )
         .unwrap();
-        for (index, option) in self.options.iter().enumerate() {
-            let next = if index + 1 == self.options.len() {
+        for (index, option) in options.iter().enumerate() {
+            let next = if index + 1 == options.len() {
                 "@ret_err"
             } else {
                 &format!("@check_{}", index + 1)
@@ -65,9 +71,8 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
                 f,
                 "
 @check_{index}
-    %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %res =l call $parse_{option}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, {next}, @ret",
-                option_index = option.index
             )
             .unwrap();
         }
@@ -82,56 +87,40 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         .unwrap();
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
         let mut set = HashSet::new();
         for option in &self.options {
-            set.extend(option.get_ref(cache).start_tokens(cache));
+            set.extend(option.start_tokens(builder));
         }
         set
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+    pub fn is_optional(&self, _: &ParserBuilder) -> bool {
         false // TODO: Look into whether this is easy to support
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
         let mut parsers = vec![];
         for (index, p) in self.options.iter().enumerate() {
-            if p.get_ref(&builder.cache)
-                .start_tokens(&builder.cache)
-                .contains(&token)
-            {
+            if p.start_tokens(&builder).contains(token) {
                 parsers.push(index);
             }
         }
         if parsers.is_empty() {
             panic!()
         } else if parsers.len() == 1 {
-            return self.options[parsers[0]]
-                .get_ref(&builder.cache)
-                .clone()
-                .after_token(token, builder);
+            return self.options[parsers[0]].clone().after_token(token, builder);
         }
-        let require_named = self
-            .options
-            .iter()
-            .all(|it| matches!(it.get_ref(&builder.cache), Parser::Named(_)));
+        let require_named = self.options.iter().all(|it| matches!(it, Parser::Named(_)));
         let mut default = None;
         let rest = parsers
             .iter()
             .filter_map(|index| {
-                if let Some(rest) = self.options[*index]
-                    .get_ref(&builder.cache)
-                    .clone()
-                    .after_token(token, builder)
-                {
+                if let Some(rest) = self.options[*index].clone().after_token(token, builder) {
                     Some(rest)
                 } else {
                     if require_named {
-                        let name = self.options[*index]
-                            .get_ref(&builder.cache)
-                            .get_name(&builder.cache)
-                            .unwrap();
+                        let name = self.options[*index].get_name(&builder).unwrap();
                         if default.is_none() {
                             default = Some(name);
                         } else {
@@ -143,34 +132,29 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
             })
             .collect::<Vec<_>>();
         if default.is_none() {
-            default = Some(u32::MAX);
+            default = Some("%group_at_default%".to_string());
         }
         let option = if rest.is_empty() {
             panic!("Found 0 intersect");
         } else {
-            seq(
-                vec![
-                    just(token, &mut builder.cache),
-                    Parser::Choice(Choice {
-                        options: rest,
-                        default,
-                    })
-                    .cache(&mut builder.cache)
-                    .reduce_conflicts(builder, 0)?,
-                ],
-                &mut builder.cache,
-            )
+            seq(vec![
+                just(token.to_string()),
+                Parser::Choice(Choice {
+                    options: rest,
+                    default,
+                })
+                .reduce_conflicts(builder, 0)?,
+            ])
         };
         Some(option)
     }
 }
 
-pub fn choice(options: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
+pub fn choice(options: Vec<Parser>) -> Parser {
     Parser::Choice(Choice {
         options,
         default: None,
     })
-    .cache(cache)
 }
 
 #[cfg(test)]

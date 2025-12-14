@@ -2,26 +2,29 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::{builder::ParserBuilder, try_parse},
-    parser::ptr::{ParserCache, ParserIndex},
-};
+use crate::ast::{builder::ParserBuilder, try_parse};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Seq(pub Vec<ParserIndex>);
+pub struct Seq(pub Vec<Parser>);
 
 impl Seq {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.0
-            .first()
-            .expect("Seq should have at least one element")
-            .get_ref(cache)
-            .expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.0.first().unwrap().expected(builder)
     }
 
-    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let parts = self
+            .0
+            .iter()
+            .map(|it| it.build(builder, f))
+            .collect::<Vec<_>>();
         let new_delims_len = self.0.len() - 1;
         let magic = new_delims_len + 3;
 
@@ -40,20 +43,15 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         .unwrap();
         let mut last_optional_index = 0;
 
-        for part in self.0[1..].iter().rev() {
-            writeln!(
-                f,
-                "\tcall $push_long(l %delim_stack_ptr, l {part_id})",
-                part_id = part.index
-            )
-            .unwrap()
+        for part in parts[1..].iter().rev() {
+            writeln!(f, "\tcall $push_long(l %delim_stack_ptr, l {part})",).unwrap()
         }
 
         writeln!(f, "\tjmp @check_start_0").unwrap();
 
         for (i, parser) in self.0.iter().enumerate() {
             last_optional_index = i;
-            if !parser.get_ref(&builder.cache).is_optional(&builder.cache) {
+            if !parser.is_optional(builder) {
                 break;
             }
         }
@@ -76,7 +74,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @check_start_{index}
     %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, {fail}, {pass}",
-                option_index = option.index,
+                option_index = option.get_id(builder),
             )
             .unwrap();
         }
@@ -111,10 +109,10 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     call $missing(l %state_ptr, l %expected)
     jmp @try_parse_{index}
 ",
-                last = self.0[index - 1].index
+                last = self.0[index - 1].get_id(builder)
             )
             .unwrap();
-            try_parse(part.index, &format!("{index}"), next, f);
+            try_parse(part.get_id(builder), &format!("{index}"), next, f);
         }
         writeln!(f, "\n\t@ret_err",).unwrap();
         for _ in self.0[1..].iter() {
@@ -140,15 +138,14 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret_ok
     ret 0
 }}",
-            last = self.0.last().unwrap().index,
+            last = self.0.last().unwrap().get_id(builder),
         )
         .unwrap();
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+    pub fn start_tokens(&self, cache: &ParserBuilder) -> HashSet<String> {
         let mut res = HashSet::new();
         for item in &self.0 {
-            let item = item.get_ref(cache);
             res.extend(item.start_tokens(cache));
             if !item.is_optional(cache) {
                 return res.into_iter().collect();
@@ -157,36 +154,30 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         res
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.0.iter().all(|it| it.get_ref(cache).is_optional(cache))
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
+        self.0.iter().all(|it| it.is_optional(builder))
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
+    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
         for (index, item) in self.0.iter().enumerate() {
-            let item = item.get_ref(&builder.cache).clone();
-            if item.start_tokens(&builder.cache).contains(&token) {
+            let item = item.clone();
+            if item.start_tokens(builder).contains(token) {
                 let mut new_seq = self.0[index..].to_vec();
                 if new_seq.is_empty() {
                     return None;
                 }
                 if new_seq.len() == 1 {
-                    return new_seq[0]
-                        .get_ref(&builder.cache)
-                        .clone()
-                        .after_token(token, builder);
+                    return new_seq[0].clone().after_token(token, builder);
                 }
-                let first = new_seq[0]
-                    .get_ref(&builder.cache)
-                    .clone()
-                    .after_token(token, builder);
+                let first = new_seq[0].clone().after_token(token, builder);
                 if let Some(first) = first {
                     new_seq[0] = first;
                 } else {
                     new_seq.remove(0);
                 };
-                return Some(Parser::Seq(Seq(new_seq)).cache(&mut builder.cache));
+                return Some(Parser::Seq(Seq(new_seq)));
             }
-            if !item.is_optional(&builder.cache) {
+            if !item.is_optional(builder) {
                 break;
             }
         }
@@ -194,8 +185,8 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     }
 }
 
-pub fn seq(parts: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
-    Parser::Seq(Seq(parts)).cache(cache)
+pub fn seq(parts: Vec<Parser>) -> Parser {
+    Parser::Seq(Seq(parts))
 }
 
 #[cfg(test)]

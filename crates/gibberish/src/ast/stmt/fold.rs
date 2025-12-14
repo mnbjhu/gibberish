@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::Gibberish;
 
 use crate::ast::builder::ParserBuilder;
 use crate::ast::expr::ExprAst;
-use crate::parser::ptr::ParserIndex;
+use crate::parser::Parser;
 
 use gibberish_gibberish_parser::GibberishSyntax as S;
 use gibberish_gibberish_parser::GibberishToken as T;
@@ -32,13 +32,12 @@ impl<'a> FoldDefAst<'a> {
         iter.next().map(|it| it.into())
     }
 
-    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
+    pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
         let name = self.name().text.as_str();
         assert!(!name.starts_with("_"), "Fold expressions should be named");
-        let name_index = builder.vars.len();
         let first = self.first().build(builder);
         let next = self.next().unwrap().build(builder);
-        let p = first.fold_once(name_index as u32, next, &mut builder.cache);
+        let p = first.fold_once(name.to_string(), next);
         builder.vars.push((name.to_string(), p.clone()));
         p
     }

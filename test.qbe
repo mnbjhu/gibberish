@@ -680,6 +680,67 @@ function w $group_at(l %state_ptr, w %group_kind, l %checkpoint) {
     ret 1
 }
 
+data $items_group_name = { b "items", b 0 }
+data $items_group_name_len = { l 5 }
+
+data $_brackets_group_name = { b "_brackets", b 0 }
+data $_brackets_group_name_len = { l 9 }
+
+data $_root_group_name = { b "_root", b 0 }
+data $_root_group_name_len = { l 5 }
+
+data $root_group_name = { b "root", b 0 }
+data $root_group_name_len = { l 4 }
+
+data $unmatched_group_name = { b "unmatched", b 0 }
+data $unmatched_group_name_len = { l 9 }
+
+data $err_group_name = { b "group_error", b 0}
+
+
+export function :str_slice $group_name(w %kind) {
+@items
+    %ptr =l copy $items_group_name
+    %len =l copy 5
+    %res =w ceqw %kind, 0
+    jnz %res, @found, @_brackets
+
+@_brackets
+    %ptr =l copy $_brackets_group_name
+    %len =l copy 9
+    %res =w ceqw %kind, 1
+    jnz %res, @found, @_root
+
+@_root
+    %ptr =l copy $_root_group_name
+    %len =l copy 5
+    %res =w ceqw %kind, 2
+    jnz %res, @found, @root
+
+@root
+    %ptr =l copy $root_group_name
+    %len =l copy 4
+    %res =w ceqw %kind, 3
+    jnz %res, @found, @unmatched
+
+@unmatched
+    %ptr =l copy $unmatched_group_name
+    %len =l copy 9
+    %res =w ceqw %kind, 4
+    jnz %res, @found, @err
+
+@err
+    %ptr =l copy $err_group_name
+    %len =l copy 5
+    jmp @found
+@found
+    %slice =l alloc8 16
+    %len_ptr =l add %slice, 8
+    
+    storel %ptr, %slice
+    storel %len, %len_ptr
+    ret %slice
+}
 # RegexRange
 function w $lex_2(l %lexer_state) {
 @start
@@ -926,6 +987,120 @@ function l $lex_comma (l %lexer_state) {
     ret 0
 }
 
+# Exact
+function l $lex_10 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %lexer_state, w 91)
+    call $inc_offset(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+# RegexSeq
+function l $lex_9 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_10(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+function l $lex_l_bracket (l %lexer_state) {
+@start
+    %res =w call $lex_9(l %lexer_state)
+    jnz %res, @pass, @fail
+@pass
+    %group_ptr =l add %lexer_state, 24
+    %group =l loadl %group_ptr
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
+# Exact
+function l $lex_12 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $cmp_current(l %lexer_state, w 93)
+    call $inc_offset(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+# RegexSeq
+function l $lex_11 (l %lexer_state) {
+@start
+    %offset_ptr =l add %lexer_state, 16
+    %start =l loadl %offset_ptr
+    jmp @part_0
+
+@part_0
+    %res =w call $lex_12(l %lexer_state)
+    jnz %res, @pass, @fail
+
+@pass
+    ret 1
+
+@fail
+    storel %start, %offset_ptr
+    ret 0
+}
+
+function l $lex_r_bracket (l %lexer_state) {
+@start
+    %res =w call $lex_11(l %lexer_state)
+    jnz %res, @pass, @fail
+@pass
+    %group_ptr =l add %lexer_state, 24
+    %group =l loadl %group_ptr
+    jnz %group, @ret_group, @ret_all
+@ret_group
+    ret %group
+@ret_all
+    %offset_ptr =l add %lexer_state, 16
+    %offset =l loadl %offset_ptr
+    ret %offset
+@fail
+    ret 0
+}
+
 export function :vec $lex(l %ptr, l %len) {
 @start
     %lexer_state =l alloc8 32
@@ -979,13 +1154,43 @@ export function :vec $lex(l %ptr, l %len) {
 @check_comma
     storel 0, %group_end_ptr
     %res =l call $lex_comma(l %lexer_state)
-    jnz %res, @check_overflow_comma, @fail
+    jnz %res, @check_overflow_comma, @check_l_bracket
 @check_overflow_comma
     %overflow =l cugtl %res, %len
     jnz %overflow, @end, @bump_comma
 @bump_comma
     %end =l add %total_offset, %res
     %tok =:token call $new_token(l 2, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    jmp @finish_loop
+
+
+@check_l_bracket
+    storel 0, %group_end_ptr
+    %res =l call $lex_l_bracket(l %lexer_state)
+    jnz %res, @check_overflow_l_bracket, @check_r_bracket
+@check_overflow_l_bracket
+    %overflow =l cugtl %res, %len
+    jnz %overflow, @end, @bump_l_bracket
+@bump_l_bracket
+    %end =l add %total_offset, %res
+    %tok =:token call $new_token(l 3, l %total_offset, l %end)
+    call $push(l %tokens, l 24, l %tok)
+    %total_offset =l copy %end
+    jmp @finish_loop
+
+
+@check_r_bracket
+    storel 0, %group_end_ptr
+    %res =l call $lex_r_bracket(l %lexer_state)
+    jnz %res, @check_overflow_r_bracket, @fail
+@check_overflow_r_bracket
+    %overflow =l cugtl %res, %len
+    jnz %overflow, @end, @bump_r_bracket
+@bump_r_bracket
+    %end =l add %total_offset, %res
+    %tok =:token call $new_token(l 4, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
     %total_offset =l copy %end
     jmp @finish_loop
@@ -1005,7 +1210,7 @@ export function :vec $lex(l %ptr, l %len) {
     jnz %last_was_error, @fail_again, @fail_first
 @fail_first
     %end =l add %total_offset, 1
-    %tok =:token call $new_token(l 3, l %total_offset, l %end)
+    %tok =:token call $new_token(l 5, l %total_offset, l %end)
     call $push(l %tokens, l 24, l %tok)
     jmp @fail_finish
 @fail_again
@@ -1039,6 +1244,12 @@ data $whitespace_token_name_len = { l 10 }
 data $comma_token_name = { b "comma", b 0 }
 data $comma_token_name_len = { l 5 }
 
+data $l_bracket_token_name = { b "l_bracket", b 0 }
+data $l_bracket_token_name_len = { l 9 }
+
+data $r_bracket_token_name = { b "r_bracket", b 0 }
+data $r_bracket_token_name_len = { l 9 }
+
 data $err_token_name = { b "token_error", b 0}
 
 
@@ -1059,6 +1270,18 @@ export function :str_slice $token_name(w %kind) {
     %ptr =l copy $comma_token_name
     %len =l copy 5
     %res =w ceqw %kind, 2
+    jnz %res, @found, @l_bracket
+
+@l_bracket
+    %ptr =l copy $l_bracket_token_name
+    %len =l copy 9
+    %res =w ceqw %kind, 3
+    jnz %res, @found, @r_bracket
+
+@r_bracket
+    %ptr =l copy $r_bracket_token_name
+    %len =l copy 9
+    %res =w ceqw %kind, 4
     jnz %res, @found, @err
 
 @err
@@ -1073,36 +1296,9 @@ export function :str_slice $token_name(w %kind) {
     storel %len, %len_ptr
     ret %slice
 }
-function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {
-
-@check_0
-    %res =l ceql %id, 0
-    jnz %res, @do_0, @check_1
-@do_0
-    %ret =l call $peak_0(l %state_ptr, l %offset, w %recover)
-    ret %ret
-
-@check_1
-    %res =l ceql %id, 1
-    jnz %res, @do_1, @check_2
-@do_1
-    %ret =l call $peak_1(l %state_ptr, l %offset, w %recover)
-    ret %ret
-
-@check_2
-    %res =l ceql %id, 2
-    jnz %res, @do_2, @err
-@do_2
-    %ret =l call $peak_2(l %state_ptr, l %offset, w %recover)
-    ret %ret
-
-@err
-    ret 0
-}
-
 
 # Parse Just
-function l $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+function l $parse_1(l %state_ptr, w %recover, l %unmatched_checkpoint) {
 @start
     jmp @check_eof
 @check_eof
@@ -1110,7 +1306,7 @@ function l $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint) {
     jnz %is_eof, @eof, @check_ok
 @check_ok
     %current_kind =l call $current_kind(l %state_ptr)
-    %res =l ceql %current_kind, 0
+    %res =l ceql %current_kind, 3
     jnz %res, @ret_ok, @check_skip
 @check_skip
     %skip_ptr =l add %state_ptr, 80
@@ -1145,26 +1341,26 @@ function l $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint) {
 @ret_err
     ret 1
 }
-function w $peak_0(l %state_ptr, l %offset, w %recover) {
+function w $peak_1(l %state_ptr, l %offset, w %recover) {
 @start
     %current =l call $current_kind(l %state_ptr)
     jmp @check_0
 
 @check_0
-    %res =l ceql %current, 0
+    %res =l ceql %current, 3
     jnz %res, @ret_ok, @ret_err
 @ret_ok
     ret 0
 @ret_err
     ret 1
 }
-data $expected_0_data = {l 0, l 0}
+data $expected_1_data = {l 0, l 3}
 
-function :vec $expected_0() {
+function :vec $expected_1() {
 @start
     %ptr =l call $malloc(l 16)
     %res =l alloc8 24
-    call $memcpy(l %ptr, l $expected_0_data, l 16)
+    call $memcpy(l %ptr, l $expected_1_data, l 16)
     %len_ptr =l add %res, 8
     %cap_ptr =l add %res, 16
     
@@ -1176,7 +1372,7 @@ function :vec $expected_0() {
 
 
 # Parse Just
-function l $parse_1(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+function l $parse_4(l %state_ptr, w %recover, l %unmatched_checkpoint) {
 @start
     jmp @check_eof
 @check_eof
@@ -1219,7 +1415,7 @@ function l $parse_1(l %state_ptr, w %recover, l %unmatched_checkpoint) {
 @ret_err
     ret 1
 }
-function w $peak_1(l %state_ptr, l %offset, w %recover) {
+function w $peak_4(l %state_ptr, l %offset, w %recover) {
 @start
     %current =l call $current_kind(l %state_ptr)
     jmp @check_0
@@ -1232,13 +1428,87 @@ function w $peak_1(l %state_ptr, l %offset, w %recover) {
 @ret_err
     ret 1
 }
-data $expected_1_data = {l 0, l 2}
+data $expected_4_data = {l 0, l 2}
 
-function :vec $expected_1() {
+function :vec $expected_4() {
 @start
     %ptr =l call $malloc(l 16)
     %res =l alloc8 24
-    call $memcpy(l %ptr, l $expected_1_data, l 16)
+    call $memcpy(l %ptr, l $expected_4_data, l 16)
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel 1, %len_ptr
+    storel 1, %cap_ptr
+    ret %res
+}
+
+
+# Parse Just
+function l $parse_5(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 0
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_5(l %state_ptr, l %offset, w %recover) {
+@start
+    %current =l call $current_kind(l %state_ptr)
+    jmp @check_0
+
+@check_0
+    %res =l ceql %current, 0
+    jnz %res, @ret_ok, @ret_err
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+data $expected_5_data = {l 0, l 0}
+
+function :vec $expected_5() {
+@start
+    %ptr =l call $malloc(l 16)
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_5_data, l 16)
     %len_ptr =l add %res, 8
     %cap_ptr =l add %res, 16
     
@@ -1249,11 +1519,11 @@ function :vec $expected_1() {
 }
 
 # Parse Sep
-function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+function l $parse_3(l %state_ptr, w %recover, l %unmatched_checkpoint) {
 @start
-    %item_index =l call $push_delim(l %state_ptr, l 0)
-    %sep_index =l call $push_delim(l %state_ptr, l 1)
-    %res =l call $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %item_index =l call $push_delim(l %state_ptr, l 5)
+    %sep_index =l call $push_delim(l %state_ptr, l 4)
+    %res =l call $parse_5(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, @ret_err, @try_parse_sep
 @check_sep
     jnz %res, @check_sep_eof, @try_parse_item
@@ -1264,13 +1534,13 @@ function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
     %is_item =w ceql %item_index, %res
     jnz %is_item, @missing_sep, @ret_ok
 @missing_sep
-    %expected =:vec call $expected_1()
+    %expected =:vec call $expected_4()
     call $missing(l %state_ptr, l %expected)
     jmp @try_parse_item
 @check_item
     jnz %res, @check_item_eof, @try_parse_sep
 @check_item_eof
-    %expected =:vec call $expected_0()
+    %expected =:vec call $expected_5()
     call $missing(l %state_ptr, l %expected)
     %is_eof =w ceql %res, 2
     jnz %is_eof, @ret_ok, @item_check_sep_delim
@@ -1279,7 +1549,7 @@ function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
     jnz %is_sep, @try_parse_sep, @ret_ok
 
 @try_parse_sep
-    %res =l call $parse_1(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %res =l call $parse_4(l %state_ptr, w %recover, l %unmatched_checkpoint)
     %is_err =l ceql 1, %res
     jnz %is_err, @bump_err_sep, @check_sep
 @bump_err_sep
@@ -1287,7 +1557,7 @@ function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
     jmp @try_parse_sep
 
 @try_parse_item
-    %res =l call $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %res =l call $parse_5(l %state_ptr, w %recover, l %unmatched_checkpoint)
     %is_err =l ceql 1, %res
     jnz %is_err, @bump_err_item, @check_item
 @bump_err_item
@@ -1303,6 +1573,67 @@ function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
     call $pop_delim(l %state_ptr)
     ret %res
 }
+function w $peak_3(l %state_ptr, l %offset, w %recover) {
+@start
+    %current =l call $current_kind(l %state_ptr)
+    jmp @check_0
+
+@check_0
+    %res =l ceql %current, 0
+    jnz %res, @ret_ok, @ret_err
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+data $expected_3_data = {l 0, l 0}
+
+function :vec $expected_3() {
+@start
+    %ptr =l call $malloc(l 16)
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_3_data, l 16)
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel 1, %len_ptr
+    storel 1, %cap_ptr
+    ret %res
+}
+
+# Parse Named
+function l $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %res =l call $peak_3(l %state_ptr, l 0, w 0)
+    jnz %res, @check_skip, @parse
+@check_skip
+    %current_kind =l call $current_kind(l %state_ptr)
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @parse
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@parse
+    call $enter_group(l %state_ptr, w 0)
+    %res =l call $parse_3(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    jnz %res, @remove_group, @exit
+@exit
+    call $exit_group(l %state_ptr)
+    ret %res
+@remove_group
+    %stack_ptr =l add %state_ptr, 24
+    call $pop(l %stack_ptr, l 32)
+    ret %res
+@eof
+    ret 2
+}
 function w $peak_2(l %state_ptr, l %offset, w %recover) {
 @start
     %current =l call $current_kind(l %state_ptr)
@@ -1316,7 +1647,7 @@ function w $peak_2(l %state_ptr, l %offset, w %recover) {
 @ret_err
     ret 1
 }
-data $expected_2_data = {l 0, l 0}
+data $expected_2_data = {l 1, l 0}
 
 function :vec $expected_2() {
 @start
@@ -1332,19 +1663,262 @@ function :vec $expected_2() {
     ret %res
 }
 
-data $root_group_id = { w 1 }
+
+# Parse Just
+function l $parse_6(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @eof, @check_ok
+@check_ok
+    %current_kind =l call $current_kind(l %state_ptr)
+    %res =l ceql %current_kind, 4
+    jnz %res, @ret_ok, @check_skip
+@check_skip
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @recover
+@bump_skipped
+    call $bump(l %state_ptr)
+    jmp @check_eof
+@recover
+    jnz %recover, @check_delims, @ret_err
+@check_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len =l add %state_ptr, 64
+    %index =l loadl %delim_stack_len
+    jnz %index, @loop, @ret_err
+@loop
+    %index =l sub %index, 1
+    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
+    %parser_index =l loadl %parser_index_ptr
+    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
+    jnz %rec_res, @iter, @ret_break
+@iter
+    jnz %index, @loop, @ret_err
+@eof
+    ret 2
+@ret_break
+    %break =l add %index, 3
+    ret %break
+@ret_ok
+    call $bump(l %state_ptr)
+    ret 0
+@ret_err
+    ret 1
+}
+function w $peak_6(l %state_ptr, l %offset, w %recover) {
+@start
+    %current =l call $current_kind(l %state_ptr)
+    jmp @check_0
+
+@check_0
+    %res =l ceql %current, 4
+    jnz %res, @ret_ok, @ret_err
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+data $expected_6_data = {l 0, l 4}
+
+function :vec $expected_6() {
+@start
+    %ptr =l call $malloc(l 16)
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_6_data, l 16)
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel 1, %len_ptr
+    storel 1, %cap_ptr
+    ret %res
+}
+
+# Parse Seq
+function l $parse_0(l %state_ptr, w %recover, l %unmatched_checkpoint) {
+@add_delims
+    %delim_stack_ptr =l add %state_ptr, 56
+    %delim_stack_len_ptr =l add %state_ptr, 64
+    %delim_stack_len =l loadl %delim_stack_len_ptr
+    %magic_num =l add %delim_stack_len, 5
+	call $push_long(l %delim_stack_ptr, l 6)
+	call $push_long(l %delim_stack_ptr, l 2)
+	jmp @check_start_0
+
+@check_start_0
+    %res =l call $parse_1(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    jnz %res, @ret_err, @remove_delim_1
+@remove_delim_1
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_eof_1, @try_parse_1 
+@check_eof_1
+    %is_eof =l ceql 2, %res
+    jnz %is_eof, @missing_1, @check_1
+@check_1
+    %break_index =l sub %magic_num, 1
+    %is_me =l ceql %res, %break_index
+    %expected =:vec call $expected_1()
+    call $missing(l %state_ptr, l %expected)
+    jnz %is_me, @try_parse_1, @remove_delim_2
+@missing_1
+    %expected =:vec call $expected_1()
+    call $missing(l %state_ptr, l %expected)
+    jmp @try_parse_1
+
+@try_parse_1
+    %res =l call $parse_2(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_1, @remove_delim_2
+@bump_err_1
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_1
+
+@remove_delim_2
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_eof_2, @try_parse_2 
+@check_eof_2
+    %is_eof =l ceql 2, %res
+    jnz %is_eof, @missing_2, @check_2
+@check_2
+    %break_index =l sub %magic_num, 2
+    %is_me =l ceql %res, %break_index
+    %expected =:vec call $expected_2()
+    call $missing(l %state_ptr, l %expected)
+    jnz %is_me, @try_parse_2, @check_last
+@missing_2
+    %expected =:vec call $expected_2()
+    call $missing(l %state_ptr, l %expected)
+    jmp @try_parse_2
+
+@try_parse_2
+    %res =l call $parse_6(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    %is_err =l ceql 1, %res
+    jnz %is_err, @bump_err_2, @check_last
+@bump_err_2
+    call $bump_err(l %state_ptr)
+    jmp @try_parse_2
+
+	@ret_err
+	call $pop(l %delim_stack_ptr, l 8)
+	call $pop(l %delim_stack_ptr, l 8)
+
+    ret %res
+@check_last
+    jnz %res, @check_eof_last, @ret_ok
+@check_eof_last
+    %is_eof =l ceql 2, %res
+    jnz %is_eof, @missing_last, @check_break_last
+@check_break_last
+    %break_index =l sub %magic_num, 0
+    %is_me =l ceql %res, %break_index
+    jnz %is_me, @ret_ok, @missing_last
+@missing_last
+    %expected =:vec call $expected_6()
+    call $missing(l %state_ptr, l %expected)
+    jmp @ret_ok
+@ret_ok
+    ret 0
+}
+function w $peak_0(l %state_ptr, l %offset, w %recover) {
+@start
+    %current =l call $current_kind(l %state_ptr)
+    jmp @check_0
+
+@check_0
+    %res =l ceql %current, 3
+    jnz %res, @ret_ok, @ret_err
+@ret_ok
+    ret 0
+@ret_err
+    ret 1
+}
+data $expected_0_data = {l 0, l 3}
+
+function :vec $expected_0() {
+@start
+    %ptr =l call $malloc(l 16)
+    %res =l alloc8 24
+    call $memcpy(l %ptr, l $expected_0_data, l 16)
+    %len_ptr =l add %res, 8
+    %cap_ptr =l add %res, 16
+    
+    storel %ptr, %res
+    storel 1, %len_ptr
+    storel 1, %cap_ptr
+    ret %res
+}
+
+function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {
+
+@check_5
+    %res =l ceql %id, 5
+    jnz %res, @do_5, @check_6
+@do_5
+    %ret =l call $peak_5(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_6
+    %res =l ceql %id, 6
+    jnz %res, @do_6, @err
+@do_6
+    %ret =l call $peak_6(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_1
+    %res =l ceql %id, 1
+    jnz %res, @do_1, @check_2
+@do_1
+    %ret =l call $peak_1(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_0
+    %res =l ceql %id, 0
+    jnz %res, @do_0, @check_1
+@do_0
+    %ret =l call $peak_0(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_2
+    %res =l ceql %id, 2
+    jnz %res, @do_2, @check_3
+@do_2
+    %ret =l call $peak_2(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_3
+    %res =l ceql %id, 3
+    jnz %res, @do_3, @check_4
+@do_3
+    %ret =l call $peak_3(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@check_4
+    %res =l ceql %id, 4
+    jnz %res, @do_4, @check_5
+@do_4
+    %ret =l call $peak_4(l %state_ptr, l %offset, w %recover)
+    ret %ret
+
+@err
+    ret 0
+}
+
+data $root_group_id = { w 3 }
 
 export function w $parse(l %state_ptr) {
 @start
     jmp @loop
 @loop
-    %res =l call $parse_2(l %state_ptr, w 1, l 0)
+    %res =l call $parse_0(l %state_ptr, w 1, l 0)
     jnz %res, @check_eof, @end
 @check_eof
     %is_eof =l ceql %res, 2
     jnz %is_eof, @missing, @bump_err
 @missing
-    %expected =:vec call $expected_2()
+    %expected =:vec call $expected_0()
     call $missing(l %state_ptr, l %expected)
     jmp @end
 @bump_err
@@ -1358,48 +1932,4 @@ export function w $parse(l %state_ptr) {
     jmp @end
 @ret
     ret 1
-}
-
-data $_root_group_name = { b "_root", b 0 }
-data $_root_group_name_len = { l 5 }
-
-data $root_group_name = { b "root", b 0 }
-data $root_group_name_len = { l 4 }
-
-data $unmatched_group_name = { b "unmatched", b 0 }
-data $unmatched_group_name_len = { l 9 }
-
-data $err_group_name = { b "group_error", b 0}
-
-
-export function :str_slice $group_name(w %kind) {
-@_root
-    %ptr =l copy $_root_group_name
-    %len =l copy 5
-    %res =w ceqw %kind, 0
-    jnz %res, @found, @root
-
-@root
-    %ptr =l copy $root_group_name
-    %len =l copy 4
-    %res =w ceqw %kind, 1
-    jnz %res, @found, @unmatched
-
-@unmatched
-    %ptr =l copy $unmatched_group_name
-    %len =l copy 9
-    %res =w ceqw %kind, 2
-    jnz %res, @found, @err
-
-@err
-    %ptr =l copy $err_group_name
-    %len =l copy 5
-    jmp @found
-@found
-    %slice =l alloc8 16
-    %len_ptr =l add %slice, 8
-    
-    storel %ptr, %slice
-    storel %len, %len_ptr
-    ret %slice
 }

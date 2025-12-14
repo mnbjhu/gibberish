@@ -2,26 +2,30 @@ use std::collections::HashSet;
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::try_parse,
-    parser::ptr::{ParserCache, ParserIndex},
-};
+use crate::ast::{builder::ParserBuilder, try_parse};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Sep {
-    pub sep: ParserIndex,
-    pub item: ParserIndex,
+    pub sep: Box<Parser>,
+    pub item: Box<Parser>,
     pub at_least: usize,
 }
 
 impl Sep {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.item.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.item.expected(builder)
     }
 
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let sep = self.sep.build(builder, f);
+        let item = self.item.build(builder, f);
         write!(
             f,
             "
@@ -55,12 +59,10 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     %is_sep =w ceql %sep_index, %res
     jnz %is_sep, @try_parse_sep, @ret_ok
 ",
-            sep = self.sep.index,
-            item = self.item.index,
         )
         .unwrap();
-        try_parse(self.sep.index, "sep", "@check_sep", f);
-        try_parse(self.item.index, "item", "@check_item", f);
+        try_parse(sep, "sep", "@check_sep", f);
+        try_parse(item, "item", "@check_item", f);
         write!(
             f,
             "
@@ -77,37 +79,22 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         .unwrap()
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.item.get_ref(cache).start_tokens(cache)
+    pub fn start_tokens(&self, cache: &ParserBuilder) -> HashSet<String> {
+        self.item.start_tokens(cache)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
+    pub fn is_optional(&self, _: &ParserBuilder) -> bool {
         false // TODO: Fix
     }
 }
 
-impl ParserIndex {
-    pub fn sep_by(self, sep: ParserIndex, cache: &mut ParserCache) -> ParserIndex {
+impl Parser {
+    pub fn sep_by(self, sep: Parser) -> Parser {
         Parser::Sep(Sep {
-            item: self,
-            sep,
+            item: Box::new(self),
+            sep: Box::new(sep),
             at_least: 0,
         })
-        .cache(cache)
-    }
-
-    pub fn sep_by_extra(
-        self,
-        sep: ParserIndex,
-        at_least: usize,
-        cache: &mut ParserCache,
-    ) -> ParserIndex {
-        Parser::Sep(Sep {
-            item: self,
-            sep,
-            at_least,
-        })
-        .cache(cache)
     }
 }
 

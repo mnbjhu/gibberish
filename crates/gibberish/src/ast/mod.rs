@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishSyntax};
 
 use crate::{
     ast::{builder::ParserBuilder, stmt::StmtAst},
-    parser::{Parser, named::Named, ptr::ParserIndex},
+    parser::{Parser, named::Named},
 };
 
 pub mod builder;
@@ -19,7 +19,7 @@ impl<'a> RootAst<'a> {
         self.0.groups().map(StmtAst::from)
     }
 
-    pub fn build_parser(self, builder: &mut ParserBuilder) -> ParserIndex {
+    pub fn build_parser(self, builder: &mut ParserBuilder) -> Parser {
         let res = self
             .iter()
             .filter_map(|it| match it {
@@ -37,8 +37,8 @@ impl<'a> RootAst<'a> {
             })
             .last()
             .unwrap();
-        match res.get_ref(&builder.cache) {
-            Parser::Named(Named { inner, .. }) => inner.clone(),
+        match res {
+            Parser::Named(Named { inner, .. }) => inner.as_ref().clone(),
             _ => res,
         }
     }
