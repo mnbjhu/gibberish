@@ -1,10 +1,10 @@
 use std::fmt::Write;
 
-use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe, parser::Parser};
+use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe};
 
-pub fn build_parser_qbe(parser: &Parser, builder: &mut ParserBuilder, f: &mut impl Write) {
+pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
-    let inner = parser.build(builder, f);
+    let inner = builder.vars.last().unwrap().1.clone().build(builder, f);
     build_parse_by_id(builder, f);
     write!(
         f,

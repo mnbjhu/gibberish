@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -56,5 +56,15 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
     pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
         self.0.is_optional(builder)
+    }
+
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        todo!()
+    }
+}
+
+impl Display for Checkpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.checkpoint()", self.0)
     }
 }

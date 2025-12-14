@@ -24,12 +24,10 @@ token string = "\"(?:\\\\.|[^\"\\\\])*\"";
 token at = "@";
 
 
-parser _expr;
 parser named = ident;
 parser _atom = _expr.delim_by(l_paren, r_paren) | named;
 parser call_name = ident;
 parser named_param = ident + eq + (int | string);
-parser _arg;
 parser args = _arg.sep_by(comma).delim_by(l_paren, r_paren);
 parser call = dot + call_name + args;
 parser member_call = _atom fold call.repeated();
@@ -44,7 +42,6 @@ parser token_def = TOKEN + ident + eq + string;
 parser fold_stmt = _expr fold FOLD + _expr;
 parser parser_def = PARSER + ident + (eq + fold_stmt).or_not();
 
-parser _query;
 parser child_query = _query.sep_by(comma).delim_by(l_paren, r_paren);
 parser group_query = named + (colon + child_query).or_not();
 parser label = at + string;

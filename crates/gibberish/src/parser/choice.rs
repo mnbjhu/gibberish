@@ -1,10 +1,14 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
+use tracing::info;
 
 use crate::{
     ast::builder::ParserBuilder,
-    parser::{just::just, seq::seq},
+    parser::{checkpoint::Checkpoint, just::just, seq::seq},
 };
 
 use super::Parser;
@@ -13,6 +17,23 @@ use super::Parser;
 pub struct Choice {
     pub options: Vec<Parser>,
     pub default: Option<String>,
+}
+
+impl Display for Choice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(")?;
+        for (index, item) in self.options.iter().enumerate() {
+            if index == 0 {
+                write!(f, "{item}")?
+            } else {
+                write!(f, " | {item}")?
+            }
+        }
+        if let Some(d) = &self.default {
+            write!(f, " : {d}")?
+        }
+        write!(f, ")")
+    }
 }
 
 impl Choice {
@@ -42,12 +63,15 @@ impl Choice {
 ",
                 default = builder.vars.len() + 1
             ),
-            Some(default) => &format!(
-                "\n@ret_err
+            Some(default) => {
+                let default = builder.get_group_id(default);
+                &format!(
+                    "\n@ret_err
     call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
     ret %res
 ",
-            ),
+                )
+            }
             None => {
                 "\n@ret_err
     ret %res
@@ -102,7 +126,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
     pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
         let mut parsers = vec![];
         for (index, p) in self.options.iter().enumerate() {
-            if p.start_tokens(&builder).contains(token) {
+            if p.start_tokens(builder).contains(token) {
                 parsers.push(index);
             }
         }
@@ -142,11 +166,61 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
                 Parser::Choice(Choice {
                     options: rest,
                     default,
-                })
-                .reduce_conflicts(builder, 0)?,
+                }),
             ])
         };
         Some(option)
+    }
+
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        // println!("Reducing conflicts");
+        if depth == 64 {
+            panic!("Failed to reduce conflicts after 64 iterations")
+        }
+        let mut intersects = HashMap::<String, HashSet<usize>>::new();
+        for (x, x_parser) in self.options.iter().enumerate() {
+            let x_items = x_parser.start_tokens(builder);
+            for (y, y_parser) in self.options.iter().enumerate() {
+                if x >= y {
+                    continue;
+                }
+                let y_items = y_parser.start_tokens(builder);
+                let inter = x_items.intersection(&y_items).collect::<Vec<_>>();
+                for item in inter {
+                    let set = if let Some(existing) = intersects.get_mut(item) {
+                        existing
+                    } else {
+                        intersects.insert(item.clone(), HashSet::new());
+                        intersects.get_mut(item).unwrap()
+                    };
+                    set.insert(x);
+                    set.insert(y);
+                }
+            }
+        }
+        if intersects.is_empty() {
+            // println!("Found no conflicts");
+            return Parser::Choice(self.clone());
+        }
+
+        // println!("Reducing intersects {self:?}: {intersects:?}");
+        let has_named = self.options.iter().any(|it| matches!(it, Parser::Named(_)));
+        // let require_named = self.options.iter().all(|it| matches!(it, Parser::Named(_)));
+        let mut options = Vec::new();
+        for (token, _) in intersects {
+            let option = self.after_token(token.as_str(), builder).unwrap(); // TODO: Check
+            options.push(option);
+        }
+        for item in &self.options {
+            options.push(item.clone());
+        }
+        let p = choice(options);
+        info!("Done");
+        if has_named {
+            Parser::Checkpoint(Checkpoint(Box::new(p)))
+        } else {
+            p
+        }
     }
 }
 

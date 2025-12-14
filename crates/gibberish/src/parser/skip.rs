@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -50,6 +50,17 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
     pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
         self.inner.is_optional(builder)
+    }
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        self.inner
+            .remove_conflicts(builder, depth)
+            .skip(self.token.clone())
+    }
+}
+
+impl Display for Skip {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.skip({})", self.inner, self.token)
     }
 }
 

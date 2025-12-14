@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken
 
 use crate::{
     ast::{builder::ParserBuilder, expr::ExprAst},
-    parser::Parser,
+    parser::{Parser, seq::seq},
 };
 
 #[derive(Clone, Copy)]
@@ -67,7 +67,7 @@ impl<'a> CallAst<'a> {
                             span.clone(),
                         )
                     }
-                    expr = expr.delim_by(args[0].clone(), args[1].clone())
+                    expr = seq(vec![args[0].clone(), expr, args[1].clone()]);
                 }
                 "skip" => {
                     let args = member

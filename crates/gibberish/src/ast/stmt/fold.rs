@@ -32,13 +32,13 @@ impl<'a> FoldDefAst<'a> {
         iter.next().map(|it| it.into())
     }
 
-    pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
+    pub fn build(&self, builder: &mut ParserBuilder) {
         let name = self.name().text.as_str();
         assert!(!name.starts_with("_"), "Fold expressions should be named");
         let first = self.first().build(builder);
         let next = self.next().unwrap().build(builder);
         let p = first.fold_once(name.to_string(), next);
-        builder.vars.push((name.to_string(), p.clone()));
-        p
+        let index = builder.vars.iter().position(|(it, _)| it == name).unwrap();
+        builder.vars[index] = (name.to_string(), p.clone());
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Display;
 
 use gibberish_core::err::Expected;
 use gibberish_core::lang::CompiledLang;
@@ -11,6 +12,12 @@ use crate::ast::try_parse;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Repeated(pub Box<Parser>);
+
+impl Display for Repeated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.repeated()", self.0)
+    }
+}
 
 impl Repeated {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
@@ -69,6 +76,9 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         } else {
             Some(Parser::Repeated(self.clone()))
         }
+    }
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        self.0.remove_conflicts(builder, depth).repeated()
     }
 }
 

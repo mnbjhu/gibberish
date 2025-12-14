@@ -7,13 +7,8 @@ use crate::{
 };
 
 pub fn build_ident(builder: &mut ParserBuilder, lexeme: &Lexeme<Gibberish>) -> Parser {
-    if let Some(p) = builder
-        .vars
-        .iter()
-        .find(|it| it.0 == lexeme.text)
-        .map(|it| it.1.clone())
-    {
-        p
+    if builder.vars.iter().any(|it| it.0 == lexeme.text) {
+        Parser::Reference(lexeme.text.clone())
     } else {
         let tok = builder
             .lexer

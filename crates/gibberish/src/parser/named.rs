@@ -88,6 +88,16 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
             })
         })
     }
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        self.inner
+            .remove_conflicts(builder, depth)
+            .named(self.name.clone())
+    }
+}
+impl Display for Named {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.named({})", self.inner, self.name)
+    }
 }
 
 impl Parser {
@@ -96,11 +106,5 @@ impl Parser {
             inner: Box::new(self),
             name,
         })
-    }
-}
-
-impl Display for Named {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Named({})", self.name)
     }
 }

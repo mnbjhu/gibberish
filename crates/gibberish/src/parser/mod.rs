@@ -1,4 +1,7 @@
-use std::{collections::HashSet, fmt::Write};
+use std::{
+    collections::HashSet,
+    fmt::{Display, Write},
+};
 
 use choice::Choice;
 use delim::Delim;
@@ -50,6 +53,29 @@ pub enum Parser {
     Rename(Rename),
     Checkpoint(Checkpoint),
     Empty,
+    Reference(String),
+}
+
+impl Display for Parser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Parser::Just(just) => write!(f, "{just}"),
+            Parser::Choice(choice) => write!(f, "{choice}"),
+            Parser::Seq(seq) => write!(f, "{seq}"),
+            Parser::Sep(sep) => write!(f, "{sep}"),
+            Parser::Delim(_) => todo!(),
+            Parser::Named(named) => write!(f, "{named}"),
+            Parser::Skip(skip) => write!(f, "{skip}"),
+            Parser::UnSkip(un_skip) => write!(f, "{un_skip}"),
+            Parser::Optional(optional) => write!(f, "{optional}"),
+            Parser::FoldOnce(fold_once) => write!(f, "{fold_once}"),
+            Parser::Repeated(repeated) => write!(f, "{repeated}"),
+            Parser::Rename(rename) => write!(f, "{rename}"),
+            Parser::Checkpoint(checkpoint) => write!(f, "{checkpoint}"),
+            Parser::Empty => todo!(),
+            Parser::Reference(n) => write!(f, "{n}"),
+        }
+    }
 }
 
 impl Parser {
@@ -89,6 +115,7 @@ impl Parser {
             Parser::Repeated(repeated) => repeated.expected(builder),
             Parser::Rename(rename) => rename.expected(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.expected(builder),
+            Parser::Reference(n) => builder.get_var(n).unwrap().expected(builder),
         }
     }
 
@@ -108,6 +135,7 @@ impl Parser {
             Parser::Repeated(_) => "Repeated".to_string(),
             Parser::Rename(_) => "Rename".to_string(),
             Parser::Checkpoint(_) => "Checkpoint".to_string(),
+            Parser::Reference(n) => format!("Reference({n})"),
         }
     }
 
@@ -127,6 +155,7 @@ impl Parser {
             Parser::Empty => todo!(),
             Parser::Rename(rename) => rename.build_parse(id, builder, f),
             Parser::Checkpoint(checkpoint) => checkpoint.build_parse(id, builder, f),
+            Parser::Reference(n) => builder.get_var(n).unwrap().build_parse(id, builder, f),
         }
     }
 
@@ -172,7 +201,7 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     }
 
     pub fn build_expected(&self, id: usize, builder: &ParserBuilder, f: &mut impl Write) {
-        if self.is_optional(&builder) {
+        if self.is_optional(builder) {
             write!(
                 f,
                 "
@@ -188,7 +217,7 @@ function :vec $expected_{id}() {{
             return;
         }
 
-        let expected = self.expected(&builder);
+        let expected = self.expected(builder);
         write!(f, "\ndata $expected_{id}_data = {{").unwrap();
         expected.iter().enumerate().for_each(|(index, it)| {
             if index != 0 {
@@ -241,25 +270,27 @@ function :vec $expected_{id}() {{
             Parser::Empty => todo!(),
             Parser::Rename(rename) => rename.start_tokens(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.start_tokens(builder),
+            Parser::Reference(n) => builder.get_var(n).unwrap().start_tokens(builder),
         }
     }
 
-    pub fn is_optional(&self, cache: &ParserBuilder) -> bool {
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
         match self {
             Parser::Just(just) => just.is_optional(),
-            Parser::Choice(choice) => choice.is_optional(cache),
-            Parser::Seq(seq) => seq.is_optional(cache),
-            Parser::Sep(sep) => sep.is_optional(cache),
-            Parser::Delim(delim) => delim.is_optional(cache),
-            Parser::Named(named) => named.is_optional(cache),
-            Parser::Skip(skip) => skip.is_optional(cache),
-            Parser::UnSkip(un_skip) => un_skip.is_optional(cache),
+            Parser::Choice(choice) => choice.is_optional(builder),
+            Parser::Seq(seq) => seq.is_optional(builder),
+            Parser::Sep(sep) => sep.is_optional(builder),
+            Parser::Delim(delim) => delim.is_optional(builder),
+            Parser::Named(named) => named.is_optional(builder),
+            Parser::Skip(skip) => skip.is_optional(builder),
+            Parser::UnSkip(un_skip) => un_skip.is_optional(builder),
             Parser::Optional(_) => true,
-            Parser::FoldOnce(fold_once) => fold_once.is_optional(cache),
-            Parser::Repeated(repeated) => repeated.is_optional(cache),
+            Parser::FoldOnce(fold_once) => fold_once.is_optional(builder),
+            Parser::Repeated(repeated) => repeated.is_optional(builder),
             Parser::Empty => todo!(),
-            Parser::Rename(rename) => rename.is_optional(cache),
-            Parser::Checkpoint(checkpoint) => checkpoint.is_optional(cache),
+            Parser::Rename(rename) => rename.is_optional(builder),
+            Parser::Checkpoint(checkpoint) => checkpoint.is_optional(builder),
+            Parser::Reference(n) => builder.get_var(n).unwrap().is_optional(builder),
         }
     }
 
@@ -278,12 +309,13 @@ function :vec $expected_{id}() {{
             Parser::UnSkip(un_skip) => todo!(),
             Parser::Optional(optional) => optional.after_token(token, builder),
             Parser::FoldOnce(fold_once) => fold_once.after_token(token, builder),
-            Parser::Repeated(repeated) => todo!(),
+            Parser::Repeated(repeated) => repeated.after_token(token, builder),
             Parser::Rename(rename) => rename.after_token(token, builder),
             Parser::Empty => todo!(),
             Parser::Checkpoint(checkpoint) => panic!(
                 "Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??"
             ),
+            Parser::Reference(n) => builder.get_var(n).unwrap().after_token(token, builder),
         }
     }
 
@@ -303,6 +335,27 @@ function :vec $expected_{id}() {{
             Parser::Rename(rename) => Some(rename.name.clone()),
             Parser::Checkpoint(checkpoint) => None,
             Parser::Empty => todo!(),
+            Parser::Reference(n) => builder.get_var(n).unwrap().get_name(builder),
+        }
+    }
+
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        match self {
+            Parser::Just(just) => self.clone(),
+            Parser::Choice(choice) => choice.remove_conflicts(builder, depth),
+            Parser::Seq(seq) => seq.remove_conflicts(builder, depth),
+            Parser::Sep(sep) => sep.remove_conflicts(builder, depth),
+            Parser::Delim(delim) => todo!(),
+            Parser::Named(named) => named.remove_conflicts(builder, depth),
+            Parser::Skip(skip) => skip.remove_conflicts(builder, depth),
+            Parser::UnSkip(un_skip) => un_skip.remove_conflicts(builder, depth),
+            Parser::Optional(optional) => optional.remove_conflicts(builder, depth),
+            Parser::FoldOnce(fold_once) => fold_once.remove_conflicts(builder, depth),
+            Parser::Repeated(repeated) => repeated.remove_conflicts(builder, depth),
+            Parser::Rename(rename) => rename.remove_conflicts(builder, depth),
+            Parser::Checkpoint(checkpoint) => checkpoint.remove_conflicts(builder, depth),
+            Parser::Empty => todo!(),
+            Parser::Reference(n) => self.clone(),
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -8,6 +8,20 @@ use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Seq(pub Vec<Parser>);
+
+impl Display for Seq {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(")?;
+        for (index, item) in self.0.iter().enumerate() {
+            if index == 0 {
+                write!(f, "{item}")?
+            } else {
+                write!(f, " + {item}")?
+            }
+        }
+        write!(f, ")")
+    }
+}
 
 impl Seq {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
@@ -51,7 +65,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
         for (i, parser) in self.0.iter().enumerate() {
             last_optional_index = i;
-            if !parser.is_optional(builder) {
+            if !parser.is_optional(&builder) {
                 break;
             }
         }
@@ -182,6 +196,13 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
             }
         }
         None
+    }
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        seq(self
+            .0
+            .iter()
+            .map(|it| it.remove_conflicts(builder, depth))
+            .collect())
     }
 }
 

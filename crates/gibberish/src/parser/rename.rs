@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -57,6 +57,18 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
                 name: self.name.to_string(),
             })
         })
+    }
+
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        Parser::Rename(Rename {
+            inner: Box::new(self.inner.remove_conflicts(builder, depth)),
+            name: self.name.to_string(),
+        })
+    }
+}
+impl Display for Rename {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.rename({})", self.inner, self.name)
     }
 }
 

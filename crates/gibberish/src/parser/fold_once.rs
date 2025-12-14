@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
@@ -14,6 +14,12 @@ pub struct FoldOnce {
     pub name: String,
     pub first: Box<Parser>,
     pub next: Box<Parser>,
+}
+
+impl Display for FoldOnce {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.fold({}, {})", self.first, self.name, self.next)
+    }
 }
 
 impl FoldOnce {
@@ -77,7 +83,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @eof
     ret 2
 }}",
-            name = self.name,
+            name = builder.get_group_id(&self.name),
         )
         .unwrap()
     }
@@ -103,6 +109,12 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
                 .or_not(),
             )
         }
+    }
+    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+        self.first.remove_conflicts(builder, depth).fold_once(
+            self.name.clone(),
+            self.next.remove_conflicts(builder, depth),
+        )
     }
 }
 

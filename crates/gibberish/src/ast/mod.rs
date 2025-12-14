@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishSyntax};
 
 use crate::{
     ast::{builder::ParserBuilder, stmt::StmtAst},
-    parser::{Parser, named::Named},
+    parser::Parser,
 };
 
 pub mod builder;
@@ -19,27 +19,28 @@ impl<'a> RootAst<'a> {
         self.0.groups().map(StmtAst::from)
     }
 
-    pub fn build_parser(self, builder: &mut ParserBuilder) -> Parser {
-        let res = self
-            .iter()
-            .filter_map(|it| match it {
-                StmtAst::Parser(p) => Some(p.build(builder)),
-                StmtAst::Fold(f) => Some(f.build(builder)),
-                // StmtAst::Highlight(_) => None,
-                StmtAst::Token(t) => {
-                    t.build(builder);
-                    None
-                }
-                StmtAst::Keyword(k) => {
-                    k.build(builder);
-                    None
-                }
-            })
-            .last()
-            .unwrap();
-        match res {
-            Parser::Named(Named { inner, .. }) => inner.as_ref().clone(),
-            _ => res,
+    pub fn build_parser(self, builder: &mut ParserBuilder) {
+        self.iter().for_each(|it| match it {
+            StmtAst::Parser(p) => {
+                builder.vars.push((p.name().text.clone(), Parser::Empty));
+            }
+            StmtAst::Fold(f) => {
+                builder.vars.push((f.name().text.clone(), Parser::Empty));
+            }
+            _ => {}
+        });
+        self.iter().for_each(|it| match it {
+            StmtAst::Parser(p) => p.build(builder),
+            StmtAst::Fold(f) => f.build(builder),
+            StmtAst::Token(t) => t.build(builder),
+            StmtAst::Keyword(k) => k.build(builder),
+        });
+        for i in 0..builder.vars.len() {
+            let res = builder.vars[i].1.clone().remove_conflicts(builder, 0);
+            if res != builder.vars[i].1 {
+                println!("Generated parser: {res}")
+            }
+            builder.vars[i].1 = res;
         }
     }
 }
