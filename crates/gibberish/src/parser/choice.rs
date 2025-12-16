@@ -17,6 +17,7 @@ use super::Parser;
 pub struct Choice {
     pub options: Vec<Parser>,
     pub default: Option<String>,
+    pub after_default: Vec<Parser>,
 }
 
 impl Display for Choice {
@@ -30,7 +31,14 @@ impl Display for Choice {
             }
         }
         if let Some(d) = &self.default {
-            write!(f, " : {d}")?
+            write!(f, " :{d}")?
+        }
+        for (index, item) in self.after_default.iter().enumerate() {
+            if index == 0 {
+                write!(f, ": {item}")?
+            } else {
+                write!(f, " | {item}")?
+            }
         }
         write!(f, ")")
     }
@@ -55,6 +63,13 @@ impl Choice {
             .iter()
             .map(|it| it.build(builder, f))
             .collect::<Vec<_>>();
+
+        let after_default = self
+            .after_default
+            .iter()
+            .map(|it| it.build(builder, f))
+            .collect::<Vec<_>>();
+
         let ret_err = match &self.default {
             Some(d) if d == "%group_at_default%" => &format!(
                 "\n@ret_err
@@ -65,19 +80,28 @@ impl Choice {
             ),
             Some(default) => {
                 let default = builder.get_group_id(default);
-                &format!(
-                    "\n@ret_err
+                if self.after_default.is_empty() {
+                    &format!(
+                        "\n@ret_err
     call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
     ret %res
-",
-                )
+"
+                    )
+                } else {
+                    &format!(
+                        "\n@ret_err
+    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
+    jmp @check_after_0
+"
+                    )
+                }
             }
             None => {
                 "\n@ret_err
-    ret %res
-"
+    ret %res"
             }
         };
+
         write!(
             f,
             "
@@ -85,6 +109,7 @@ impl Choice {
 function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         )
         .unwrap();
+
         for (index, option) in options.iter().enumerate() {
             let next = if index + 1 == options.len() {
                 "@ret_err"
@@ -100,15 +125,42 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
             )
             .unwrap();
         }
+        if options.is_empty() {
+            writeln!(
+                f,
+                "
+@start
+    jmp @ret_err"
+            )
+            .unwrap()
+        }
+
         write!(
             f,
             "
 @ret
     ret %res
 {ret_err}
-}}"
+"
         )
         .unwrap();
+        for (index, option) in after_default.iter().enumerate() {
+            let next = if index + 1 == after_default.len() {
+                "@ret"
+            } else {
+                &format!("@check_after_{}", index + 1)
+            };
+            write!(
+                f,
+                "
+@check_after_{index}
+    %res =l call $parse_{option}(l %state_ptr, w %recover, l %unmatched_checkpoint)
+    jnz %res, {next}, @ret
+",
+            )
+            .unwrap();
+        }
+        write!(f, "}}").unwrap();
     }
 
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
@@ -116,14 +168,27 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         for option in &self.options {
             set.extend(option.start_tokens(builder));
         }
+        for option in &self.after_default {
+            set.extend(option.start_tokens(builder));
+        }
         set
     }
 
     pub fn is_optional(&self, _: &ParserBuilder) -> bool {
-        false // TODO: Look into whether this is easy to support
+        if let Some(d) = &self.default
+            && d != "%group_at_default%"
+        {
+            true
+        } else {
+            false
+        }
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
         let mut parsers = vec![];
         for (index, p) in self.options.iter().enumerate() {
             if p.start_tokens(builder).contains(token) {
@@ -132,48 +197,68 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
         }
         if parsers.is_empty() {
             panic!()
-        } else if parsers.len() == 1 {
-            return self.options[parsers[0]].clone().after_token(token, builder);
         }
-        let require_named = self.options.iter().all(|it| matches!(it, Parser::Named(_)));
         let mut default = None;
-        let rest = parsers
-            .iter()
-            .filter_map(|index| {
-                if let Some(rest) = self.options[*index].clone().after_token(token, builder) {
-                    Some(rest)
-                } else {
-                    if require_named {
-                        let name = self.options[*index].get_name(&builder).unwrap();
-                        if default.is_none() {
-                            default = Some(name);
-                        } else {
-                            panic!("Expected named")
-                        }
+        let mut options = vec![];
+        let mut after_default = vec![];
+        for index in parsers {
+            match self.options[index].clone().after_token(token, builder) {
+                (None, None) => {}
+                (None, Some(d)) => {
+                    if let Some(existing) = default.clone() {
+                        assert_eq!(
+                            d, existing,
+                            "Only one default is supported, (this should be a caught error)"
+                        )
+                    } else {
+                        default = Some(d.clone())
                     }
-                    None
                 }
-            })
-            .collect::<Vec<_>>();
-        if default.is_none() {
-            default = Some("%group_at_default%".to_string());
+                (Some(option), None) => {
+                    options.push(option);
+                }
+                (Some(option), Some(d)) => {
+                    after_default.push(option);
+                    if let Some(default) = default.clone() {
+                        assert_eq!(
+                            d, default,
+                            "Only one default is supported, (this should be a caught error)"
+                        )
+                    } else {
+                        default = Some(d)
+                    }
+                }
+            }
         }
-        let option = if rest.is_empty() {
-            panic!("Found 0 intersect");
-        } else {
-            seq(vec![
-                just(token.to_string()),
-                Parser::Choice(Choice {
-                    options: rest,
-                    default,
-                }),
-            ])
-        };
-        Some(option)
+        // TODO: lots of thinking here
+        if options.is_empty() {
+            if after_default.is_empty() {
+                return (None, default);
+            } else {
+                return (
+                    Some(Parser::Choice(Choice {
+                        after_default,
+                        default,
+                        options: vec![],
+                    })),
+                    None,
+                );
+            }
+        }
+        if options.len() == 1 && default.is_none() {
+            return (Some(options[0].clone()), None);
+        }
+        (
+            Some(Parser::Choice(Choice {
+                options,
+                default,
+                after_default,
+            })),
+            None,
+        )
     }
 
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
-        // println!("Reducing conflicts");
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         if depth == 64 {
             panic!("Failed to reduce conflicts after 64 iterations")
         }
@@ -199,28 +284,19 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
             }
         }
         if intersects.is_empty() {
-            // println!("Found no conflicts");
             return Parser::Choice(self.clone());
         }
 
-        // println!("Reducing intersects {self:?}: {intersects:?}");
-        let has_named = self.options.iter().any(|it| matches!(it, Parser::Named(_)));
-        // let require_named = self.options.iter().all(|it| matches!(it, Parser::Named(_)));
-        let mut options = Vec::new();
-        for (token, _) in intersects {
-            let option = self.after_token(token.as_str(), builder).unwrap(); // TODO: Check
-            options.push(option);
-        }
-        for item in &self.options {
-            options.push(item.clone());
-        }
-        let p = choice(options);
-        info!("Done");
-        if has_named {
-            Parser::Checkpoint(Checkpoint(Box::new(p)))
-        } else {
-            p
-        }
+        let tokens = self.start_tokens(builder);
+        let res = tokens
+            .iter()
+            .flat_map(|token| {
+                let (after, _) = self.after_token(token, builder);
+                after.map(|it| seq(vec![just(token.clone()), it]))
+            })
+            .collect::<Vec<_>>();
+
+        Parser::Checkpoint(Checkpoint(Box::new(choice(res))))
     }
 }
 
@@ -228,6 +304,7 @@ pub fn choice(options: Vec<Parser>) -> Parser {
     Parser::Choice(Choice {
         options,
         default: None,
+        after_default: vec![],
     })
 }
 
@@ -315,5 +392,110 @@ mod conflict_tests {
         assert_token_kind!(lang, &children[0], define);
         assert_token_kind!(lang, &children[1], whitespace);
         assert_token_kind!(lang, &children[2], field);
+    }
+
+    #[serial]
+    #[test]
+    fn test_unmatched() {
+        let (lang, node) = parse_test("define");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            1,
+            "Expected 1 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_syntax_kind!(lang, &children[0], unmatched);
+
+        let children = &children[0].as_group().children;
+        assert_eq!(
+            children.len(),
+            2,
+            "Expected 3 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], define);
+    }
+}
+
+#[cfg(test)]
+mod param_conflicts_test {
+
+    use gibberish_core::{
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
+
+    use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
+
+    fn parse_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"token num = "[0-9]+";
+token whitespace = "\s+";
+token comma = ",";
+token plus = "\+";
+token star = "\*";
+token l_bracket = "\[";
+token r_bracket = "\]";
+token eq = "=";
+token ident = "[_a-zA-Z][_a-zA-Z0-9]*";
+
+parser atom = ident | num;
+parser mul = atom fold (star + atom).repeated();
+parser sum = mul fold (plus + mul).repeated();
+parser _expr = sum;
+parser param = ident + eq + _expr;
+parser items = (param | sum).sep_by(comma);
+parser _brackets = l_bracket + items + r_bracket;
+parser _root = _brackets.skip(whitespace)"#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[serial]
+    #[test]
+    fn test_ident() {
+        let (lang, node) = parse_test("[hello]");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            3,
+            "Expected 1 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], l_bracket);
+        assert_syntax_kind!(lang, &children[1], items);
+        assert_token_kind!(lang, &children[2], r_bracket);
+
+        let children = &children[1].as_group().children;
+        assert_eq!(
+            children.len(),
+            1,
+            "Expected 3 children but got {:#?}",
+            children
+        );
+
+        assert_syntax_kind!(lang, &children[0], atom);
+
+        let children = &children[0].as_group().children;
+        assert_eq!(
+            children.len(),
+            1,
+            "Expected 3 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], ident);
     }
 }

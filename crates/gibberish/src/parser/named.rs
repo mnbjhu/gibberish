@@ -80,15 +80,23 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.inner.is_optional(cache)
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
-        self.inner.clone().after_token(token, builder).map(|it| {
-            Parser::Rename(Rename {
-                inner: Box::new(it),
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let (rest, default) = self.inner.clone().after_token(token, builder);
+        if let Some(rest) = rest {
+            let rest = Parser::Rename(Rename {
+                inner: Box::new(rest),
                 name: self.name.clone(),
-            })
-        })
+            });
+            (Some(rest), default)
+        } else {
+            (None, Some(self.name.clone()))
+        }
     }
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         self.inner
             .remove_conflicts(builder, depth)
             .named(self.name.clone())

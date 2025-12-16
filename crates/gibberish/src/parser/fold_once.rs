@@ -4,7 +4,7 @@ use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
     ast::{builder::ParserBuilder, try_parse},
-    parser::rename::Rename,
+    parser::{rename::Rename, seq::seq},
 };
 
 use super::Parser;
@@ -96,21 +96,34 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.first.is_optional(cache)
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
-        let first = self.first.clone().after_token(token, builder);
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let (first, default) = self.first.clone().after_token(token, builder);
         if let Some(first) = first {
-            Some(first.fold_once(self.name.clone(), self.next.as_ref().clone()))
+            (
+                Some(seq(vec![
+                    first,
+                    self.next.clone().rename(self.name.clone()).or_not(),
+                ])),
+                default,
+            )
         } else {
-            Some(
-                Parser::Rename(Rename {
-                    inner: self.next.clone(),
-                    name: self.name.clone(),
-                })
-                .or_not(),
+            (
+                Some(
+                    Parser::Rename(Rename {
+                        inner: self.next.clone(),
+                        name: self.name.clone(),
+                    })
+                    .or_not(),
+                ),
+                default,
             )
         }
     }
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         self.first.remove_conflicts(builder, depth).fold_once(
             self.name.clone(),
             self.next.remove_conflicts(builder, depth),

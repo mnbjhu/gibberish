@@ -172,32 +172,29 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.0.iter().all(|it| it.is_optional(builder))
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
-        for (index, item) in self.0.iter().enumerate() {
-            let item = item.clone();
-            if item.start_tokens(builder).contains(token) {
-                let mut new_seq = self.0[index..].to_vec();
-                if new_seq.is_empty() {
-                    return None;
-                }
-                if new_seq.len() == 1 {
-                    return new_seq[0].clone().after_token(token, builder);
-                }
-                let first = new_seq[0].clone().after_token(token, builder);
-                if let Some(first) = first {
-                    new_seq[0] = first;
-                } else {
-                    new_seq.remove(0);
-                };
-                return Some(Parser::Seq(Seq(new_seq)));
-            }
-            if !item.is_optional(builder) {
-                break;
-            }
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let index = self
+            .0
+            .iter()
+            .position(|it| it.start_tokens(builder).contains(token))
+            .unwrap();
+        let mut new_seq = self.0[index..].to_vec();
+        if new_seq.len() == 1 {
+            return new_seq[0].clone().after_token(token, builder);
         }
-        None
+        let (first, default) = new_seq[0].clone().after_token(token, builder);
+        if let Some(first) = first {
+            new_seq[0] = first;
+        } else {
+            new_seq.remove(0);
+        };
+        (Some(Parser::Seq(Seq(new_seq))), default)
     }
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         seq(self
             .0
             .iter()

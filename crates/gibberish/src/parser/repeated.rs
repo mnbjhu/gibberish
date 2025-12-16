@@ -70,14 +70,22 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         true
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
-        if let Some(after) = self.0.clone().after_token(token, builder) {
-            Some(seq(vec![after, Parser::Repeated(Repeated(self.0.clone()))]))
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let (rest, default) = self.0.clone().after_token(token, builder);
+        if let Some(after) = rest {
+            (
+                Some(seq(vec![after, Parser::Repeated(Repeated(self.0.clone()))])),
+                default,
+            )
         } else {
-            Some(Parser::Repeated(self.clone()))
+            (Some(Parser::Repeated(self.clone())), default)
         }
     }
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         self.0.remove_conflicts(builder, depth).repeated()
     }
 }

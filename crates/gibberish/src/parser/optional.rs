@@ -39,10 +39,14 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         true
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
         self.0.clone().after_token(token, builder)
     }
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         self.0.remove_conflicts(builder, depth).or_not()
     }
 }

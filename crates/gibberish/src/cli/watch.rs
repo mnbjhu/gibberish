@@ -57,7 +57,7 @@ pub fn watch_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) -> N
                 }
                 clear_screen();
                 let text = fs::read_to_string(path).expect("read error");
-                Gibberish::parse(&text).debug_print(errors, tokens, &Gibberish);
+                parse(&lang, &text).debug_print(errors, tokens, &lang);
             }
             Err(e) => eprintln!("watch error: {:?}", e),
         }

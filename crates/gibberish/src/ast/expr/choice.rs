@@ -22,7 +22,3 @@ impl<'a> ChoiceAst<'a> {
         build_choice(items)
     }
 }
-
-impl Parser {}
-
-impl Choice {}

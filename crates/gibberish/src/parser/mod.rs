@@ -12,7 +12,7 @@ use optional::Optional;
 use sep::Sep;
 use seq::Seq;
 use skip::Skip;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
     ast::builder::ParserBuilder,
@@ -294,11 +294,15 @@ function :vec $expected_{id}() {{
         }
     }
 
-    pub fn after_token(&self, token: &str, builder: &mut ParserBuilder) -> Option<Parser> {
-        match self {
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let res = match self {
             Parser::Just(just) => {
                 assert_eq!(just.0, token);
-                None
+                (None, None)
             }
             Parser::Choice(choice) => choice.after_token(token, builder),
             Parser::Seq(seq) => seq.after_token(token, builder),
@@ -316,7 +320,8 @@ function :vec $expected_{id}() {{
                 "Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??"
             ),
             Parser::Reference(n) => builder.get_var(n).unwrap().after_token(token, builder),
-        }
+        };
+        res
     }
 
     pub fn get_name(&self, builder: &ParserBuilder) -> Option<String> {
@@ -339,7 +344,7 @@ function :vec $expected_{id}() {{
         }
     }
 
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         match self {
             Parser::Just(just) => self.clone(),
             Parser::Choice(choice) => choice.remove_conflicts(builder, depth),

@@ -91,7 +91,7 @@ pub fn just(tok: String) -> Parser {
 
 impl Display for Just {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Just({})", self.0)
+        write!(f, "{}", self.0)
     }
 }
 

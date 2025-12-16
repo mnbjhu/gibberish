@@ -58,7 +58,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.0.is_optional(builder)
     }
 
-    pub fn remove_conflicts(&self, builder: &mut ParserBuilder, depth: usize) -> Parser {
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         todo!()
     }
 }
