@@ -1,27 +1,27 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::builder::ParserBuilder,
-    parser::{
-        Parser,
-        ptr::{ParserCache, ParserIndex},
-    },
-};
+use crate::{ast::builder::ParserBuilder, parser::Parser};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Rename {
-    pub inner: ParserIndex,
-    pub name: u32,
+    pub inner: Box<Parser>,
+    pub name: String,
 }
 
 impl Rename {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.inner.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.inner.expected(builder)
     }
 
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let inner = self.inner.build(builder, f);
         write!(
             f,
             "
@@ -37,37 +37,54 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret_err
     ret %res
 }}",
-            inner = self.inner.index,
-            name = self.name,
+            name = builder.get_group_id(&self.name),
         )
         .unwrap()
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.inner.get_ref(cache).start_tokens(cache)
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
+        self.inner.start_tokens(builder)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.inner.get_ref(cache).is_optional(cache)
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
+        self.inner.is_optional(builder)
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
-        self.inner
-            .get_ref(&builder.cache)
-            .clone()
-            .after_token(token, builder)
-            .map(|it| {
-                Parser::Rename(Rename {
-                    inner: it,
-                    name: self.name,
-                })
-                .cache(&mut builder.cache)
-            })
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let (rest, default) = self.inner.clone().after_token(token, builder);
+        if let Some(rest) = rest {
+            let rest = Parser::Rename(Rename {
+                inner: Box::new(rest),
+                name: self.name.clone(),
+            });
+            (Some(rest), default)
+        } else {
+            (None, Some(self.name.clone()))
+        }
+    }
+
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
+        Parser::Rename(Rename {
+            inner: Box::new(self.inner.remove_conflicts(builder, depth)),
+            name: self.name.to_string(),
+        })
+    }
+}
+impl Display for Rename {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.rename({})", self.inner, self.name)
     }
 }
 
-impl ParserIndex {
-    pub fn rename(self, name: u32, cache: &mut ParserCache) -> ParserIndex {
-        Parser::Rename(Rename { inner: self, name }).cache(cache)
+impl Parser {
+    pub fn rename(self, name: String) -> Parser {
+        Parser::Rename(Rename {
+            inner: Box::new(self),
+            name,
+        })
     }
 }

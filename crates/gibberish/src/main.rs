@@ -4,7 +4,6 @@ use cli::command::Command;
 mod ast;
 mod cli;
 mod lexer;
-mod lsp;
 mod parser;
 mod report;
 

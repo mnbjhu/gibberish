@@ -1,29 +1,39 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
 use crate::{
-    ast::builder::ParserBuilder,
-    parser::{
-        ptr::{ParserCache, ParserIndex},
-        rename::Rename,
-    },
+    ast::{builder::ParserBuilder, try_parse},
+    parser::{rename::Rename, seq::seq},
 };
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FoldOnce {
-    pub name: u32,
-    pub first: ParserIndex,
-    pub next: ParserIndex,
+    pub name: String,
+    pub first: Box<Parser>,
+    pub next: Box<Parser>,
+}
+
+impl Display for FoldOnce {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.fold({}, {})", self.first, self.name, self.next)
+    }
 }
 
 impl FoldOnce {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.first.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.first.expected(builder)
     }
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let first = self.first.build(builder, f);
+        let next = self.next.build(builder, f);
         write!(
             f,
             "
@@ -47,10 +57,21 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     jmp @check_eof
 @parse
     %checkpoint =l call $checkpoint(l %state_ptr)
+    %break_index =l call $push_delim(l %state_ptr, l {next})
     %res =l call $parse_{first}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, @ret_err, @parse_next
-@parse_next
-    %res =l call $parse_{next}(l %state_ptr, w %recover)
+    call $pop_delim(l %state_ptr)
+    jnz %res, @check_break, @try_parse_next
+@check_break
+    %is_next =l ceql %res, %break_index
+    jnz %is_next, @try_parse_next, @ret_err
+",
+        )
+        .unwrap();
+        try_parse(next, "next", "@check_next", f);
+        write!(
+            f,
+            "
+@check_next
     jnz %res, @ret_ok, @create_group
 @create_group
     call $group_at(l %state_ptr, w {name}, l %checkpoint)
@@ -62,64 +83,60 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @eof
     ret 2
 }}",
-            name = self.name,
-            first = self.first.index,
-            next = self.next.index,
+            name = builder.get_group_id(&self.name),
         )
         .unwrap()
     }
 
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function l $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %res =l call $peak_{first}(l %state_ptr, l %offset, w %recover)
-    ret %res
-}}
-",
-            first = self.first.index
-        )
-        .unwrap()
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
+        self.first.start_tokens(builder)
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.first.get_ref(cache).start_tokens(cache)
+    pub fn is_optional(&self, cache: &ParserBuilder) -> bool {
+        self.first.is_optional(cache)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.first.get_ref(cache).is_optional(cache)
-    }
-
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
-        let first = self
-            .first
-            .get_ref(&builder.cache)
-            .clone()
-            .after_token(token, builder);
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let (first, default) = self.first.clone().after_token(token, builder);
         if let Some(first) = first {
-            Some(first.fold_once(self.name, self.next.clone(), &mut builder.cache))
+            (
+                Some(seq(vec![
+                    first,
+                    self.next.clone().rename(self.name.clone()).or_not(),
+                ])),
+                default,
+            )
         } else {
-            Some(
-                Parser::Rename(Rename {
-                    inner: self.next.clone(),
-                    name: self.name,
-                })
-                .cache(&mut builder.cache)
-                .or_not(&mut builder.cache),
+            (
+                Some(
+                    Parser::Rename(Rename {
+                        inner: self.next.clone(),
+                        name: self.name.clone(),
+                    })
+                    .or_not(),
+                ),
+                default,
             )
         }
     }
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
+        self.first.remove_conflicts(builder, depth).fold_once(
+            self.name.clone(),
+            self.next.remove_conflicts(builder, depth),
+        )
+    }
 }
 
-impl ParserIndex {
-    pub fn fold_once(self, name: u32, next: ParserIndex, cache: &mut ParserCache) -> ParserIndex {
+impl Parser {
+    pub fn fold_once(self, name: String, next: Parser) -> Parser {
         Parser::FoldOnce(FoldOnce {
             name,
-            first: self,
-            next,
+            first: Box::new(self),
+            next: Box::new(next),
         })
-        .cache(cache)
     }
 }

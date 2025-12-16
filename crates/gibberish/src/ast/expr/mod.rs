@@ -3,7 +3,7 @@ use crate::ast::expr::call::CallAst;
 use crate::ast::expr::choice::ChoiceAst;
 use crate::ast::expr::ident::build_ident;
 use crate::ast::expr::seq::SeqAst;
-use crate::parser::ptr::ParserIndex;
+use crate::parser::Parser;
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
 
@@ -36,7 +36,7 @@ impl<'a> From<&'a Group<Gibberish>> for ExprAst<'a> {
 }
 
 impl<'a> ExprAst<'a> {
-    pub fn build(&self, builder: &mut ParserBuilder) -> ParserIndex {
+    pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
         match self {
             ExprAst::Ident(lexeme) => build_ident(builder, lexeme),
             ExprAst::Seq(seq_ast) => seq_ast.build(builder),

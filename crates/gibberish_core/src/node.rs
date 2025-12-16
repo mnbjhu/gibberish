@@ -139,7 +139,7 @@ impl<L: Lang> ParseError<L> {
                     .map(|it| it.debug_name(lang))
                     .collect::<Vec<_>>()
                     .join(",");
-                println!("Missing: {expected}");
+                println!("{}: {expected}", Red.paint("Missing"));
             }
             ParseError::Unexpected { actual, .. } => {
                 println!("Unexpected:");

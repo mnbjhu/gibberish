@@ -4,9 +4,6 @@ use thiserror::Error;
 
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_regex};
 
-#[derive(Debug, Error)]
-pub enum RegexError {}
-
 pub fn parse_seq(regex: &str, offset: &mut usize) -> Option<RegexAst> {
     let mut res = vec![];
     loop {

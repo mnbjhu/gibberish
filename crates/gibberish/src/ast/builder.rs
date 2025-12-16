@@ -1,18 +1,16 @@
+use std::collections::HashMap;
+
 use gibberish_core::node::Span;
 
-use crate::{
-    lexer::RegexAst,
-    parser::ptr::{ParserCache, ParserIndex},
-    report::simple::report_simple_error,
-};
+use crate::{lexer::RegexAst, parser::Parser, report::simple::report_simple_error};
 
 pub struct ParserBuilder {
     pub lexer: Vec<(String, RegexAst)>,
-    pub vars: Vec<(String, ParserIndex)>,
-    pub cache: ParserCache,
+    pub vars: Vec<(String, Parser)>,
     text: String,
     filename: String,
     has_errored: bool,
+    pub built: HashMap<Parser, usize>,
 }
 
 impl ParserBuilder {
@@ -20,10 +18,10 @@ impl ParserBuilder {
         Self {
             lexer: vec![],
             vars: vec![],
-            cache: ParserCache::new(),
             text,
             filename,
             has_errored: false,
+            built: HashMap::new(),
         }
     }
 
@@ -32,18 +30,17 @@ impl ParserBuilder {
         report_simple_error(msg, span, &self.text, &self.filename);
     }
 
-    pub fn replace_var(&mut self, name: &str, p: ParserIndex) -> bool {
-        if let Some(existing) = self.get_var(name) {
-            *existing.get_mut(&mut self.cache) = p.get_ref(&self.cache).clone();
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn get_var(&self, name: &str) -> Option<ParserIndex> {
+    pub fn get_var(&self, name: &str) -> Option<Parser> {
         self.vars
             .iter()
             .find_map(|(n, p)| if name == n { Some(p.clone()) } else { None })
+    }
+
+    pub fn get_token_id(&self, name: &str) -> u32 {
+        self.lexer.iter().position(|(it, _)| it == name).unwrap() as u32
+    }
+
+    pub fn get_group_id(&self, name: &str) -> u32 {
+        self.vars.iter().position(|(it, _)| it == name).unwrap() as u32
     }
 }

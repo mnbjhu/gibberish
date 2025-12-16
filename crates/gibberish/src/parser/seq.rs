@@ -1,27 +1,44 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::{builder::ParserBuilder, try_parse},
-    parser::ptr::{ParserCache, ParserIndex},
-};
+use crate::ast::{builder::ParserBuilder, try_parse};
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Seq(pub Vec<ParserIndex>);
+pub struct Seq(pub Vec<Parser>);
+
+impl Display for Seq {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(")?;
+        for (index, item) in self.0.iter().enumerate() {
+            if index == 0 {
+                write!(f, "{item}")?
+            } else {
+                write!(f, " + {item}")?
+            }
+        }
+        write!(f, ")")
+    }
+}
 
 impl Seq {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.0
-            .first()
-            .expect("Seq should have at least one element")
-            .get_ref(cache)
-            .expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.0.first().unwrap().expected(builder)
     }
 
-    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let parts = self
+            .0
+            .iter()
+            .map(|it| it.build(builder, f))
+            .collect::<Vec<_>>();
         let new_delims_len = self.0.len() - 1;
         let magic = new_delims_len + 3;
 
@@ -40,20 +57,15 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         .unwrap();
         let mut last_optional_index = 0;
 
-        for part in self.0[1..].iter().rev() {
-            writeln!(
-                f,
-                "\tcall $push_long(l %delim_stack_ptr, l {part_id})",
-                part_id = part.index
-            )
-            .unwrap()
+        for part in parts[1..].iter().rev() {
+            writeln!(f, "\tcall $push_long(l %delim_stack_ptr, l {part})",).unwrap()
         }
 
         writeln!(f, "\tjmp @check_start_0").unwrap();
 
         for (i, parser) in self.0.iter().enumerate() {
             last_optional_index = i;
-            if !parser.get_ref(&builder.cache).is_optional(&builder.cache) {
+            if !parser.is_optional(&builder) {
                 break;
             }
         }
@@ -76,21 +88,10 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @check_start_{index}
     %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
     jnz %res, {fail}, {pass}",
-                option_index = option.index,
+                option_index = option.get_id(builder),
             )
             .unwrap();
         }
-
-        //         write!(
-        //             f,
-        //             "
-        // @parse_first
-        //     %res =l call $parse_{first_part}(l %state_ptr, w %recover)
-        //     jnz %res, @ret_err, @remove_delim_1
-        // ",
-        //             first_part = first.index,
-        //         )
-        //         .unwrap();
 
         for (index, part) in self.0.iter().enumerate() {
             if index == 0 {
@@ -122,10 +123,10 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     call $missing(l %state_ptr, l %expected)
     jmp @try_parse_{index}
 ",
-                last = self.0[index - 1].index
+                last = self.0[index - 1].get_id(builder)
             )
             .unwrap();
-            try_parse(part.index, &format!("{index}"), next, f);
+            try_parse(part.get_id(builder), &format!("{index}"), next, f);
         }
         writeln!(f, "\n\t@ret_err",).unwrap();
         for _ in self.0[1..].iter() {
@@ -151,15 +152,14 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret_ok
     ret 0
 }}",
-            last = self.0.last().unwrap().index,
+            last = self.0.last().unwrap().get_id(builder),
         )
         .unwrap();
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
+    pub fn start_tokens(&self, cache: &ParserBuilder) -> HashSet<String> {
         let mut res = HashSet::new();
         for item in &self.0 {
-            let item = item.get_ref(cache);
             res.extend(item.start_tokens(cache));
             if !item.is_optional(cache) {
                 return res.into_iter().collect();
@@ -168,45 +168,86 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         res
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.0.iter().all(|it| it.get_ref(cache).is_optional(cache))
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
+        self.0.iter().all(|it| it.is_optional(builder))
     }
 
-    pub fn after_token(&self, token: u32, builder: &mut ParserBuilder) -> Option<ParserIndex> {
-        for (index, item) in self.0.iter().enumerate() {
-            let item = item.get_ref(&builder.cache).clone();
-            if item.start_tokens(&builder.cache).contains(&token) {
-                let mut new_seq = self.0[index..].to_vec();
-                if new_seq.is_empty() {
-                    return None;
-                }
-                if new_seq.len() == 1 {
-                    return new_seq[0]
-                        .get_ref(&builder.cache)
-                        .clone()
-                        .after_token(token, builder);
-                }
-                let first = new_seq[0]
-                    .get_ref(&builder.cache)
-                    .clone()
-                    .after_token(token, builder);
-                if let Some(first) = first {
-                    new_seq[0] = first;
-                } else {
-                    new_seq.remove(0);
-                };
-                return Some(Parser::Seq(Seq(new_seq)).cache(&mut builder.cache));
-            }
-            if !item.is_optional(&builder.cache) {
-                break;
-            }
+    pub fn after_token(
+        &self,
+        token: &str,
+        builder: &ParserBuilder,
+    ) -> (Option<Parser>, Option<String>) {
+        let index = self
+            .0
+            .iter()
+            .position(|it| it.start_tokens(builder).contains(token))
+            .unwrap();
+        let mut new_seq = self.0[index..].to_vec();
+        if new_seq.len() == 1 {
+            return new_seq[0].clone().after_token(token, builder);
         }
-        None
+        let (first, default) = new_seq[0].clone().after_token(token, builder);
+        if let Some(first) = first {
+            new_seq[0] = first;
+        } else {
+            new_seq.remove(0);
+        };
+        (Some(Parser::Seq(Seq(new_seq))), default)
+    }
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
+        seq(self
+            .0
+            .iter()
+            .map(|it| it.remove_conflicts(builder, depth))
+            .collect())
     }
 }
 
-pub fn seq(parts: Vec<ParserIndex>, cache: &mut ParserCache) -> ParserIndex {
-    Parser::Seq(Seq(parts)).cache(cache)
+pub fn seq(parts: Vec<Parser>) -> Parser {
+    Parser::Seq(Seq(parts))
+}
+
+#[cfg(test)]
+mod seq_test {
+    use gibberish_core::{
+        lang::{CompiledLang, Lang},
+        node::Node,
+    };
+    use gibberish_dyn_lib::bindings::parse;
+    use serial_test::serial;
+
+    use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
+
+    fn parse_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
+        let parser = r#"keyword first;
+keyword second;
+token whitespace = "\s+";
+parser _root = (first + second).skip(whitespace)
+        "#;
+        let lang = build_test_parser(parser);
+        let node = parse(&lang, text);
+        (lang, node)
+    }
+
+    #[serial]
+    #[test]
+    fn test_ok() {
+        let (lang, node) = parse_test("first second");
+        node.debug_print(true, true, &lang);
+
+        assert_syntax_kind!(lang, node, root);
+        let children = &node.as_group().children;
+        assert_eq!(
+            children.len(),
+            3,
+            "Expected 2 children but got {:#?}",
+            node.as_group().children
+        );
+
+        assert_token_kind!(lang, &children[0], first);
+        assert_token_kind!(lang, &children[1], whitespace);
+        assert_token_kind!(lang, &children[2], second);
+    }
 }
 
 #[cfg(test)]
@@ -268,7 +309,7 @@ parser _root = _brackets"#;
         assert_eq!(
             children.len(),
             3,
-            "Expected 5 children but got {:?}",
+            "Expected 3 children but got {:?}",
             node.as_group().children
         );
         assert_token_kind!(lang, &children[0], l_bracket);

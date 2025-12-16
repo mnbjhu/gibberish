@@ -1,15 +1,11 @@
 use std::fmt::Write;
 
-use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe, parser::ptr::ParserIndex};
+use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe};
 
-pub fn build_parser_qbe(parser: &ParserIndex, builder: &ParserBuilder, f: &mut impl Write) {
+pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
+    let inner = builder.vars.last().unwrap().1.clone().build(builder, f);
     build_parse_by_id(builder, f);
-    for (index, parser) in builder.cache.parsers.iter().enumerate() {
-        parser.build_parse(builder, index, f);
-        parser.build_peak(&builder.cache, index, f);
-        parser.build_expected(index, f, builder);
-    }
     write!(
         f,
         "
@@ -41,7 +37,6 @@ export function w $parse(l %state_ptr) {{
     ret 1
 }}
 ",
-        inner = parser.index,
         root = builder.vars.len(),
     )
     .unwrap()
@@ -56,8 +51,8 @@ function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {{
     )
     .unwrap();
 
-    for (index, _) in builder.cache.parsers.iter().enumerate() {
-        let next = if index + 1 == builder.cache.parsers.len() {
+    for index in 0..builder.built.len() {
+        let next = if index + 1 == builder.built.len() {
             "@err".to_string()
         } else {
             format!("@check_{}", index + 1)

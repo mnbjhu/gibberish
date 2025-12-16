@@ -2,22 +2,25 @@ use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::{
-    ast::builder::ParserBuilder,
-    parser::ptr::{ParserCache, ParserIndex},
-};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Just(pub u32);
+pub struct Just(pub String);
 
 impl Just {
-    pub fn expected(&self) -> Vec<Expected<CompiledLang>> {
-        vec![Expected::Token(self.0)]
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        let token_id = builder
+            .lexer
+            .iter()
+            .position(|(it, _)| it == &self.0)
+            .unwrap();
+        vec![Expected::Token(token_id as u32)]
     }
 
-    pub fn build_parse(&self, builder: &ParserBuilder, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(&self, id: usize, builder: &ParserBuilder, f: &mut impl std::fmt::Write) {
+        let kind = builder.get_token_id(&self.0);
         write!(
             f,
             "
@@ -66,54 +69,13 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @ret_err
     ret 1
 }}",
-            kind = self.0
         )
         .unwrap()
     }
 
-    pub fn build_peak(&self, cache: &ParserCache, id: usize, f: &mut impl std::fmt::Write) {
-        write!(
-            f,
-            "
-function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %is_eof =w call $is_eof(l %state_ptr) # TODO: CHANGE TO BE EOF AT OFFSET
-    jnz %is_eof, @eof, @check_ok
-@eof
-    ret 2
-@check_ok
-    %current_kind =l call $kind_at_offset(l %state_ptr, l %offset)
-    %res =l ceql %current_kind, {}
-    jnz %res, @ret_ok, @recover
-@recover
-    jnz %recover, @check_delims, @ret_err
-@check_delims
-    %delim_stack_ptr =l add %state_ptr, 56
-    %delim_stack_len =l add %state_ptr, 64
-    %index =l loadl %delim_stack_len
-    jnz %index, @loop, @ret_err
-@loop
-    %index =l sub %index, 1
-    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %index)
-    jnz %rec_res, @iter, @ret_break
-@iter
-    jnz %index, @loop, @ret_err
-@ret_break
-    %break =l add %index, 3
-    ret %break
-@ret_ok
-    ret 0
-@ret_err
-    ret 1
-}}",
-            self.0
-        )
-        .unwrap()
-    }
-
-    pub fn start_tokens(&self) -> HashSet<u32> {
+    pub fn start_tokens(&self, _: &ParserBuilder) -> HashSet<String> {
         let mut res = HashSet::new();
-        res.insert(self.0);
+        res.insert(self.0.clone());
         res
     }
 
@@ -122,14 +84,14 @@ function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
     }
 }
 
-pub fn just(tok: u32, cache: &mut ParserCache) -> ParserIndex {
+pub fn just(tok: String) -> Parser {
     let p = Parser::Just(Just(tok));
-    p.cache(cache)
+    p
 }
 
 impl Display for Just {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Just({})", self.0)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -198,25 +160,25 @@ mod tests {
         assert_eq!(1, lst.as_group().children.len());
     }
 
-    // #[serial]
-    // #[test]
-    // fn test_keyword_lex() {
-    //     let parser = r#"keyword just;
-    //     parser _root = just"#;
-    //     let lang = build_test_parser(parser);
-    //     let lst = parse(&lang, "just\n");
-    //     assert_eq!("root", lang.syntax_name(&lst.name()));
-    //     assert_eq!(
-    //         1,
-    //         lst.as_group().children.len(),
-    //         "Expected one child but found {lst:?}"
-    //     );
-    //
-    //     let token = lst.as_group().children.first().unwrap();
-    //     if let Node::Lexeme(l) = token {
-    //         assert_eq!("just", lang.token_name(&l.kind))
-    //     } else {
-    //         panic!("Expected a 'just' token but found {token:?}")
-    //     }
-    // }
+    #[serial]
+    #[test]
+    fn test_keyword_lex() {
+        let parser = r#"keyword just;
+        parser _root = just"#;
+        let lang = build_test_parser(parser);
+        let lst = parse(&lang, "just");
+        assert_eq!("root", lang.syntax_name(&lst.name()));
+        assert_eq!(
+            1,
+            lst.as_group().children.len(),
+            "Expected one child but found {lst:?}"
+        );
+
+        let token = lst.as_group().children.first().unwrap();
+        if let Node::Lexeme(l) = token {
+            assert_eq!("just", lang.token_name(&l.kind))
+        } else {
+            panic!("Expected a 'just' token but found {token:?}")
+        }
+    }
 }

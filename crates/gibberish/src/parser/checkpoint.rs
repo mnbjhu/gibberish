@@ -2,18 +2,22 @@ use std::{collections::HashSet, fmt::Display};
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
 
-use crate::parser::ptr::{ParserCache, ParserIndex};
-
-use super::Parser;
+use crate::{ast::builder::ParserBuilder, parser::Parser};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Checkpoint(pub ParserIndex);
+pub struct Checkpoint(pub Box<Parser>);
 
 impl Checkpoint {
-    pub fn expected(&self, cache: &ParserCache) -> Vec<Expected<CompiledLang>> {
-        self.0.get_ref(cache).expected(cache)
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+        self.0.expected(builder)
     }
-    pub fn build_parse(&self, id: usize, f: &mut impl std::fmt::Write) {
+    pub fn build_parse(
+        &self,
+        id: usize,
+        builder: &mut ParserBuilder,
+        f: &mut impl std::fmt::Write,
+    ) {
+        let inner = self.0.build(builder, f);
         write!(
             f,
             "
@@ -42,20 +46,25 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 @eof
     ret 2
 }}",
-            inner = self.0.index,
         )
         .unwrap()
     }
 
-    pub fn start_tokens(&self, cache: &ParserCache) -> HashSet<u32> {
-        self.0.get_ref(cache).start_tokens(cache)
+    pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
+        self.0.start_tokens(builder)
     }
 
-    pub fn is_optional(&self, cache: &ParserCache) -> bool {
-        self.0.get_ref(cache).is_optional(cache)
+    pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
+        self.0.is_optional(builder)
     }
 
-    pub fn after_token(&self, token: u32, cache: &mut ParserCache) -> Option<ParserIndex> {
-        panic!("Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??")
+    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
+        todo!()
+    }
+}
+
+impl Display for Checkpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.checkpoint()", self.0)
     }
 }

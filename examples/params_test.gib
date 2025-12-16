@@ -1,0 +1,18 @@
+token num = "[0-9]+";
+token whitespace = "\s+";
+token comma = ",";
+token plus = "\+";
+token star = "\*";
+token l_bracket = "\[";
+token r_bracket = "\]";
+token eq = "=";
+token ident = "[_a-zA-Z][_a-zA-Z0-9]*";
+
+parser atom = ident | num;
+parser mul = atom fold (star + atom).repeated();
+parser sum = mul fold (plus + mul).repeated();
+parser _expr = sum;
+parser param = ident + eq + _expr;
+parser items = (param | sum).sep_by(comma);
+parser _brackets = l_bracket + items + r_bracket;
+parser _root = _brackets.skip(whitespace)
