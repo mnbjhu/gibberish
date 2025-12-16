@@ -3,7 +3,6 @@ use gibberish_gibberish_parser::Gibberish;
 
 use crate::ast::builder::ParserBuilder;
 use crate::ast::expr::ExprAst;
-use crate::parser::Parser;
 
 use gibberish_gibberish_parser::GibberishSyntax as S;
 use gibberish_gibberish_parser::GibberishToken as T;

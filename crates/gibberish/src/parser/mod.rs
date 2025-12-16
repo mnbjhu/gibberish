@@ -12,7 +12,7 @@ use optional::Optional;
 use sep::Sep;
 use seq::Seq;
 use skip::Skip;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     ast::builder::ParserBuilder,

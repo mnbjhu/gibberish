@@ -4,7 +4,6 @@ use std::{
 };
 
 use gibberish_core::{err::Expected, lang::CompiledLang};
-use tracing::info;
 
 use crate::{
     ast::builder::ParserBuilder,

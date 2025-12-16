@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use thiserror::Error;
 
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_regex};
 
