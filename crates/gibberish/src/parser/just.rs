@@ -85,8 +85,8 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 }
 
 pub fn just(tok: String) -> Parser {
-    let p = Parser::Just(Just(tok));
-    p
+    
+    Parser::Just(Just(tok))
 }
 
 impl Display for Just {

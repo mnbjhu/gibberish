@@ -65,7 +65,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 
         for (i, parser) in self.0.iter().enumerate() {
             last_optional_index = i;
-            if !parser.is_optional(&builder) {
+            if !parser.is_optional(builder) {
                 break;
             }
         }

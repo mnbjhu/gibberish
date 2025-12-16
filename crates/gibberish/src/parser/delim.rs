@@ -78,6 +78,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
 }
 
 impl Parser {
+    #[allow(unused)]
     pub fn delim_by(self, start: Parser, end: Parser) -> Parser {
         Parser::Delim(Delim {
             start: Box::new(start),

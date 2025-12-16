@@ -25,10 +25,10 @@ impl<'a> KeywordDefAst<'a> {
                 RegexAst::Choice {
                     negate: true,
                     options: vec![
-                        OptionAst::Range('a' as u8..'z' as u8),
-                        OptionAst::Range('A' as u8..'Z' as u8),
-                        OptionAst::Range('0' as u8..'9' as u8),
-                        OptionAst::Char('_' as u8),
+                        OptionAst::Range(b'a'..b'z'),
+                        OptionAst::Range(b'A'..b'Z'),
+                        OptionAst::Range(b'0'..b'9'),
+                        OptionAst::Char(b'_'),
                     ],
                 },
             ]),

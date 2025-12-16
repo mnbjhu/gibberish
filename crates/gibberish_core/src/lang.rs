@@ -3,15 +3,9 @@ use std::hash::Hash;
 
 use libloading::{AsFilename, Library, Symbol};
 
-use super::node::Lexeme;
-
 pub trait Lang: PartialEq + Eq + Display + Debug + Hash + Clone {
     type Token: Clone + PartialEq + Eq + Display + Debug + Hash;
     type Syntax: Clone + PartialEq + Eq + Display + Debug + Hash;
-
-    fn lex(&self, src: &str) -> Vec<Lexeme<Self>>;
-
-    fn root(&self) -> Self::Syntax;
 
     fn token_name(&self, token: &Self::Token) -> String {
         format!("{token}")
@@ -58,14 +52,6 @@ impl Display for CompiledLang {
 impl Lang for CompiledLang {
     type Token = u32;
     type Syntax = u32;
-
-    fn lex(&self, _: &str) -> Vec<Lexeme<Self>> {
-        todo!()
-    }
-
-    fn root(&self) -> Self::Syntax {
-        todo!()
-    }
 
     fn token_name(&self, token: &Self::Token) -> String {
         unsafe {

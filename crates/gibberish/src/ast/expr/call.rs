@@ -118,7 +118,7 @@ impl<'a> CallAst<'a> {
                     let ExprAst::Ident(lexeme) = args[0] else {
                         panic!("Expected an ident");
                     };
-                    let Some(name) = builder.vars.iter().position(|it| it.0 == lexeme.text) else {
+                    if !builder.vars.iter().any(|it| it.0 == lexeme.text) {
                         panic!("Parser not found '{}'", lexeme.text);
                     };
                     expr = expr.rename(lexeme.text.clone());
