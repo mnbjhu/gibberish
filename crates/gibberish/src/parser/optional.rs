@@ -35,10 +35,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         self.0.start_tokens(cache)
     }
 
-    pub fn is_optional(&self, _: &ParserBuilder) -> bool {
-        true
-    }
-
     pub fn after_token(
         &self,
         token: &str,

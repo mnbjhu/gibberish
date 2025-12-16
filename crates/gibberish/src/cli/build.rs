@@ -11,7 +11,6 @@ use crate::parser::build::build_parser_qbe;
 
 use crate::ast::RootAst;
 use crate::lexer::build::create_name_function;
-use crate::parser::Parser;
 use crate::report::report_errors;
 
 #[derive(Clone, clap::ValueEnum)]

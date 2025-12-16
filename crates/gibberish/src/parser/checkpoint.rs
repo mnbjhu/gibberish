@@ -57,10 +57,6 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     pub fn is_optional(&self, builder: &ParserBuilder) -> bool {
         self.0.is_optional(builder)
     }
-
-    pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
-        todo!()
-    }
 }
 
 impl Display for Checkpoint {

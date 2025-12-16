@@ -126,7 +126,7 @@ use gibberish_core::{{
     lang::Lang,
     node::{{Lexeme, LexemeData, Node}},
     state::{{State, StateData}},
-    vec::{{RawVec, SliceData}},
+    vec::RawVec,
 }};
 
 #[link(name = \"{name}-parser\", kind = \"static\")]
@@ -135,8 +135,6 @@ unsafe extern \"C\" {{
     fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;
     fn parse(ptr: *const StateData) -> u32;
     fn get_state(ptr: *const StateData) -> StateData;
-    fn token_name(id: u32) -> SliceData;
-    fn group_name(id: u32) -> SliceData;
 }}
 
 use parse as p;
@@ -177,24 +175,6 @@ impl Display for {struct_name}Syntax {{
 impl Lang for {struct_name} {{
     type Token = {struct_name}Token;
     type Syntax = {struct_name}Syntax;
-
-    fn lex(&self, src: &str) -> Vec<Lexeme<Self>> {{
-        todo!()
-    }}
-
-    fn root(&self) -> Self::Syntax {{
-        todo!()
-    }}
-
-    // fn token_name(&self, token: &Self::Token) -> String {{
-    //     let slice: &str = unsafe {{ token_name(*token) }}.into();
-    //     slice.to_string()
-    // }}
-    //
-    // fn syntax_name(&self, syntax: &Self::Syntax) -> String {{
-    //     let slice: &str = unsafe {{ group_name(*syntax) }}.into();
-    //     slice.to_string()
-    // }}
 }}
 
 impl {struct_name} {{

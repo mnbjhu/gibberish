@@ -12,7 +12,7 @@ use optional::Optional;
 use sep::Sep;
 use seq::Seq;
 use skip::Skip;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     ast::builder::ParserBuilder,
@@ -43,6 +43,7 @@ pub enum Parser {
     Choice(Choice),
     Seq(Seq),
     Sep(Sep),
+    #[allow(unused)]
     Delim(Delim),
     Named(Named),
     Skip(Skip),
@@ -299,58 +300,36 @@ function :vec $expected_{id}() {{
         token: &str,
         builder: &ParserBuilder,
     ) -> (Option<Parser>, Option<String>) {
-        let res = match self {
+        match self {
             Parser::Just(just) => {
                 assert_eq!(just.0, token);
                 (None, None)
             }
             Parser::Choice(choice) => choice.after_token(token, builder),
             Parser::Seq(seq) => seq.after_token(token, builder),
-            Parser::Sep(sep) => todo!(),
-            Parser::Delim(delim) => todo!(),
+            Parser::Sep(_) => todo!(),
+            Parser::Delim(_) => todo!(),
             Parser::Named(named) => named.after_token(token, builder),
-            Parser::Skip(skip) => todo!(),
-            Parser::UnSkip(un_skip) => todo!(),
+            Parser::Skip(_) => todo!(),
+            Parser::UnSkip(_) => todo!(),
             Parser::Optional(optional) => optional.after_token(token, builder),
             Parser::FoldOnce(fold_once) => fold_once.after_token(token, builder),
             Parser::Repeated(repeated) => repeated.after_token(token, builder),
             Parser::Rename(rename) => rename.after_token(token, builder),
             Parser::Empty => todo!(),
-            Parser::Checkpoint(checkpoint) => panic!(
+            Parser::Checkpoint(_) => panic!(
                 "Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??"
             ),
             Parser::Reference(n) => builder.get_var(n).unwrap().after_token(token, builder),
-        };
-        res
-    }
-
-    pub fn get_name(&self, builder: &ParserBuilder) -> Option<String> {
-        match self {
-            Parser::Just(just) => None,
-            Parser::Choice(choice) => None,
-            Parser::Seq(seq) => None,
-            Parser::Sep(sep) => None,
-            Parser::Delim(delim) => todo!(),
-            Parser::Named(named) => Some(named.name.clone()),
-            Parser::Skip(skip) => skip.inner.get_name(builder),
-            Parser::UnSkip(un_skip) => un_skip.inner.get_name(builder),
-            Parser::Optional(optional) => todo!(),
-            Parser::FoldOnce(fold_once) => Some(fold_once.name.clone()),
-            Parser::Repeated(repeated) => None,
-            Parser::Rename(rename) => Some(rename.name.clone()),
-            Parser::Checkpoint(checkpoint) => None,
-            Parser::Empty => todo!(),
-            Parser::Reference(n) => builder.get_var(n).unwrap().get_name(builder),
         }
     }
 
     pub fn remove_conflicts(&self, builder: &ParserBuilder, depth: usize) -> Parser {
         match self {
-            Parser::Just(just) => self.clone(),
+            Parser::Just(_) | Parser::Reference(_) => self.clone(),
             Parser::Choice(choice) => choice.remove_conflicts(builder, depth),
             Parser::Seq(seq) => seq.remove_conflicts(builder, depth),
             Parser::Sep(sep) => sep.remove_conflicts(builder, depth),
-            Parser::Delim(delim) => todo!(),
             Parser::Named(named) => named.remove_conflicts(builder, depth),
             Parser::Skip(skip) => skip.remove_conflicts(builder, depth),
             Parser::UnSkip(un_skip) => un_skip.remove_conflicts(builder, depth),
@@ -358,9 +337,8 @@ function :vec $expected_{id}() {{
             Parser::FoldOnce(fold_once) => fold_once.remove_conflicts(builder, depth),
             Parser::Repeated(repeated) => repeated.remove_conflicts(builder, depth),
             Parser::Rename(rename) => rename.remove_conflicts(builder, depth),
-            Parser::Checkpoint(checkpoint) => checkpoint.remove_conflicts(builder, depth),
+            Parser::Checkpoint(_) | Parser::Delim(_) => todo!(),
             Parser::Empty => todo!(),
-            Parser::Reference(n) => self.clone(),
         }
     }
 }

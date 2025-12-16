@@ -5,7 +5,7 @@ use crate::{
     ast::{builder::ParserBuilder, expr::ExprAst},
     parser::{
         Parser,
-        choice::{Choice, choice as build_choice},
+        choice::choice as build_choice,
     },
 };
 
