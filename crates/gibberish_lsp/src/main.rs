@@ -473,12 +473,59 @@ impl Backend {
 
         self.ast_map.insert(params.uri.to_string(), lst);
         for err in diags {
-            let start_position = offset_to_position(err.span.start, &rope).unwrap();
-            let end_position = offset_to_position(err.span.end, &rope).unwrap();
-            let mut diag =
-                Diagnostic::new_simple(Range::new(start_position, end_position), err.message);
-            diag.severity = Some(err.severity);
-            diagnostics.push(diag);
+            match err {
+                ast::CheckError::Simple {
+                    message,
+                    span,
+                    severity,
+                } => {
+                    let start_position = offset_to_position(span.start, &rope).unwrap();
+                    let end_position = offset_to_position(span.end, &rope).unwrap();
+                    let range = Range::new(start_position, end_position);
+                    let mut diag = Diagnostic::new_simple(range, message);
+                    diag.severity = Some(severity);
+                    diagnostics.push(diag);
+                }
+                ast::CheckError::Unused(span) => {
+                    let start_position = offset_to_position(span.start, &rope).unwrap();
+                    let end_position = offset_to_position(span.end, &rope).unwrap();
+                    let range = Range::new(start_position, end_position);
+                    let mut diag =
+                        Diagnostic::new_simple(range, "This variable is never used".to_string());
+                    diag.severity = Some(DiagnosticSeverity::WARNING);
+                    diag.tags = Some(vec![DiagnosticTag::UNNECESSARY]);
+                    diagnostics.push(diag);
+                }
+                ast::CheckError::Redeclaration {
+                    previous,
+                    this,
+                    name,
+                } => {
+                    let start_position = offset_to_position(this.start, &rope).unwrap();
+                    let end_position = offset_to_position(this.end, &rope).unwrap();
+                    let this_range = Range::new(start_position, end_position);
+
+                    let start_position = offset_to_position(previous.start, &rope).unwrap();
+                    let end_position = offset_to_position(previous.end, &rope).unwrap();
+                    let prev_range = Range::new(start_position, end_position);
+
+                    let mut diag = Diagnostic::new_simple(
+                        this_range,
+                        format!("Variable '{name}' is already defined"),
+                    );
+
+                    diag.severity = Some(DiagnosticSeverity::ERROR);
+
+                    diag.related_information = Some(vec![DiagnosticRelatedInformation {
+                        location: Location {
+                            uri: params.uri.clone(),
+                            range: prev_range,
+                        },
+                        message: format!("Previous definition of '{name}'"),
+                    }]);
+                    diagnostics.push(diag);
+                }
+            }
         }
 
         self.client

@@ -75,9 +75,10 @@ impl<L: Lang> Node<L> {
                 if tokens {
                     print_offset(offset);
                     println!(
-                        "{}: {:?}",
+                        "{}: {:?}@{:?}",
                         Blue.paint(lang.token_name(&lexeme.kind)),
-                        lexeme.text
+                        lexeme.text,
+                        lexeme.span,
                     )
                 }
             }
@@ -87,9 +88,10 @@ impl<L: Lang> Node<L> {
                     println!(
                         "{}",
                         Color::RGB(100, 100, 100).paint(format!(
-                            "{}: {:?}",
+                            "{}: {:?}@{:?}",
                             lang.token_name(&lexeme.kind),
-                            lexeme.text
+                            lexeme.text,
+                            lexeme.span,
                         ))
                     )
                 }
@@ -170,9 +172,10 @@ impl<L: Lang> ParseError<L> {
                         print!("  ");
                     }
                     println!(
-                        "  {}: {:?}",
+                        "  {}: {:?}@{:?}",
                         Red.paint(lang.token_name(&token.kind)),
-                        token.text
+                        token.text,
+                        token.span,
                     )
                 }
             }
@@ -206,7 +209,8 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(group) => group.start_offset(),
             Node::Skipped(lexeme) | Node::Lexeme(lexeme) => lexeme.span.start,
-            Node::Err(parse_error) => parse_error.start(),
+            Node::Err(ParseError::Unexpected { actual, .. }) => actual.first().unwrap().span.start,
+            Node::Err(ParseError::MissingError { start, .. }) => *start,
         }
     }
 
@@ -339,20 +343,27 @@ impl<L: Lang> Group<L> {
     }
 
     pub fn completions_at(&self, offset: usize) -> Vec<Expected<L>> {
+        dbg!("Getting completions for group", self.span());
         let mut index = None;
         let mut res = vec![];
         for (i, child) in self.children.iter().enumerate() {
             if child.span().contains(&offset) {
                 if let Node::Group(group) = child {
-                    res.extend(group.completions_at(offset));
+                    return group.completions_at(offset);
                 }
                 index = Some(i);
+            } else if let Node::Err(ParseError::MissingError { start, expected }) = child
+                && *start == offset
+            {
+                return expected.clone();
+            } else {
+                dbg!("Child did not match", child.span(), offset);
             }
         }
         if let Some(index) = index {
-            for child in &self.children[index + 1..] {
+            for child in &self.children[index..] {
                 match child {
-                    Node::Group(_) | Node::Lexeme(_) => break,
+                    Node::Group(_) | Node::Lexeme(_) => continue,
                     Node::Skipped(_) => continue,
                     Node::Err(ParseError::MissingError { expected, .. }) => {
                         res.extend(expected.iter().cloned());
@@ -361,6 +372,8 @@ impl<L: Lang> Group<L> {
                     Node::Err(ParseError::Unexpected { .. }) => continue,
                 }
             }
+        } else {
+            dbg!("Group didn't contain offset", offset, self.span());
         }
         res
     }
@@ -428,7 +441,10 @@ impl<'a, L: Lang> Iterator for LeadingErrorIter<'a, L> {
                     }
                 }
                 Node::Err(e) => {
-                    if first.is_none() {
+                    if let ParseError::Unexpected { start, actual } = e {
+                        self.offset = actual.iter().last().map(|it| it.span.end).unwrap_or(*start);
+                        return Some((self.offset, e));
+                    } else if first.is_none() {
                         first = Some((self.offset, e))
                     }
                 }

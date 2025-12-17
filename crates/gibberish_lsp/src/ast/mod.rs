@@ -32,16 +32,33 @@ impl<'a> RootAst<'a> {
                 missing.push(refr.span.clone());
             }
         }
+
+        for def in &state.defs {
+            let ref_count = state.refs.iter().filter(|it| &it.text == def.0).count();
+            if ref_count <= 1 {
+                state
+                    .errors
+                    .push(CheckError::Unused(def.1.name().unwrap().span.clone()));
+            }
+        }
         for span in missing {
             state.error("Parser or token not found".to_string(), span);
         }
     }
 }
 
-pub struct CheckError {
-    pub message: String,
-    pub span: Span,
-    pub severity: DiagnosticSeverity,
+pub enum CheckError {
+    Simple {
+        message: String,
+        span: Span,
+        severity: DiagnosticSeverity,
+    },
+    Unused(Span),
+    Redeclaration {
+        previous: Span,
+        this: Span,
+        name: String,
+    },
 }
 
 pub enum TokenKeywordDefAst<'a> {
@@ -79,7 +96,7 @@ impl Definition {
 
 impl<'a> CheckState<'a> {
     pub fn error(&mut self, message: String, span: Span) {
-        self.errors.push(CheckError {
+        self.errors.push(CheckError::Simple {
             message,
             span,
             severity: DiagnosticSeverity::ERROR,
@@ -87,7 +104,7 @@ impl<'a> CheckState<'a> {
     }
 
     pub fn warn(&mut self, message: String, span: Span) {
-        self.errors.push(CheckError {
+        self.errors.push(CheckError::Simple {
             message,
             span,
             severity: DiagnosticSeverity::WARNING,

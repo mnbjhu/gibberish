@@ -2,7 +2,7 @@ use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
 
 use crate::ast::{
-    CheckState, LspItem, LspNode,
+    CheckError, CheckState, LspItem, LspNode,
     stmt::{fold::FoldDefAst, keyword::KeywordDefAst, parser::ParserDefAst, token::TokenDefAst},
 };
 
@@ -32,8 +32,12 @@ impl<'a> StmtAst<'a> {
 
     pub fn check(&self, state: &mut CheckState<'a>) {
         if let Some(name) = self.name() {
-            if state.defs.contains_key(&name.text) {
-                state.error("Name is already defineed".to_string(), name.span.clone());
+            if let Some(def) = state.defs.get(&name.text) {
+                state.errors.push(CheckError::Redeclaration {
+                    previous: def.name().unwrap().span.clone(),
+                    this: name.span.clone(),
+                    name: name.text.clone(),
+                });
             } else {
                 state.defs.insert(name.text.clone(), *self);
             }
