@@ -49,7 +49,7 @@ impl<L: Lang> Node<L> {
                     false
                 }
             }
-            Node::Lexeme(lexeme) => {
+            Node::Lexeme(lexeme) | Node::Skipped(lexeme) => {
                 if let Query::Token { kind } = q
                     && *kind == lexeme.kind
                 {
