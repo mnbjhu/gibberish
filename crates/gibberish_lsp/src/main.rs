@@ -51,7 +51,7 @@ impl LanguageServer for Backend {
                 )),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
-                    trigger_characters: Some(vec![".".to_string()]),
+                    trigger_characters: None,
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,
                     completion_item: None,
@@ -354,8 +354,31 @@ impl LanguageServer for Backend {
         todo!()
     }
 
-    async fn completion(&self, _: CompletionParams) -> Result<Option<CompletionResponse>> {
-        Ok(None)
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        dbg!("Completions");
+        let completions = || -> Option<CompletionResponse> {
+            let uri = params.text_document_position.text_document.uri;
+            let rope = self.document_map.get(uri.as_str())?;
+            let position = params.text_document_position.position;
+            let offset = position_to_offset(position, &rope)?;
+            let ast = self.ast_map.get(uri.as_str()).unwrap();
+            let completions = ast.as_group().completions_at(offset);
+            Some(CompletionResponse::Array(
+                completions
+                    .iter()
+                    .map(|it| {
+                        let mut completion = CompletionItem::new_simple(
+                            "completion".to_string(),
+                            it.debug_name(&Gibberish),
+                        );
+                        completion.kind = Some(CompletionItemKind::SNIPPET);
+                        completion
+                    })
+                    .collect(),
+            ))
+        }();
+        dbg!("Got completions", &completions);
+        Ok(completions)
     }
 
     async fn rename(&self, _: RenameParams) -> Result<Option<WorkspaceEdit>> {

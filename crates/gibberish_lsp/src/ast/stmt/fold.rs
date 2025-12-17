@@ -35,7 +35,10 @@ impl<'a> FoldDefAst<'a> {
     }
 
     pub fn check(&self, state: &mut CheckState<'a>) {
-        self.first().check(state)
+        self.first().check(state);
+        if let Some(next) = self.next() {
+            next.check(state)
+        }
     }
 }
 

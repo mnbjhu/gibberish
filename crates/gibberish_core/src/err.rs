@@ -5,7 +5,7 @@ use crate::node::{Lexeme, Span};
 
 use super::lang::Lang;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ParseError<L: Lang> {
     MissingError {
         start: usize,
@@ -47,7 +47,7 @@ impl<L: Lang> ParseError<L> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expected<L: Lang> {
     Token(L::Token),
     Group(L::Syntax),
