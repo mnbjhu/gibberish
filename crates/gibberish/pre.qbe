@@ -200,6 +200,34 @@ export function w $exit_group(l %state_ptr) {
     ret 1
 }
 
+export function w $bump_skipped(l %state_ptr) {
+@start
+    %current_ptr =l add %state_ptr, 48
+    %current =l loadl %current_ptr
+
+    %tok_ptr =l call $get(l %state_ptr, l 24, l %current)
+    %start_ptr =l add %tok_ptr, 8
+    %end_ptr =l add %tok_ptr, 16
+
+
+    %current =l add %current, 1
+    storel %current, %current_ptr
+
+    %token =l loadl %tok_ptr
+    %start =l loadl %start_ptr
+    %end =l loadl %end_ptr
+
+    %new =:node call $new_skipped_node(l %token, l %start, l %end)
+
+    %stack_ptr =l add %state_ptr, 24
+    %current_group =l call $last(l %stack_ptr, l 32)
+    %children_ptr =l add %current_group, 8
+
+    call $push(l %children_ptr, l 32, l %new)
+
+    ret 1
+}
+
 export function w $bump(l %state_ptr) {
 @start
     %current_ptr =l add %state_ptr, 48
@@ -361,7 +389,6 @@ export function l $get(l %vec_ptr, l %size, l %index) {
     ret %item_ptr
 }
 
-data $AHH = { b "AHHH", b 0 }
 export function :node $new_token_node(l %kind, l %start, l %end) {
 @start
     %res =l alloc8 32
@@ -369,6 +396,19 @@ export function :node $new_token_node(l %kind, l %start, l %end) {
     %start_ptr =l add %res, 16
     %end_ptr =l add %res, 24
     storel 0, %res
+    storel %kind, %kind_ptr
+    storel %start, %start_ptr
+    storel %end, %end_ptr
+    ret %res
+}
+
+export function :node $new_skipped_node(l %kind, l %start, l %end) {
+@start
+    %res =l alloc8 32
+    %kind_ptr =l add %res, 8
+    %start_ptr =l add %res, 16
+    %end_ptr =l add %res, 24
+    storel 4, %res
     storel %kind, %kind_ptr
     storel %start, %start_ptr
     storel %end, %end_ptr

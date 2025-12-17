@@ -37,7 +37,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
     jnz %is_skipped, @bump_skipped, @parse
 @bump_skipped
-    call $bump(l %state_ptr)
+    call $bump_skipped(l %state_ptr)
     jmp @check_eof
 @parse
     %checkpoint =l call $checkpoint(l %state_ptr)

@@ -372,7 +372,7 @@ mod tests {
     #[macro_export]
     macro_rules! assert_token_kind {
         ($lang:ident, $node:expr, $name:ident) => {{
-            if let Node::Lexeme(l) = $node {
+            if let Node::Lexeme(l) | Node::Skipped(l) = $node {
                 assert_eq!($lang.token_name(&l.kind), stringify!($name));
             } else {
                 panic!("Expected a lexeme but found {:?}", $node);
