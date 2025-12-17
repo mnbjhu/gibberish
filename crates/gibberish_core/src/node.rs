@@ -127,6 +127,22 @@ impl<L: Lang> Node<L> {
             _ => None,
         }
     }
+
+    // pub fn completions_at(&self, offset: usize) -> Vec<Expected<L>> {
+    //     match self {
+    //         Node::Group(group) => {
+    //             for child in &group.children {
+    //                 if child.span().contains(&offset) {
+    //                     return child.completions_at(offset);
+    //                 }
+    //             }
+    //             panic!("Offset out of range")
+    //         }
+    //         Node::Lexeme(lexeme) => {}
+    //         Node::Err(ParseError::MissingError { start, expected }) => *expected,
+    //         Node::Err(ParseError::E { start, expected }) => *expected,
+    //     }
+    // }
 }
 
 impl<L: Lang> ParseError<L> {
@@ -313,6 +329,19 @@ impl<L: Lang> Group<L> {
             .iter()
             .filter_map(|it| if let Node::Err(e) = it { Some(e) } else { None })
     }
+
+    // pub fn completions_at(&self, offset: usize) -> Vec<Expected<L>> {
+    //     for (index, child) in self.children.iter().enumerate() {
+    //         if child.span().contains(&offset) {
+    //             match child {
+    //                 Node::Group(group) => return group.completions_at(offset),
+    //                 Node::Lexeme(lexeme) => todo!(),
+    //                 Node::Err(parse_error) => todo!(),
+    //             }
+    //         }
+    //     }
+    //     vec![]
+    // }
 }
 
 pub struct LexemeIter<'a, L: Lang> {
