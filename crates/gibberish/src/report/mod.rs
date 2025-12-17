@@ -58,7 +58,7 @@ pub fn report_errors<L: Lang>(node: &Node<L>, src: &str, filename: &str, lang: &
             .children
             .iter()
             .any(|it| report_errors(it, src, filename, lang)),
-        Node::Lexeme(_) => false,
+        Node::Skipped(_) | Node::Lexeme(_) => false,
         Node::Err(parse_error) => {
             report_parse_error(parse_error, src, filename, lang);
             true

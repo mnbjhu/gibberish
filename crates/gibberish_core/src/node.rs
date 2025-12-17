@@ -3,7 +3,10 @@ use std::{fmt::Debug, ops::Range};
 use crate::{expected::ExpectedData, lang::CompiledLang, vec::RawVec};
 
 use super::{err::ParseError, lang::Lang};
-use ansi_term::Colour::{Blue, Green, Red};
+use ansi_term::{
+    Color,
+    Colour::{Blue, Green, Red},
+};
 
 pub type Span = Range<usize>;
 
@@ -42,6 +45,7 @@ pub struct Group<L: Lang> {
 pub enum Node<L: Lang> {
     Group(Group<L>),
     Lexeme(Lexeme<L>),
+    Skipped(Lexeme<L>),
     Err(ParseError<L>),
 }
 
@@ -77,6 +81,19 @@ impl<L: Lang> Node<L> {
                     )
                 }
             }
+            Node::Skipped(lexeme) => {
+                if tokens {
+                    print_offset(offset);
+                    println!(
+                        "{}",
+                        Color::RGB(100, 100, 100).paint(format!(
+                            "{}: {:?}",
+                            lang.token_name(&lexeme.kind),
+                            lexeme.text
+                        ))
+                    )
+                }
+            }
             Node::Err(err_group) => {
                 if errors {
                     print_offset(offset);
@@ -101,6 +118,7 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(Group { kind, .. }) => kind.clone(),
             Node::Lexeme(_) => panic!("Lexeme has no name"),
+            Node::Skipped(_) => panic!("Skipped has no name"),
             Node::Err(_) => panic!("ErrGroup has no name"),
         }
     }
@@ -110,17 +128,21 @@ impl<L: Lang> Node<L> {
             Node::Group(Group { children, .. }) => children.iter().filter_map(|it| match it {
                 Node::Group(group) => Some(group),
                 Node::Lexeme(_) => None,
+                Node::Skipped(_) => None,
                 Node::Err(_) => None,
             }),
             Node::Lexeme(_) => panic!("Lexeme has no children"),
             Node::Err(_) => panic!("ErrGroup has no children"),
+            Node::Skipped(_) => panic!("Skipped has no children"),
         }
     }
 
     pub fn at_offset(&self, offset: usize) -> Option<&Node<L>> {
         match self {
             Node::Group(group) => group.children.iter().find_map(|it| it.at_offset(offset)),
-            Node::Lexeme(Lexeme { span, .. }) if span.start <= offset && offset <= span.end => {
+            Node::Skipped(Lexeme { span, .. }) | Node::Lexeme(Lexeme { span, .. })
+                if span.start <= offset && offset <= span.end =>
+            {
                 Some(self)
             }
             Node::Err(err) if err.span().start <= offset && offset <= err.span().end => Some(self),
@@ -183,7 +205,7 @@ impl<L: Lang> Node<L> {
     pub fn start_offset(&self) -> usize {
         match self {
             Node::Group(group) => group.start_offset(),
-            Node::Lexeme(lexeme) => lexeme.span.start,
+            Node::Skipped(lexeme) | Node::Lexeme(lexeme) => lexeme.span.start,
             Node::Err(parse_error) => parse_error.start(),
         }
     }
@@ -192,6 +214,7 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(group) => group.end_offset(),
             Node::Lexeme(lexeme) => lexeme.span.end,
+            Node::Skipped(lexeme) => lexeme.span.end,
             Node::Err(parse_error) => parse_error
                 .actual()
                 .last()
@@ -207,7 +230,7 @@ impl<L: Lang> Node<L> {
     pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Node::Group(group) => group.fmt(f),
-            Node::Lexeme(lexeme) => write!(f, "{}", &lexeme.text),
+            Node::Skipped(lexeme) | Node::Lexeme(lexeme) => write!(f, "{}", &lexeme.text),
             Node::Err(parse_error) => {
                 for lexeme in parse_error.actual() {
                     write!(f, "{}", &lexeme.text)?
@@ -247,6 +270,7 @@ impl<L: Lang> Group<L> {
         self.children.iter().filter_map(|it| match it {
             Node::Group(group) => Some(group),
             Node::Lexeme(_) => None,
+            Node::Skipped(_) => None,
             Node::Err(_) => None,
         })
     }
@@ -331,9 +355,9 @@ impl<'a, L: Lang> Iterator for LexemeIter<'a, L> {
         while let Some(node_lex) = self.stack.pop() {
             match node_lex {
                 NodeOrLexeme::Node(node) => match node {
-                    Node::Lexeme(l) => return Some(l),
+                    // TODO: Consider not including skipped tokens
+                    Node::Skipped(l) | Node::Lexeme(l) => return Some(l),
                     Node::Group(g) => {
-                        // push children in reverse so we visit in original order
                         for child in g.children.iter().rev() {
                             self.stack.push(NodeOrLexeme::Node(child));
                         }
@@ -364,7 +388,7 @@ impl<'a, L: Lang> Iterator for LeadingErrorIter<'a, L> {
         let mut first = None;
         while let Some(node) = self.stack.pop() {
             match node {
-                Node::Lexeme(l) => {
+                Node::Skipped(l) | Node::Lexeme(l) => {
                     if first.is_some() {
                         return first;
                     }
@@ -398,7 +422,7 @@ impl<'a, L: Lang> Iterator for ErrorIter<'a, L> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(node) = self.stack.pop() {
             match node {
-                Node::Lexeme(l) => {
+                Node::Skipped(l) | Node::Lexeme(l) => {
                     self.offset = l.span.end;
                 }
                 Node::Group(g) => {
@@ -475,6 +499,16 @@ impl Node<CompiledLang> {
                     expected: expected.into_iter().map(|it| it.into()).collect(),
                 })
             },
+            4 => {
+                let payload = unsafe { value.payload.lexeme };
+                *offset = payload.end;
+                Node::Skipped(Lexeme {
+                    span: payload.start..payload.end,
+                    kind: payload.kind as u32,
+                    text: src[payload.start..payload.end].to_string(),
+                })
+            }
+
             id => panic!("Unexpected node id '{id}'"),
         }
     }
