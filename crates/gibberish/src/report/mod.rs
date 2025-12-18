@@ -2,7 +2,6 @@ use ariadne::{Color, Label, Report, ReportKind, Source};
 use gibberish_core::{err::ParseError, lang::Lang, node::Node};
 
 pub mod err;
-pub mod regex;
 pub mod simple;
 
 pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &str, lang: &L) {

@@ -3,7 +3,7 @@ use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken
 
 use crate::{
     ast::{CheckState, LspItem, LspNode, builder::ParserBuilder, expr::ExprAst},
-    lsp::funcs::DEFAULT_FUNCS,
+    lsp::funcs::{DEFAULT_FUNCS, FuncArg},
     parser::{Parser, seq::seq},
 };
 
@@ -170,10 +170,25 @@ impl<'a> CallArmAst<'a> {
                 }
                 if args_len < expected.args.len() {
                     state.error(
-                        format!("Missing arguments: {}", expected.args[args_len..].join(",")),
+                        format!(
+                            "Missing arguments: {}",
+                            expected.args[args_len..]
+                                .iter()
+                                .map(|FuncArg { name, .. }| name.to_string())
+                                .collect::<Vec<_>>()
+                                .join(",")
+                        ),
                         name.span.clone(),
                     );
                 }
+                for (index, arg) in self.args().enumerate() {
+                    if let Some(e) = expected.args.get(index) {
+                        arg.check_is(&e.ty, state);
+                    } else {
+                        arg.check(state);
+                    }
+                }
+                return;
             } else {
                 state.error(
                     format!("Function '{}' not found", name.text),
@@ -181,7 +196,6 @@ impl<'a> CallArmAst<'a> {
                 );
             }
         }
-
         self.args().for_each(|it| it.check(state));
     }
 }

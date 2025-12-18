@@ -1,6 +1,32 @@
 pub struct FuncDef {
     pub name: &'static str,
-    pub args: &'static [&'static str],
+    pub args: &'static [FuncArg],
+}
+
+pub struct FuncArg {
+    pub name: &'static str,
+    pub ty: Type,
+}
+
+impl FuncArg {
+    pub const fn parser(name: &'static str) -> Self {
+        FuncArg {
+            name,
+            ty: Type::Parser,
+        }
+    }
+
+    pub const fn token(name: &'static str) -> Self {
+        FuncArg {
+            name,
+            ty: Type::Token,
+        }
+    }
+}
+
+pub enum Type {
+    Token,
+    Parser,
 }
 
 pub const DEFAULT_FUNCS: &[FuncDef] = &[
@@ -14,18 +40,18 @@ pub const DEFAULT_FUNCS: &[FuncDef] = &[
     },
     FuncDef {
         name: "delim_by",
-        args: &["open", "close"],
+        args: &[FuncArg::parser("open"), FuncArg::parser("close")],
     },
     FuncDef {
         name: "sep_by",
-        args: &["seperator"],
+        args: &[FuncArg::parser("seperator")],
     },
     FuncDef {
         name: "skip",
-        args: &["token"],
+        args: &[FuncArg::token("token")],
     },
     FuncDef {
         name: "unskip",
-        args: &["token"],
+        args: &[FuncArg::token("token")],
     },
 ];

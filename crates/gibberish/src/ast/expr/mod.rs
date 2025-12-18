@@ -6,6 +6,8 @@ use crate::ast::expr::call::CallAst;
 use crate::ast::expr::choice::ChoiceAst;
 use crate::ast::expr::ident::build_ident;
 use crate::ast::expr::seq::SeqAst;
+use crate::ast::stmt::StmtAst;
+use crate::lsp::funcs::Type;
 use crate::parser::Parser;
 use gibberish_core::node::Span;
 use gibberish_core::node::{Group, Lexeme};
@@ -83,6 +85,27 @@ impl<'a> ExprAst<'a> {
             ExprAst::Choice(choice_ast) => choice_ast.iter().for_each(|it| it.check(state)),
             ExprAst::Call(call_ast) => call_ast.check(state),
         }
+    }
+
+    pub fn check_is(&self, ty: &Type, state: &mut CheckState<'a>) {
+        if let Type::Token = ty {
+            if let ExprAst::Ident(l) = self {
+                if let Some(def) = state.defs.get(&l.text)
+                    && matches!(def, StmtAst::Fold(_) | StmtAst::Parser(_))
+                {
+                    state.error(
+                        "Expected a token but found a parser".to_string(),
+                        self.span(),
+                    );
+                }
+            } else {
+                state.error(
+                    "Expected a token but found a parser".to_string(),
+                    self.span(),
+                );
+            }
+        }
+        self.check(state);
     }
 
     pub fn span(&self) -> Span {

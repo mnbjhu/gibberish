@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use ansi_term::Color;
 use tempfile::NamedTempFile;
 
 use crate::ast::builder::ParserBuilder;
@@ -25,6 +26,7 @@ pub fn generate(src: &Path) {
     fs::write(&qbe, qbe_str).unwrap();
     build_dynamic_lib(&qbe_path, &PathBuf::from(format!("lib/{name}-parser.so")));
     build_crate(name, current_dir().unwrap(), &builder);
+    println!("{}", Color::Green.paint("[Build successful]"));
 }
 
 fn kebab_to_upper_camel(input: &str) -> String {

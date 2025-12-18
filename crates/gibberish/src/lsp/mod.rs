@@ -520,6 +520,7 @@ impl Backend {
                     }]);
                     diagnostics.push(diag);
                 }
+                CheckError::ParseError(_) => todo!(),
             }
         }
 

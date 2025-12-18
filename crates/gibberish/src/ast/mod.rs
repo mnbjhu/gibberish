@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fmt::Display};
 
 use expr::ExprAst;
-use gibberish_core::node::{Group, Lexeme};
+use gibberish_core::{
+    err::ParseError,
+    node::{Group, Lexeme},
+};
 use gibberish_gibberish_parser::Gibberish;
 use tower_lsp::lsp_types::{DiagnosticSeverity, HoverContents, MarkedString};
 
@@ -48,6 +51,9 @@ impl<'a> RootAst<'a> {
         }
 
         for def in &state.defs {
+            if def.0 == "_root" {
+                continue;
+            }
             let ref_count = state.refs.iter().filter(|it| &it.text == def.0).count();
             if ref_count <= 1 {
                 state
@@ -82,9 +88,6 @@ impl<'a> RootAst<'a> {
         });
         for i in 0..builder.vars.len() {
             let res = builder.vars[i].1.clone().remove_conflicts(builder, 0);
-            if res != builder.vars[i].1 {
-                println!("Generated parser: {res}")
-            }
             builder.vars[i].1 = res;
         }
     }
@@ -102,6 +105,7 @@ pub enum CheckError {
         this: Span,
         name: String,
     },
+    ParseError(ParseError<Gibberish>),
 }
 
 #[derive(Default)]

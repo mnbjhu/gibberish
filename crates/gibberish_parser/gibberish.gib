@@ -38,7 +38,7 @@ parser kw_def = KEYWORD + ident;
 parser token_def = TOKEN + ident + eq + string;
 
 parser fold_stmt = _expr fold FOLD + _expr;
-parser parser_def = PARSER + ident + (eq + fold_stmt).or_not();
+parser parser_def = PARSER + ident + eq + fold_stmt;
 
 parser child_query = _query.sep_by(comma).or_not().delim_by(l_paren, r_paren);
 parser group_query = named + (colon + child_query).or_not();

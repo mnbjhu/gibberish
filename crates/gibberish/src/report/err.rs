@@ -1,7 +1,8 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
+use gibberish_gibberish_parser::Gibberish;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
-use crate::ast::CheckError;
+use crate::{ast::CheckError, report::report_parse_error};
 
 impl CheckError {
     pub fn report(&self, src: &str, filename: &str) {
@@ -21,7 +22,6 @@ impl CheckError {
                 let mut report = Report::build(ReportKind::Error, (filename, span.clone()))
                     .with_code("E002")
                     .with_message(message);
-                // Generate & choose some colours for each of our elements
                 report = report.with_label(
                     Label::new((filename, span.clone()))
                         .with_message(message)
@@ -36,7 +36,6 @@ impl CheckError {
                 let mut report = Report::build(ReportKind::Warning, (filename, span.clone()))
                     .with_code("E003")
                     .with_message("Unused variable");
-                // Generate & choose some colours for each of our elements
                 report = report.with_label(
                     Label::new((filename, span.clone()))
                         .with_message("Defined here and is never used")
@@ -68,6 +67,9 @@ impl CheckError {
                     .finish()
                     .print((filename, Source::from(src)))
                     .unwrap();
+            }
+            CheckError::ParseError(parse_error) => {
+                report_parse_error(parse_error, src, filename, &Gibberish)
             }
         }
     }
