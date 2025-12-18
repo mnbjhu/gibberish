@@ -161,8 +161,9 @@ pub fn build_lexer_qbe(lexer: &[(String, RegexAst)], f: &mut impl Write) {
     create_name_function(f, "token", &names);
 }
 
-pub fn create_name_function(f: &mut impl Write, kind: &str, names: &[&str]) {
+pub fn create_name_function(f: &mut impl Write, kind: &str, names: &[impl AsRef<str>]) {
     for name in names {
+        let name = name.as_ref();
         write!(
             f,
             "
@@ -183,10 +184,11 @@ export function :str_slice ${kind}_name(w %kind) {{"
     )
     .unwrap();
     for (index, name) in names.iter().enumerate() {
+        let name = name.as_ref();
         let next = if index == names.len() - 1 {
             "err"
         } else {
-            names[index + 1]
+            names[index + 1].as_ref()
         };
         write!(
             f,

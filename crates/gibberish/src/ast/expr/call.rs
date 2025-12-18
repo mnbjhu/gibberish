@@ -118,7 +118,7 @@ impl<'a> CallAst<'a> {
                 "rename" => {
                     let args = member.args().collect::<Vec<_>>();
                     if args.len() != 1 {
-                        panic!("'rename' expected 0 arg but {} were found", args.len())
+                        panic!("'rename' expected 1 arg but {} were found", args.len())
                     }
                     let ExprAst::Ident(lexeme) = args[0] else {
                         panic!("Expected an ident");
@@ -127,6 +127,16 @@ impl<'a> CallAst<'a> {
                         panic!("Parser not found '{}'", lexeme.text);
                     };
                     expr = expr.rename(lexeme.text.clone());
+                }
+                "labelled" => {
+                    let args = member.args().collect::<Vec<_>>();
+                    if args.len() != 1 {
+                        panic!("'labelled' expected 1 arg but {} were found", args.len())
+                    }
+                    let ExprAst::Ident(lexeme) = args[0] else {
+                        panic!("Expected an ident");
+                    };
+                    expr = expr.labelled(lexeme.text.clone());
                 }
                 name => builder.error(
                     &format!("Function not found '{name}'"),

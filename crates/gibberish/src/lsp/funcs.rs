@@ -22,11 +22,19 @@ impl FuncArg {
             ty: Type::Token,
         }
     }
+
+    pub const fn label(name: &'static str) -> Self {
+        FuncArg {
+            name,
+            ty: Type::Label,
+        }
+    }
 }
 
 pub enum Type {
     Token,
     Parser,
+    Label,
 }
 
 pub const DEFAULT_FUNCS: &[FuncDef] = &[
@@ -53,5 +61,9 @@ pub const DEFAULT_FUNCS: &[FuncDef] = &[
     FuncDef {
         name: "unskip",
         args: &[FuncArg::token("token")],
+    },
+    FuncDef {
+        name: "labelled",
+        args: &[FuncArg::label("name")],
     },
 ];

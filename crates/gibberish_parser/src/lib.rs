@@ -80,6 +80,17 @@ pub enum GibberishSyntax {
 
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
+pub enum GibberishLabel {
+    	Expression,
+	TokenName,
+	Regex,
+	ParserName,
+	Declaration,
+
+}
+
 impl Display for GibberishToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -92,9 +103,16 @@ impl Display for GibberishSyntax {
     }
 }
 
+impl Display for GibberishLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl Lang for Gibberish {
     type Token = GibberishToken;
     type Syntax = GibberishSyntax;
+    type Label = GibberishLabel;
 }
 
 impl Gibberish {

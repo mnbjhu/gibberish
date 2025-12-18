@@ -114,6 +114,7 @@ pub struct CheckState<'a> {
     pub refs: Vec<Lexeme<Gibberish>>,
     pub errors: Vec<CheckError>,
     pub func_calls: Vec<Span>,
+    pub labels: Vec<String>,
 }
 
 impl<'a> CheckState<'a> {
