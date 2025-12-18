@@ -7,6 +7,7 @@ use crate::{lexer::RegexAst, parser::Parser, report::simple::report_simple_error
 pub struct ParserBuilder {
     pub lexer: Vec<(String, RegexAst)>,
     pub vars: Vec<(String, Parser)>,
+    pub labels: Vec<String>,
     text: String,
     filename: String,
     has_errored: bool,
@@ -14,7 +15,7 @@ pub struct ParserBuilder {
 }
 
 impl ParserBuilder {
-    pub fn new(text: String, filename: String) -> Self {
+    pub fn new(text: String, filename: String, labels: Vec<String>) -> Self {
         Self {
             lexer: vec![],
             vars: vec![],
@@ -22,6 +23,7 @@ impl ParserBuilder {
             filename,
             has_errored: false,
             built: HashMap::new(),
+            labels,
         }
     }
 

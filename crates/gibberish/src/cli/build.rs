@@ -72,6 +72,7 @@ impl ParserBuilder {
         let pre = include_str!("../../pre.qbe");
         write!(&mut res, "{}", pre).unwrap();
         create_name_function(&mut res, "group", &group_names);
+        create_name_function(&mut res, "label", &self.labels);
         build_parser_qbe(self, &mut res);
         res
     }
@@ -125,7 +126,8 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
         );
         exit(1)
     } else {
-        let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
+        let mut builder =
+            ParserBuilder::new(parser_text, parser_filename.to_string(), state.labels);
         dsl_ast.build_parser(&mut builder);
         builder
     }

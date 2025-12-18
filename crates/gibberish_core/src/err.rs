@@ -51,7 +51,7 @@ impl<L: Lang> ParseError<L> {
 pub enum Expected<L: Lang> {
     Token(L::Token),
     Group(L::Syntax),
-    Label(L::Syntax),
+    Label(L::Label),
 }
 
 impl<L: Lang> Display for Expected<L> {
@@ -109,8 +109,8 @@ impl<L: Lang> Expected<L> {
     pub fn debug_name(&self, lang: &L) -> String {
         match self {
             Expected::Token(t) => lang.token_name(t),
-            Expected::Label(l) => lang.syntax_name(l),
             Expected::Group(g) => lang.syntax_name(g),
+            Expected::Label(l) => lang.label_name(l),
         }
     }
 }

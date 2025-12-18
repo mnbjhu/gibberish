@@ -17,8 +17,8 @@ use tracing::debug;
 use crate::{
     ast::builder::ParserBuilder,
     parser::{
-        checkpoint::Checkpoint, fold_once::FoldOnce, rename::Rename, repeated::Repeated,
-        unskip::UnSkip,
+        checkpoint::Checkpoint, fold_once::FoldOnce, label::Label, rename::Rename,
+        repeated::Repeated, unskip::UnSkip,
     },
 };
 
@@ -28,6 +28,7 @@ pub mod choice;
 pub mod delim;
 pub mod fold_once;
 pub mod just;
+pub mod label;
 pub mod named;
 pub mod optional;
 pub mod rename;
@@ -55,6 +56,7 @@ pub enum Parser {
     Checkpoint(Checkpoint),
     Empty,
     Reference(String),
+    Label(Label),
 }
 
 impl Display for Parser {
@@ -75,6 +77,7 @@ impl Display for Parser {
             Parser::Checkpoint(checkpoint) => write!(f, "{checkpoint}"),
             Parser::Empty => todo!(),
             Parser::Reference(n) => write!(f, "{n}"),
+            Parser::Label(Label { name, inner }) => write!(f, "{inner}:{name}"),
         }
     }
 }
@@ -117,6 +120,10 @@ impl Parser {
             Parser::Rename(rename) => rename.expected(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.expected(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().expected(builder),
+            Parser::Label(Label { name, inner }) => {
+                let label_id = builder.labels.iter().position(|it| it == name).unwrap();
+                vec![Expected::Label(label_id as u32)]
+            }
         }
     }
 
@@ -137,6 +144,7 @@ impl Parser {
             Parser::Rename(_) => "Rename".to_string(),
             Parser::Checkpoint(_) => "Checkpoint".to_string(),
             Parser::Reference(n) => format!("Reference({n})"),
+            Parser::Label(Label { name, .. }) => format!("Label({name})"),
         }
     }
 
@@ -157,6 +165,7 @@ impl Parser {
             Parser::Rename(rename) => rename.build_parse(id, builder, f),
             Parser::Checkpoint(checkpoint) => checkpoint.build_parse(id, builder, f),
             Parser::Reference(n) => builder.get_var(n).unwrap().build_parse(id, builder, f),
+            Parser::Label(Label { inner, .. }) => inner.build_parse(id, builder, f),
         }
     }
 
@@ -272,6 +281,7 @@ function :vec $expected_{id}() {{
             Parser::Rename(rename) => rename.start_tokens(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.start_tokens(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().start_tokens(builder),
+            Parser::Label(Label { inner, .. }) => inner.start_tokens(builder),
         }
     }
 
@@ -292,6 +302,7 @@ function :vec $expected_{id}() {{
             Parser::Rename(rename) => rename.is_optional(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.is_optional(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().is_optional(builder),
+            Parser::Label(Label { inner, .. }) => inner.is_optional(builder),
         }
     }
 
@@ -321,6 +332,7 @@ function :vec $expected_{id}() {{
                 "Tried to get after tokens for 'Checkpoint'. Didn't expect this to be needed??"
             ),
             Parser::Reference(n) => builder.get_var(n).unwrap().after_token(token, builder),
+            Parser::Label(Label { inner, .. }) => inner.after_token(token, builder),
         }
     }
 
@@ -338,6 +350,10 @@ function :vec $expected_{id}() {{
             Parser::Repeated(repeated) => repeated.remove_conflicts(builder, depth),
             Parser::Rename(rename) => rename.remove_conflicts(builder, depth),
             Parser::Checkpoint(_) | Parser::Delim(_) => todo!(),
+            Parser::Label(Label { name, inner }) => Parser::Label(Label {
+                name: name.to_string(),
+                inner: Box::new(inner.remove_conflicts(builder, depth)),
+            }),
             Parser::Empty => todo!(),
         }
     }

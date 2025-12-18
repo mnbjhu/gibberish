@@ -88,22 +88,37 @@ impl<'a> ExprAst<'a> {
     }
 
     pub fn check_is(&self, ty: &Type, state: &mut CheckState<'a>) {
-        if let Type::Token = ty {
-            if let ExprAst::Ident(l) = self {
-                if let Some(def) = state.defs.get(&l.text)
-                    && matches!(def, StmtAst::Fold(_) | StmtAst::Parser(_))
-                {
+        match ty {
+            Type::Token => {
+                if let ExprAst::Ident(l) = self {
+                    if let Some(def) = state.defs.get(&l.text)
+                        && matches!(def, StmtAst::Fold(_) | StmtAst::Parser(_))
+                    {
+                        state.error(
+                            "Expected a token but found a parser".to_string(),
+                            self.span(),
+                        );
+                    }
+                } else {
                     state.error(
                         "Expected a token but found a parser".to_string(),
                         self.span(),
                     );
                 }
-            } else {
-                state.error(
-                    "Expected a token but found a parser".to_string(),
-                    self.span(),
-                );
             }
+            Type::Label => {
+                if let ExprAst::Ident(l) = self {
+                    if !state.labels.contains(&l.text) {
+                        state.labels.push(l.text.clone());
+                    }
+                } else {
+                    state.error(
+                        "Expected a label but found a parser".to_string(),
+                        self.span(),
+                    );
+                }
+            }
+            _ => (),
         }
         self.check(state);
     }

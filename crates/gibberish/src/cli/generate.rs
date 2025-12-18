@@ -96,6 +96,12 @@ fn main() {{
         writeln!(&mut token_body, "\t{name},").unwrap();
     }
 
+    let mut label_body = String::new();
+    for name in &builder.labels {
+        let name = snake_to_upper_camel(name);
+        writeln!(&mut label_body, "\t{name},").unwrap();
+    }
+
     let mut syntax_body = String::new();
     for (index, name) in builder
         .vars
@@ -162,6 +168,12 @@ pub enum {struct_name}Syntax {{
     {syntax_body}
 }}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u32)]
+pub enum {struct_name}Label {{
+    {label_body}
+}}
+
 impl Display for {struct_name}Token {{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
         write!(f, \"{{:?}}\", self)
@@ -169,6 +181,12 @@ impl Display for {struct_name}Token {{
 }}
 
 impl Display for {struct_name}Syntax {{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
+        write!(f, \"{{:?}}\", self)
+    }}
+}}
+
+impl Display for {struct_name}Label {{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
         write!(f, \"{{:?}}\", self)
     }}
