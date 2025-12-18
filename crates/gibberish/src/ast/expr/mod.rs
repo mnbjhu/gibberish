@@ -116,6 +116,7 @@ impl<'a> ExprAst<'a> {
                         "Expected a label but found a parser".to_string(),
                         self.span(),
                     );
+                    self.check(state);
                 }
                 return;
             }
