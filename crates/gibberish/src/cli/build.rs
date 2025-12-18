@@ -14,7 +14,6 @@ use crate::parser::build::build_parser_qbe;
 
 use crate::ast::{CheckError, CheckState, RootAst};
 use crate::lexer::build::create_name_function;
-use crate::report::report_errors;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
@@ -37,23 +36,19 @@ impl BuildKind {
     }
 }
 
-pub fn build(parser_file: &Path, output: Option<&Path>) {
+pub fn build(parser_file: &Path, output: &Path) {
     let res = build_qbe_str(parser_file);
-    if let Some(out) = output {
-        match BuildKind::from_path(out) {
-            BuildKind::Qbe => fs::write(out, res).unwrap(),
-            BuildKind::Static => {
-                build_static_lib(&res, out);
-            }
-            BuildKind::Dynamic => {
-                let qbe = NamedTempFile::new().unwrap();
-                let qbe_path = qbe.path().to_path_buf();
-                fs::write(&qbe, res).unwrap();
-                build_dynamic_lib(&qbe_path, out);
-            }
+    match BuildKind::from_path(output) {
+        BuildKind::Qbe => fs::write(output, res).unwrap(),
+        BuildKind::Static => {
+            build_static_lib(&res, output);
         }
-    } else {
-        println!("{}", res);
+        BuildKind::Dynamic => {
+            let qbe = NamedTempFile::new().unwrap();
+            let qbe_path = qbe.path().to_path_buf();
+            fs::write(&qbe, res).unwrap();
+            build_dynamic_lib(&qbe_path, output);
+        }
     }
     println!("{}", Color::Green.paint("[Build successful]"));
 }
