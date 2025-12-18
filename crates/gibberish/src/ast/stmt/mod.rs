@@ -44,7 +44,7 @@ impl<'a> StmtAst<'a> {
             state.refs.push(name.clone());
         }
         match self {
-            StmtAst::Token(_) => {}
+            StmtAst::Token(t) => t.check(state),
             StmtAst::Keyword(_) => {}
             StmtAst::Parser(p) => p.check(state),
             StmtAst::Fold(f) => f.check(state),
