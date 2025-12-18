@@ -1,15 +1,17 @@
+use std::cmp::Ordering;
 use std::fmt::Write as _;
 use std::process::Command;
 use std::{fs, path::Path};
 
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
+use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
 use crate::cli::parse::{DYN_LIB_EXT, QBE_EXT, STATIC_LIB_EXT};
 use crate::parser::build::build_parser_qbe;
 
-use crate::ast::RootAst;
+use crate::ast::{CheckError, CheckState, RootAst};
 use crate::lexer::build::create_name_function;
 use crate::report::report_errors;
 
@@ -79,9 +81,44 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
     let parser_filename = parser_file.to_str().unwrap();
     report_errors(&res, &parser_text, parser_filename, &Gibberish);
     let dsl_ast = RootAst(res.as_group());
-    let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
-    dsl_ast.build_parser(&mut builder);
-    builder
+    let mut state = CheckState::default();
+    dsl_ast.check(&mut state);
+    state.errors.sort_by(|first, second| match (first, second) {
+        (
+            CheckError::Simple { span, .. },
+            CheckError::Simple {
+                span: other_span, ..
+            },
+        ) => span.start.cmp(&other_span.start),
+        (CheckError::Unused(span), CheckError::Unused(other_span)) => {
+            span.start.cmp(&other_span.start)
+        }
+        (
+            CheckError::Redeclaration { this: span, .. },
+            CheckError::Redeclaration {
+                this: other_span, ..
+            },
+        ) => span.start.cmp(&other_span.start),
+        (CheckError::Simple { .. }, _) => Ordering::Greater,
+        (_, CheckError::Simple { .. }) => Ordering::Less,
+        (CheckError::Redeclaration { .. }, _) => Ordering::Greater,
+        (_, CheckError::Redeclaration { .. }) => Ordering::Less,
+    });
+    for err in &state.errors {
+        err.report(&parser_text, parser_filename);
+    }
+    let has_err = state.errors.iter().any(|it| match it {
+        CheckError::Simple { severity, .. } => *severity == DiagnosticSeverity::ERROR,
+        CheckError::Unused(_) => false,
+        CheckError::Redeclaration { .. } => true,
+    });
+    if has_err {
+        panic!("Failed to build parser due to previous errors")
+    } else {
+        let mut builder = ParserBuilder::new(parser_text, parser_filename.to_string());
+        dsl_ast.build_parser(&mut builder);
+        builder
+    }
 }
 
 pub fn build_static_lib(qbe_text: &str, out: &Path) {

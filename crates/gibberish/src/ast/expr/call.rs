@@ -2,7 +2,8 @@ use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken as T};
 
 use crate::{
-    ast::{builder::ParserBuilder, expr::ExprAst},
+    ast::{CheckState, LspItem, LspNode, builder::ParserBuilder, expr::ExprAst},
+    lsp::funcs::DEFAULT_FUNCS,
     parser::{Parser, seq::seq},
 };
 
@@ -23,12 +24,16 @@ impl<'a> CallAst<'a> {
             }
         })
     }
+    pub fn check(&self, state: &mut CheckState<'a>) {
+        self.target().check(state);
+        self.arms().for_each(|it| it.check(state))
+    }
 
     pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
         let mut expr = self.target().build(builder);
         for member in self.arms() {
-            let span = &member.name().span;
-            match member.name().text.as_str() {
+            let span = &member.name().unwrap().span;
+            match member.name().unwrap().text.as_str() {
                 "repeated" => {
                     let args = member
                         .args()
@@ -125,7 +130,7 @@ impl<'a> CallAst<'a> {
                 }
                 name => builder.error(
                     &format!("Function not found '{name}'"),
-                    member.name().span.clone(),
+                    member.name().unwrap().span.clone(),
                 ),
             }
         }
@@ -137,12 +142,10 @@ impl<'a> CallAst<'a> {
 pub struct CallArmAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> CallArmAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<Gibberish> {
+    pub fn name(&self) -> Option<&'a Lexeme<Gibberish>> {
         self.0
             .group_by_kind(S::CallName)
-            .unwrap()
-            .token_by_kind(T::Ident)
-            .unwrap()
+            .map(|it| it.token_by_kind(T::Ident).unwrap())
     }
 
     pub fn args(&self) -> impl Iterator<Item = ExprAst<'a>> {
@@ -153,5 +156,48 @@ impl<'a> CallArmAst<'a> {
                 Box::new(std::iter::empty())
             };
         ret
+    }
+
+    pub fn check(&self, state: &mut CheckState<'a>) {
+        if let Some(name) = self.name() {
+            if let Some(expected) = DEFAULT_FUNCS.iter().find(|it| it.name == name.text) {
+                state.func_calls.push(name.span.clone());
+                let args_len = self.args().count();
+                for (index, arg) in self.args().enumerate() {
+                    if index >= expected.args.len() {
+                        state.error("This argument is unexpected".to_string(), arg.span());
+                    }
+                }
+                if args_len < expected.args.len() {
+                    state.error(
+                        format!("Missing arguments: {}", expected.args[args_len..].join(",")),
+                        name.span.clone(),
+                    );
+                }
+            } else {
+                state.error(
+                    format!("Function '{}' not found", name.text),
+                    name.span.clone(),
+                );
+            }
+        }
+
+        self.args().for_each(|it| it.check(state));
+    }
+}
+
+impl<'a> LspItem<'a> for CallArmAst<'a> {
+    fn at(&self, offset: usize) -> Option<crate::ast::LspNode<'a>> {
+        if self.0.span().contains(&offset) {
+            if let Some(name) = self.name()
+                && name.span.contains(&offset)
+            {
+                Some(LspNode::FunctionName(name))
+            } else {
+                self.args().find_map(|it| it.at(offset))
+            }
+        } else {
+            None
+        }
     }
 }

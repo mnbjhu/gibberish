@@ -2,7 +2,7 @@ use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishToken};
 
 use crate::{
-    ast::builder::ParserBuilder,
+    ast::{LspItem, LspNode, builder::ParserBuilder, expr::ExprAst, stmt::StmtAst},
     lexer::{RegexAst, option::OptionAst},
 };
 
@@ -10,16 +10,16 @@ use crate::{
 pub struct KeywordDefAst<'a>(pub &'a Group<Gibberish>);
 
 impl<'a> KeywordDefAst<'a> {
-    pub fn name(&self) -> &'a Lexeme<Gibberish> {
-        self.0.token_by_kind(GibberishToken::Ident).unwrap()
+    pub fn name(&self) -> Option<&'a Lexeme<Gibberish>> {
+        self.0.token_by_kind(GibberishToken::Ident)
     }
 
     pub fn build(&self, builder: &mut ParserBuilder) {
         builder.lexer.push((
-            self.name().text.to_string(),
+            self.name().unwrap().text.to_string(),
             RegexAst::Seq(vec![
                 RegexAst::Group {
-                    options: vec![RegexAst::Exact(self.name().text.clone())],
+                    options: vec![RegexAst::Exact(self.name().unwrap().text.clone())],
                     capture: true,
                 },
                 RegexAst::Choice {
@@ -33,5 +33,21 @@ impl<'a> KeywordDefAst<'a> {
                 },
             ]),
         ));
+    }
+}
+
+impl<'a> LspItem<'a> for KeywordDefAst<'a> {
+    fn at(&self, offset: usize) -> Option<LspNode<'a>> {
+        if self.0.span().contains(&offset) {
+            if let Some(name) = self.name()
+                && name.span.contains(&offset)
+            {
+                Some(LspNode::Expr(ExprAst::Ident(name)))
+            } else {
+                Some(LspNode::Stmt(StmtAst::Keyword(*self)))
+            }
+        } else {
+            None
+        }
     }
 }

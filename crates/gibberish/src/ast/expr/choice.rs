@@ -3,10 +3,7 @@ use gibberish_gibberish_parser::Gibberish;
 
 use crate::{
     ast::{builder::ParserBuilder, expr::ExprAst},
-    parser::{
-        Parser,
-        choice::choice as build_choice,
-    },
+    parser::Parser,
 };
 
 #[derive(Clone, Copy)]
@@ -19,6 +16,6 @@ impl<'a> ChoiceAst<'a> {
 
     pub fn build(&self, builder: &mut ParserBuilder) -> Parser {
         let items = self.iter().map(|it| it.build(builder)).collect::<Vec<_>>();
-        build_choice(items)
+        crate::parser::choice::choice(items)
     }
 }

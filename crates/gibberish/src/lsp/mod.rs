@@ -1,6 +1,5 @@
-use crate::ast::RootAst;
-use crate::semantic_token::{ImCompleteSemanticToken, LEGEND_TYPE, semantic_token_from_ast};
-use ast::{CheckState, LspItem};
+use crate::ast::{CheckError, CheckState, LspItem as _, RootAst};
+use crate::lsp::semantic_token::{ImCompleteSemanticToken, LEGEND_TYPE, semantic_token_from_ast};
 use dashmap::DashMap;
 use gibberish_core::err::ParseError;
 use gibberish_core::node::Node;
@@ -22,13 +21,9 @@ struct Backend {
     semantic_token_map: DashMap<String, Vec<ImCompleteSemanticToken>>,
 }
 
-pub mod ast;
-pub mod completion;
 pub mod funcs;
-pub mod semantic_analyze;
 pub mod semantic_token;
 pub mod span;
-pub mod symbol_table;
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -474,7 +469,7 @@ impl Backend {
         self.ast_map.insert(params.uri.to_string(), lst);
         for err in diags {
             match err {
-                ast::CheckError::Simple {
+                CheckError::Simple {
                     message,
                     span,
                     severity,
@@ -486,7 +481,7 @@ impl Backend {
                     diag.severity = Some(severity);
                     diagnostics.push(diag);
                 }
-                ast::CheckError::Unused(span) => {
+                CheckError::Unused(span) => {
                     let start_position = offset_to_position(span.start, &rope).unwrap();
                     let end_position = offset_to_position(span.end, &rope).unwrap();
                     let range = Range::new(start_position, end_position);
@@ -496,7 +491,7 @@ impl Backend {
                     diag.tags = Some(vec![DiagnosticTag::UNNECESSARY]);
                     diagnostics.push(diag);
                 }
-                ast::CheckError::Redeclaration {
+                CheckError::Redeclaration {
                     previous,
                     this,
                     name,
@@ -536,8 +531,7 @@ impl Backend {
     }
 }
 
-#[tokio::main]
-async fn main() {
+pub async fn start_lsp() {
     env_logger::init();
 
     let stdin = tokio::io::stdin();

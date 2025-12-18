@@ -1,12 +1,12 @@
 use ariadne::{Color, Label, Report, ReportKind, Source};
 use gibberish_core::{err::ParseError, lang::Lang, node::Node};
 
+pub mod err;
 pub mod regex;
 pub mod simple;
 
 pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &str, lang: &L) {
     let red = Color::Red;
-    // let blue = Color::Cyan;
     let error_span = error.span();
     match error {
         ParseError::MissingError { expected, .. } => {
@@ -16,14 +16,8 @@ pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &
                 .collect::<Vec<_>>()
                 .join(",");
             let mut report = Report::build(ReportKind::Error, (filename, error_span.clone()))
-                .with_code(3)
+                .with_code("E001")
                 .with_message(format!("Missing {expected_txt}",));
-            // Generate & choose some colours for each of our elements
-            // let before_span = if let Some(before) = before {
-            //     before.span.clone()
-            // } else {
-            //     src.len()..src.len()
-            // };
             report = report.with_label(
                 Label::new((filename, error_span))
                     .with_message(format!("Expected {expected_txt} here"))
@@ -38,7 +32,6 @@ pub fn report_parse_error<L: Lang>(error: &ParseError<L>, src: &str, filename: &
             let mut report = Report::build(ReportKind::Error, (filename, error_span.clone()))
                 .with_code(3)
                 .with_message("Unexpected".to_string());
-            // Generate & choose some colours for each of our elements
             report = report.with_label(
                 Label::new((filename, error_span.clone()))
                     .with_message("This is unexpected")

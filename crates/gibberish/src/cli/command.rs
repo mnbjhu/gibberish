@@ -11,6 +11,7 @@ use crate::cli::generate::generate;
 use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
 use crate::cli::watch::watch_custom;
+use crate::lsp::start_lsp;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -55,19 +56,24 @@ pub enum Command {
 
     /// Generate libraries and api's for parser
     Generate { path: PathBuf },
+
+    /// Start the Gibberish language server
+    Lsp,
 }
 
 impl Command {
     pub async fn run(&self) {
-        let fmt_layer = fmt::layer().with_target(false);
-        let filter_layer = EnvFilter::try_from_default_env()
-            .or_else(|_| EnvFilter::try_new("info"))
-            .unwrap();
+        if !matches!(&self, Command::Lsp) {
+            let fmt_layer = fmt::layer().with_target(false);
+            let filter_layer = EnvFilter::try_from_default_env()
+                .or_else(|_| EnvFilter::try_new("info"))
+                .unwrap();
 
-        tracing_subscriber::registry()
-            .with(filter_layer)
-            .with(fmt_layer)
-            .init();
+            tracing_subscriber::registry()
+                .with(filter_layer)
+                .with(fmt_layer)
+                .init();
+        }
 
         match self {
             Command::Lex {
@@ -106,6 +112,7 @@ impl Command {
             }
             Command::Build { path, output } => build(path, output.as_ref().map(PathBuf::as_path)),
             Command::Generate { path } => generate(path),
+            Command::Lsp => start_lsp().await,
         }
     }
 }

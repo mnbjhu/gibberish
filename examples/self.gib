@@ -51,6 +51,8 @@ parser _query = labelled_query;
 parser highlight_def = HIGHTLIGHT + _query;
 
 parser _stmt = kw_def | token_def | parser_def | highlight_def;
+parser _stmt = kw_def | token_def | parser_def | highlight_def;
+  
 parser _root = _stmt
   .sep_by(semi)
   .skip(whitespace)
