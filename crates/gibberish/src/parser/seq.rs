@@ -135,7 +135,9 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
         write!(
             f,
             "
-    ret %res
+    %delim_start_index =l add %delim_stack_len, 3
+    %invalid_delim =l cugel %res, %delim_start_index
+    jnz %invalid_delim, @ret_no_break, @ret_res
 @check_last
     jnz %res, @check_eof_last, @ret_ok
 @check_eof_last
@@ -149,6 +151,10 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
     %expected =:vec call $expected_{last}()
     call $missing(l %state_ptr, l %expected)
     jmp @ret_ok
+@ret_no_break
+    ret 1
+@ret_res
+    ret %res
 @ret_ok
     ret 0
 }}",

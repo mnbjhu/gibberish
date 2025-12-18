@@ -10,7 +10,6 @@ token r_bracket = "\]";
 token l_brace = "\{";
 token r_brace = "\}";
 
-parser _expr;
 parser string = str;
 parser num = int;
 parser bool = true | false;
@@ -20,7 +19,3 @@ parser object = field.sep_by(comma).delim_by(l_brace, r_brace);
 parser _expr = (object | array | string | num | bool);
 
 parser _root = _expr.skip(whitespace)
-
-
-
-

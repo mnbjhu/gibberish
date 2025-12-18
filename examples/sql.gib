@@ -26,7 +26,6 @@ parser field_name = IDENT;
 parser num = NUM;
 parser string = STR;
 
-parser _expr;
 parser _atom = field_name | num | string | _expr.delim_by(LParen, RParen);
 parser product = _atom fold TIMES + _atom;
 parser sum = product fold PLUS + product;
