@@ -4,10 +4,10 @@ use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe};
 
 pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
-    build_parse_by_id(builder, f);
 
     if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
         let inner = builder.vars[root].1.clone().build(builder, f);
+        build_parse_by_id(builder, f);
         write!(
             f,
             "

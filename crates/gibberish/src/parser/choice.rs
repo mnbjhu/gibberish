@@ -326,7 +326,8 @@ mod conflict_tests {
         token whitespace = "\\s+";
         parser def_table = define + table;
         parser def_field = define + field;
-        parser _def = (def_table | def_field).skip(whitespace)
+        parser _def = (def_table | def_field).skip(whitespace);
+        parser root = _def
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
