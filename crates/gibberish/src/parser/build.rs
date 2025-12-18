@@ -1,13 +1,28 @@
 use std::fmt::Write;
 
-use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe};
+use crate::{
+    ast::builder::ParserBuilder,
+    lexer::build::build_lexer_qbe,
+    parser::{Parser, skip::Skip},
+};
 
 pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
 
     if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
+        let mut inner = builder.vars[root].1.clone();
+        let mut skipped = String::new();
+        while let Parser::Skip(Skip { token, inner: i }) = inner {
+            inner = *i;
+            writeln!(
+                &mut skipped,
+                "call $skip(l %state_ptr, l {})",
+                builder.get_token_id(&token)
+            )
+            .unwrap();
+        }
         let inner = builder.vars[root].1.clone().build(builder, f);
-        build_parse_by_id(builder, f);
+
         write!(
             f,
             "
@@ -17,6 +32,7 @@ export function w $parse(l %state_ptr) {{
 @start
     jmp @loop
 @loop
+    {skipped}
     %res =l call $parse_{inner}(l %state_ptr, w 1, l 0)
     jnz %res, @check_eof, @end
 @check_eof
@@ -31,7 +47,15 @@ export function w $parse(l %state_ptr) {{
     jmp @loop
 @end
     %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @ret, @expected_eof
+    jnz %is_eof, @ret, @check_skip
+@check_skip
+    %current_kind =l call $current_kind(l %state_ptr)
+    %skip_ptr =l add %state_ptr, 80
+    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
+    jnz %is_skipped, @bump_skipped, @expected_eof
+@bump_skipped
+    call $bump_skipped(l %state_ptr)
+    jmp @end
 @expected_eof
     call $bump_err(l %state_ptr)
     jmp @end
@@ -64,6 +88,7 @@ export function w $parse(l %state_ptr) {{
         )
         .unwrap()
     }
+    build_parse_by_id(builder, f);
 }
 
 pub fn build_parse_by_id(builder: &ParserBuilder, f: &mut impl Write) {
