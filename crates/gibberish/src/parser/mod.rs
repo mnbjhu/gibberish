@@ -120,7 +120,7 @@ impl Parser {
             Parser::Rename(rename) => rename.expected(builder),
             Parser::Checkpoint(checkpoint) => checkpoint.expected(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().expected(builder),
-            Parser::Label(Label { name, inner }) => {
+            Parser::Label(Label { name, .. }) => {
                 let label_id = builder.labels.iter().position(|it| it == name).unwrap();
                 vec![Expected::Label(label_id as u32)]
             }
@@ -165,7 +165,7 @@ impl Parser {
             Parser::Rename(rename) => rename.build_parse(id, builder, f),
             Parser::Checkpoint(checkpoint) => checkpoint.build_parse(id, builder, f),
             Parser::Reference(n) => builder.get_var(n).unwrap().build_parse(id, builder, f),
-            Parser::Label(Label { inner, .. }) => inner.build_parse(id, builder, f),
+            Parser::Label(label) => label.build_parse(id, builder, f),
         }
     }
 

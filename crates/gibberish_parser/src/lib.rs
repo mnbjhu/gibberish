@@ -1,3 +1,4 @@
+
 use std::{fmt::Display, mem};
 
 use gibberish_core::{
@@ -29,58 +30,65 @@ pub struct Gibberish;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishToken {
-    KEYWORD,
-    PARSER,
-    TOKEN,
-    HIGHTLIGHT,
-    FOLD,
-    Whitespace,
-    Int,
-    Colon,
-    Comma,
-    Bar,
-    Dot,
-    LBracket,
-    RBracket,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    Plus,
-    Eq,
-    Ident,
-    Semi,
-    String,
-    At,
+    	KEYWORD,
+	PARSER,
+	TOKEN,
+	HIGHTLIGHT,
+	FOLD,
+	Whitespace,
+	Int,
+	Colon,
+	Comma,
+	Bar,
+	Dot,
+	LBracket,
+	RBracket,
+	LParen,
+	RParen,
+	LBrace,
+	RBrace,
+	Plus,
+	Eq,
+	Ident,
+	Semi,
+	String,
+	At,
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishSyntax {
-    Named = 0,
-    CallName = 2,
-    Args = 3,
-    Call = 4,
-    MemberCall = 5,
-    Seq = 6,
-    Choice = 7,
-    KwDef = 9,
-    TokenDef = 10,
-    FoldStmt = 11,
-    ParserDef = 12,
-    ChildQuery = 13,
-    GroupQuery = 14,
-    Label = 15,
-    LabelledQuery = 16,
-    HighlightDef = 18,
-    Root = 21,
-    Unmatched = 22,
+    	Named = 0,
+	CallName = 2,
+	Args = 3,
+	Call = 4,
+	MemberCall = 5,
+	Seq = 6,
+	Choice = 7,
+	KwDef = 9,
+	TokenDef = 10,
+	FoldStmt = 11,
+	ParserDef = 12,
+	ChildQuery = 13,
+	GroupQuery = 14,
+	Label = 15,
+	LabelledQuery = 16,
+	HighlightDef = 18,
+	Root = 21,
+	Unmatched = 22,
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishLabel {
-    Todo,
+    	Expression,
+	TokenName,
+	Regex,
+	ParserName,
+	Declaration,
+
 }
 
 impl Display for GibberishToken {

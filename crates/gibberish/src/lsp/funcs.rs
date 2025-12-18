@@ -64,6 +64,6 @@ pub const DEFAULT_FUNCS: &[FuncDef] = &[
     },
     FuncDef {
         name: "labelled",
-        args: &[FuncArg::label("token")],
+        args: &[FuncArg::label("name")],
     },
 ];

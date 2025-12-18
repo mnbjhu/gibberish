@@ -25,20 +25,20 @@ token at = "@";
 
 
 parser named = ident;
-parser _atom = _expr.delim_by(l_paren, r_paren) | named;
+parser _atom = (_expr.delim_by(l_paren, r_paren) | named).labelled(expression);
 parser call_name = ident;
 parser args = _expr.sep_by(comma).or_not().delim_by(l_paren, r_paren);
 parser call = dot + call_name + args;
 parser member_call = _atom fold call.repeated();
-parser seq = member_call fold (plus + member_call).repeated();
-parser choice = seq fold (bar + seq).repeated();
-parser _expr = choice;
+parser seq = member_call.labelled(expression) fold (plus + member_call.labelled(expression)).repeated();
+parser choice = seq.labelled(expression) fold (bar + seq.labelled(expression)).repeated();
+parser _expr = choice.labelled(expression);
 
-parser kw_def = KEYWORD + ident;
-parser token_def = TOKEN + ident + eq + string;
+parser kw_def = KEYWORD + ident.labelled(token_name);
+parser token_def = TOKEN + ident.labelled(token_name) + eq + string.labelled(regex);
 
 parser fold_stmt = _expr fold FOLD + _expr;
-parser parser_def = PARSER + ident + eq + fold_stmt;
+parser parser_def = PARSER + ident.labelled(parser_name) + eq + fold_stmt;
 
 parser child_query = _query.sep_by(comma).or_not().delim_by(l_paren, r_paren);
 parser group_query = named + (colon + child_query).or_not();
@@ -50,5 +50,6 @@ parser highlight_def = HIGHTLIGHT + _query;
 
 parser _stmt = kw_def | token_def | parser_def | highlight_def;
 parser _root = _stmt
+  .labelled(declaration)
   .sep_by(semi)
   .skip(whitespace)

@@ -117,6 +117,7 @@ impl<'a> ExprAst<'a> {
                         self.span(),
                     );
                 }
+                return;
             }
             _ => (),
         }

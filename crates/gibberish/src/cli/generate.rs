@@ -101,6 +101,9 @@ fn main() {{
         let name = snake_to_upper_camel(name);
         writeln!(&mut label_body, "\t{name},").unwrap();
     }
+    if builder.labels.is_empty() {
+        writeln!(&mut label_body, "\tNone,").unwrap();
+    }
 
     let mut syntax_body = String::new();
     for (index, name) in builder
@@ -195,6 +198,7 @@ impl Display for {struct_name}Label {{
 impl Lang for {struct_name} {{
     type Token = {struct_name}Token;
     type Syntax = {struct_name}Syntax;
+    type Label = {struct_name}Label;
 }}
 
 impl {struct_name} {{
