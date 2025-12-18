@@ -6,7 +6,6 @@ pub fn report_simple_error(msg: &str, span: Span, src: &str, filename: &str) {
     let mut report = Report::build(ReportKind::Error, (filename, span.clone()))
         .with_code(3)
         .with_message(msg);
-    // Generate & choose some colours for each of our elements
     report = report.with_label(
         Label::new((filename, span))
             .with_message(msg)

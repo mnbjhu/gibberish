@@ -15,47 +15,68 @@ use crate::lsp::start_lsp;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
+/// Gibberish Compiler - Tools for building, testing and working with Gibberish parsers
 #[derive(clap::Parser)]
 pub enum Command {
     /// Lexes a file
     Lex {
+        /// The file to lex
         src: PathBuf,
-
+        /// The parser to lex the file with (uses the gibberish parser if unset)
         #[clap(short, long)]
         parser: Option<PathBuf>,
     },
 
-    /// Parses a file and shows the generated LST
+    /// Parses a file and shows the LST
     Parse {
+        /// The file to parse
         path: PathBuf,
+
+        /// Hide errors from the LST
         #[clap(short('e'), long)]
         hide_errors: bool,
+
+        /// Hide tokens from the LST
         #[clap(short('t'), long)]
         hide_tokens: bool,
+
+        /// Path to a parser to use (uses the gibberish parser if unset)
         #[clap(short, long)]
         parser: Option<PathBuf>,
     },
 
-    /// Watches a file, parses it and shows the generated LST
+    /// Watches a file, parses it and shows the LST as it changes
     Watch {
+        /// The file to watch
         path: PathBuf,
+
+        /// Hide errors from the LST
         #[clap(short('e'), long)]
         hide_errors: bool,
+
+        /// Hide tokens from the LST
         #[clap(short('t'), long)]
         hide_tokens: bool,
+
+        /// Path to a parser to use (uses the gibberish parser if unset)
         #[clap(short, long)]
         parser: Option<PathBuf>,
     },
 
-    /// Builds a parser
+    /// Builds a parser from a .gib file
     Build {
+        /// Path to a parser to build
         path: PathBuf,
+        /// Path to output the comiled library (static lib/dynamic lib/qbe)
         #[clap(short, long)]
-        output: Option<PathBuf>,
+        output: PathBuf,
     },
 
     /// Generate libraries and api's for parser
-    Generate { path: PathBuf },
+    Generate {
+        /// Path to a parser to build
+        path: PathBuf,
+    },
 
     /// Start the Gibberish language server
     Lsp,
@@ -110,7 +131,7 @@ impl Command {
                     watch(path, !hide_errors, !hide_tokens).unwrap()
                 }
             }
-            Command::Build { path, output } => build(path, output.as_ref().map(PathBuf::as_path)),
+            Command::Build { path, output } => build(path, output),
             Command::Generate { path } => generate(path),
             Command::Lsp => start_lsp().await,
         }
