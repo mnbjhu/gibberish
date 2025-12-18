@@ -8,6 +8,8 @@ use ansi_term::{
     Colour::{Blue, Green, Red},
 };
 
+const GREY: Color = Color::RGB(100, 100, 100);
+
 pub type Span = Range<usize>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,27 +75,12 @@ impl<L: Lang> Node<L> {
             }
             Node::Lexeme(lexeme) => {
                 if tokens {
-                    print_offset(offset);
-                    println!(
-                        "{}: {:?}@{:?}",
-                        Blue.paint(lang.token_name(&lexeme.kind)),
-                        lexeme.text,
-                        lexeme.span,
-                    )
+                    lexeme.debug_at(offset, lang, false);
                 }
             }
             Node::Skipped(lexeme) => {
                 if tokens {
-                    print_offset(offset);
-                    println!(
-                        "{}",
-                        Color::RGB(100, 100, 100).paint(format!(
-                            "{}: {:?}@{:?}",
-                            lang.token_name(&lexeme.kind),
-                            lexeme.text,
-                            lexeme.span,
-                        ))
-                    )
+                    lexeme.debug_at(offset, lang, true);
                 }
             }
             Node::Err(err_group) => {
@@ -153,6 +140,21 @@ impl<L: Lang> Node<L> {
     }
 }
 
+impl<L: Lang> Lexeme<L> {
+    pub fn debug_at(&self, offset: usize, lang: &L, skipped: bool) {
+        for _ in 0..offset {
+            print!("  ");
+        }
+        let color = if skipped { GREY } else { Color::Blue };
+        println!(
+            "{}: {:?}{span}",
+            color.paint(lang.token_name(&self.kind)),
+            self.text,
+            span = GREY.paint(format!("@{:?}", self.span)),
+        )
+    }
+}
+
 impl<L: Lang> ParseError<L> {
     fn debug_at(&self, offset: usize, lang: &L) {
         // NOTE: Only works when called by outer 'debug_at'
@@ -166,17 +168,9 @@ impl<L: Lang> ParseError<L> {
                 println!("{}: {expected}", Red.paint("Missing"));
             }
             ParseError::Unexpected { actual, .. } => {
-                println!("Unexpected:");
+                println!("{}", Color::Red.paint("Unexpected:"));
                 for token in actual {
-                    for _ in 0..offset {
-                        print!("  ");
-                    }
-                    println!(
-                        "  {}: {:?}@{:?}",
-                        Red.paint(lang.token_name(&token.kind)),
-                        token.text,
-                        token.span,
-                    )
+                    token.debug_at(offset + 1, lang, false);
                 }
             }
         }
@@ -184,7 +178,6 @@ impl<L: Lang> ParseError<L> {
 }
 
 impl<L: Lang> Node<L> {
-    /// Iterate over all `Lexeme`s inside this node (DFS, left-to-right).
     pub fn all_tokens(&self) -> LexemeIter<'_, L> {
         LexemeIter {
             stack: vec![NodeOrLexeme::Node(self)],
