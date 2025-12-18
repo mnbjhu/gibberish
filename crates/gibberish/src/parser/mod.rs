@@ -374,7 +374,7 @@ mod tests {
         let src_file_path = src_file.path();
         let lib = Builder::new().suffix(".so").tempfile().unwrap();
         let lib_path = lib.path();
-        cli::build::build(src_file_path, Some(lib_path));
+        cli::build::build(src_file_path, lib_path);
         CompiledLang::load(lib_path)
     }
 
