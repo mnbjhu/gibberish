@@ -3,6 +3,7 @@ token whitespace = "\s+";
 token comma = ",";
 token l_bracket = "\[";
 token r_bracket = "\]";
+
 parser items = num.sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser _root = _brackets.skip(whitespace)
+parser root = _brackets.skip(whitespace)

@@ -61,8 +61,10 @@ pub fn build_qbe_str(parser_file: &Path) -> String {
 impl ParserBuilder {
     pub fn build_qbe(&mut self) -> String {
         let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
-        group_names.push("root");
         group_names.push("unmatched");
+        if !self.vars.iter().any(|(it, _)| it == "root") {
+            group_names.push("root");
+        }
         let mut res = String::new();
         let pre = include_str!("../../pre.qbe");
         write!(&mut res, "{}", pre).unwrap();

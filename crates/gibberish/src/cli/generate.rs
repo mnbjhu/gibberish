@@ -121,13 +121,7 @@ fn main() {{
         let name = snake_to_upper_camel(name);
         writeln!(&mut syntax_body, "\t{name} = {},", index).unwrap();
     }
-    writeln!(&mut syntax_body, "\tRoot = {},", builder.vars.len()).unwrap();
-    writeln!(
-        &mut syntax_body,
-        "\tUnmatched = {},",
-        builder.vars.len() + 1
-    )
-    .unwrap();
+    writeln!(&mut syntax_body, "\tUnmatched = {},", builder.vars.len()).unwrap();
 
     let lib_rs = format!(
         "

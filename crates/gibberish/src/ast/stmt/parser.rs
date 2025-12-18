@@ -27,7 +27,7 @@ impl<'a> ParserDefAst<'a> {
         let name = self.name().unwrap().text.as_str();
         if let Some(expr) = self.expr() {
             let mut p = expr.build(builder);
-            if !name.starts_with("_") {
+            if !name.starts_with("_") && name != "root" {
                 p = p.named(name.to_string());
             }
             let index = builder.vars.iter().position(|(it, _)| it == name).unwrap();

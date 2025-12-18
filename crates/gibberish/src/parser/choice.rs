@@ -70,12 +70,12 @@ impl Choice {
             .collect::<Vec<_>>();
 
         let ret_err = match &self.default {
-            Some(d) if d == "%group_at_default%" => &format!(
+            Some(d) if d == "%default_unmatched%" => &format!(
                 "\n@ret_err
     call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
     ret %res
 ",
-                default = builder.vars.len() + 1
+                default = builder.vars.len(),
             ),
             Some(default) => {
                 let default = builder.get_group_id(default);
@@ -175,7 +175,7 @@ function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
 
     pub fn is_optional(&self, _: &ParserBuilder) -> bool {
         if let Some(d) = &self.default
-            && d != "%group_at_default%"
+            && d != "%default_unmatched%"
         {
             true
         } else {
@@ -326,7 +326,8 @@ mod conflict_tests {
         token whitespace = "\\s+";
         parser def_table = define + table;
         parser def_field = define + field;
-        parser _def = (def_table | def_field).skip(whitespace)
+        parser _def = (def_table | def_field).skip(whitespace);
+        parser root = _def
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
@@ -455,7 +456,7 @@ parser _expr = sum;
 parser param = ident + eq + _expr;
 parser items = (param | sum).sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser _root = _brackets.skip(whitespace)"#;
+parser root = _brackets.skip(whitespace)"#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)

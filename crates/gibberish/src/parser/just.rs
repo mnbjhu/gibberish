@@ -108,7 +108,7 @@ mod tests {
     fn parse_just_test(text: &str) -> (CompiledLang, Node<CompiledLang>) {
         let parser = r#"token num = "[0-9]+";
         token whitespace = "\s+";
-        parser _root = num"#;
+        parser root = num"#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn test_keyword_lex() {
         let parser = r#"keyword just;
-        parser _root = just"#;
+        parser root = just"#;
         let lang = build_test_parser(parser);
         let lst = parse(&lang, "just");
         assert_eq!("root", lang.syntax_name(&lst.name()));
