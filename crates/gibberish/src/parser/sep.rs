@@ -125,7 +125,7 @@ mod tests {
         let parser = r#"token num = "[0-9]+";
         token whitespace = "\s+";
         token comma = ",";
-        parser _root = num.sep_by(comma)
+        parser root = num.sep_by(comma)
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);

@@ -44,6 +44,7 @@ impl<'a> RootAst<'a> {
     pub fn check(&self, state: &mut CheckState<'a>) {
         self.stmts().for_each(|it| it.check(state));
         let mut missing = vec![];
+        let mut found_root = false;
         for refr in &state.refs {
             if !state.defs.contains_key(&refr.text) {
                 missing.push(refr.span.clone());
@@ -51,7 +52,8 @@ impl<'a> RootAst<'a> {
         }
 
         for def in &state.defs {
-            if def.0 == "_root" {
+            if def.0 == "root" {
+                found_root = true;
                 continue;
             }
             let ref_count = state.refs.iter().filter(|it| &it.text == def.0).count();
@@ -60,6 +62,9 @@ impl<'a> RootAst<'a> {
                     .errors
                     .push(CheckError::Unused(def.1.name().unwrap().span.clone()));
             }
+        }
+        if !found_root {
+            state.info("Parser is missing a 'root'".to_string(), 0..0);
         }
         for span in missing {
             state.error("Parser or token not found".to_string(), span);
@@ -123,6 +128,14 @@ impl<'a> CheckState<'a> {
             message,
             span,
             severity: DiagnosticSeverity::ERROR,
+        });
+    }
+
+    pub fn info(&mut self, message: String, span: Span) {
+        self.errors.push(CheckError::Simple {
+            message,
+            span,
+            severity: DiagnosticSeverity::INFORMATION,
         });
     }
 }

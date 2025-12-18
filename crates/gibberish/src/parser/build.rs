@@ -4,11 +4,13 @@ use crate::{ast::builder::ParserBuilder, lexer::build::build_lexer_qbe};
 
 pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_qbe(&builder.lexer, f);
-    let inner = builder.vars.last().unwrap().1.clone().build(builder, f);
     build_parse_by_id(builder, f);
-    write!(
-        f,
-        "
+
+    if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
+        let inner = builder.vars[root].1.clone().build(builder, f);
+        write!(
+            f,
+            "
 data $root_group_id = {{ w {root} }}
 
 export function w $parse(l %state_ptr) {{
@@ -36,10 +38,32 @@ export function w $parse(l %state_ptr) {{
 @ret
     ret 1
 }}
+"
+        )
+        .unwrap()
+    } else {
+        write!(
+            f,
+            "
+data $root_group_id = {{ w {root} }}
+
+export function w $parse(l %state_ptr) {{
+@start
+    jmp @check_eof
+@check_eof
+    %is_eof =w call $is_eof(l %state_ptr)
+    jnz %is_eof, @ret, @bump_err
+@bump_err
+    call $bump_err(l %state_ptr)
+    jmp @check_eof
+@ret
+    ret 1
+}}
 ",
-        root = builder.vars.len(),
-    )
-    .unwrap()
+            root = builder.vars.len() + 1
+        )
+        .unwrap()
+    }
 }
 
 pub fn build_parse_by_id(builder: &ParserBuilder, f: &mut impl Write) {

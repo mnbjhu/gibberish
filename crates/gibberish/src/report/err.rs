@@ -19,7 +19,14 @@ impl CheckError {
                     DiagnosticSeverity::HINT => Color::Green,
                     _ => panic!("{severity:?} is not a valid severity"),
                 };
-                let mut report = Report::build(ReportKind::Error, (filename, span.clone()))
+                let kind = match *severity {
+                    DiagnosticSeverity::ERROR => ReportKind::Error,
+                    DiagnosticSeverity::WARNING => ReportKind::Warning,
+                    DiagnosticSeverity::INFORMATION => ReportKind::Custom("Info", Color::Blue),
+                    DiagnosticSeverity::HINT => ReportKind::Advice,
+                    _ => panic!("{severity:?} is not a valid severity"),
+                };
+                let mut report = Report::build(kind, (filename, span.clone()))
                     .with_code("E002")
                     .with_message(message);
                 report = report.with_label(
