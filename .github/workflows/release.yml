@@ -81,7 +81,7 @@ jobs:
             archive: tar.gz
             bin_ext: ""
 
-          # Windows
+          # Windows (GNU)
           - os: windows-latest
             target: x86_64-pc-windows-gnu
             archive: zip
@@ -127,25 +127,24 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Ensure MinGW-w64 tools are on PATH for the subsequent cargo build
-          # msys2/setup-msys2 exposes MINGW64 location via MSYS2_PATH_TYPE=inherit by default,
-          # but making it explicit is more reliable:
           $mingw = "C:\msys64\mingw64\bin"
           Add-Content -Path $env:GITHUB_PATH -Value $mingw
-            - name: Build QBE (Windows via MSYS2)
-              if: runner.os == 'Windows'
-              shell: msys2 {0}
-              run: |
-                set -euo pipefail
-                curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
-                tar -xf qbe.tar.xz
-                cd qbe-1.2
-                make -j"$(nproc)"
 
-                # Put qbe.exe somewhere we can reliably add to PATH from PowerShell
-                mkdir -p "$GITHUB_WORKSPACE/qbe-bin"
-                cp -f qbe.exe "$GITHUB_WORKSPACE/qbe-bin/qbe.exe"
-                ls -la "$GITHUB_WORKSPACE/qbe-bin"
+      - name: Build QBE (Windows via MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        env:
+          MSYS2_PATH_TYPE: inherit
+        run: |
+          set -euo pipefail
+          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
+          tar -xf qbe.tar.xz
+          cd qbe-1.2
+          make -j"$(nproc)"
+
+          mkdir -p "$GITHUB_WORKSPACE/qbe-bin"
+          cp -f qbe.exe "$GITHUB_WORKSPACE/qbe-bin/qbe.exe"
+          ls -la "$GITHUB_WORKSPACE/qbe-bin"
 
       - name: Add QBE to PATH (Windows) and verify
         if: runner.os == 'Windows'
@@ -160,10 +159,7 @@ jobs:
             exit 1
           }
 
-          # Persist PATH update for subsequent steps in this job
           Add-Content -Path $env:GITHUB_PATH -Value $qbeDir
-
-          # Make it available *in this step* too
           $env:PATH = "$qbeDir;$env:PATH"
 
           Get-Command qbe | Out-Host
