@@ -95,6 +95,17 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install QBE (required for all builds)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
+          tar -xf qbe.tar.xz
+          cd qbe-1.2
+          make -j"$(nproc)"
+          sudo install qbe /usr/local/bin/qbe
+          qbe -h >/dev/null
+
       - name: Install musl tools (Linux musl only)
         if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-musl'
         shell: bash
