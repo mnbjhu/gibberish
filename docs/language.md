@@ -102,16 +102,19 @@ Parser names control grouping behavior in the resulting syntax tree.
 Parsers whose names **do not** start with `_` automatically introduce a `Group` node in the syntax tree.
 
 ```gibberish
-parser expr = term + plus + term;
+parser term = ident | num;
+parser root = term + plus + term;
 ```
 
-Produces:
+Produces ("name+123"):
 
 ```
-expr
+root
   term
+    ident
   plus
   term
+    num
 ```
 
 ### Internal Parsers
@@ -120,10 +123,17 @@ Parsers whose names **start with `_`** are considered internal and do _not_ crea
 
 ```gibberish
 parser _term = number | ident;
-parser expr = _term + plus + _term;
+parser root = _term + plus + _term;
 ```
 
 Produces a flatter tree without `_term` groups.
+
+```
+root
+  ident
+  plus
+  num
+```
 
 ---
 
