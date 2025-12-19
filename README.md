@@ -86,7 +86,7 @@ This is especially useful when developing or debugging grammars.
   Grammars are written compositionally using sequences, choices, repetition, separators, and delimiters.
 
 - **Tooling-Oriented**
-  Designed from the ground up to support IDEs, incremental parsing, diagnostics, and formatting.
+  Designed from the ground up to support IDEs, diagnostics, and formatting.
 
 ---
 
@@ -100,55 +100,43 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
   Lex a file and display the resulting tokens.
 
   ```sh
-
+  gibberish lex <src> [--parser <parser>]
   ```
 
-gibberish lex <src> [--parser <parser>]
-
-````
-
 - **`parse`**
-Parse a file and display its lossless syntax tree.
+  Parse a file and display its lossless syntax tree.
 
-```sh
-gibberish parse <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
-````
+  ```sh
+  gibberish parse <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
+  ```
 
 - **`watch`**
   Watch a file, reparse it on changes, and display the updated syntax tree.
 
   ```sh
-
+  gibberish watch <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
   ```
 
-gibberish watch <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
-
-````
-
 - **`build`**
-Compile a `.gib` grammar into a parser library.
+  Compile a `.gib` grammar into a parser library.
 
-```sh
-gibberish build <path> --output <output>
-````
+  ```sh
+  gibberish build <path> --output <output>
+  ```
 
 - **`generate`**
   Generate libraries and APIs from a grammar.
 
   ```sh
-
+  gibberish generate <path>
   ```
 
-gibberish generate <path>
-
-````
-
 - **`lsp`**
-Start the Gibberish language server.
+  Start the Gibberish language server.
 
-```sh
-gibberish lsp
-````
+  ```sh
+  gibberish lsp
+  ```
 
 ---
 
@@ -208,3 +196,7 @@ If something feels underspecified, it probably is—feedback and experimentation
 ## License
 
 [Specify license here]
+
+```
+
+```
