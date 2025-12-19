@@ -123,7 +123,7 @@ jobs:
             xz
             curl
 
-      - name: Build QBE (Windows via MSYS2) and add to PATH
+      - name: Build QBE (Windows via MSYS2)
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
@@ -132,14 +132,32 @@ jobs:
           tar -xf qbe.tar.xz
           cd qbe-1.2
           make -j"$(nproc)"
-          mkdir -p "$GITHUB_WORKSPACE/qbe-bin"
-          cp qbe.exe "$GITHUB_WORKSPACE/qbe-bin/qbe.exe"
 
-      - name: Add QBE to PATH (Windows)
+          # Put qbe.exe somewhere we can reliably add to PATH from PowerShell
+          mkdir -p "$GITHUB_WORKSPACE/qbe-bin"
+          cp -f qbe.exe "$GITHUB_WORKSPACE/qbe-bin/qbe.exe"
+          ls -la "$GITHUB_WORKSPACE/qbe-bin"
+
+      - name: Add QBE to PATH (Windows) and verify
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:GITHUB_WORKSPACE "qbe-bin")
+          $qbeDir = Join-Path $env:GITHUB_WORKSPACE "qbe-bin"
+          $qbeExe = Join-Path $qbeDir "qbe.exe"
+
+          if (!(Test-Path $qbeExe)) {
+            Write-Error "qbe.exe not found at $qbeExe"
+            Get-ChildItem -Recurse -Force $env:GITHUB_WORKSPACE | Select-Object FullName | Out-Host
+            exit 1
+          }
+
+          # Persist PATH update for subsequent steps in this job
+          Add-Content -Path $env:GITHUB_PATH -Value $qbeDir
+
+          # Make it available *in this step* too
+          $env:PATH = "$qbeDir;$env:PATH"
+
+          Get-Command qbe | Out-Host
           qbe -h | Out-Null
 
       # -------- other toolchain bits --------
