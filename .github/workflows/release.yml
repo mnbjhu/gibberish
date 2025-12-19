@@ -1,4 +1,4 @@
-name: Build, Test (with QBE) & Upload Gibberish Binaries
+name: Release
 
 on:
   release:
