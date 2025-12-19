@@ -3,12 +3,15 @@ name: Build, Test (with QBE) & Upload Gibberish Binaries
 on:
   release:
     types: [published]
+
+  # Allows testing from ANY branch without merging
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release tag to upload assets to (e.g. test-v0.0.0)"
+        description: "Release tag to upload assets to (e.g. test-v0.0.0). Create a draft/pre-release with this tag first."
         required: true
         default: "test-v0.0.0"
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -110,7 +113,7 @@ jobs:
         run: |
           set -euo pipefail
           BIN="gibberish"
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${{ github.event.release.tag_name || inputs.tag_name }}"
           TARGET="${{ matrix.target }}"
           NAME="${BIN}-${VERSION}-${TARGET}"
 
@@ -124,7 +127,7 @@ jobs:
         shell: pwsh
         run: |
           $bin = "gibberish${{ matrix.bin_ext }}"
-          $version = "${{ github.event.release.tag_name }}"
+          $version = "${{ github.event.release.tag_name || inputs.tag_name }}"
           $target = "${{ matrix.target }}"
           $name = "gibberish-$version-$target"
 
@@ -135,5 +138,5 @@ jobs:
       - name: Upload assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ github.event.release.tag_name || inputs.tag_name }}
           files: dist/**
