@@ -309,6 +309,10 @@ export function :vec $lex(l %ptr, l %len) {{
     %total_offset =l copy %end
     %ptr =l add %ptr, 1
     %len =l sub %len, 1
+
+    storel %ptr, %lexer_state
+    storel %len, %len_ptr
+
     storel 0, %offset_ptr
     storel 0, %group_end_ptr
     %last_was_error =w copy 1

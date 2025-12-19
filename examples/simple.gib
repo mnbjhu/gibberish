@@ -1,9 +1,0 @@
-token semi = ";";
-token num = "[0-9]+";
-token ws = "\s+";
-token ident = "[_a-zA-Z][_a-zA-Z0-9]*";
-
-keyword select;
-keyword delete;
-keyword from
-

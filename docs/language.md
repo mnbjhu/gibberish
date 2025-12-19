@@ -52,7 +52,7 @@ Skipping is handled at the **parser** level, not the lexer level.
 
 ## Keywords
 
-Keywords are identifiers with special meaning at the grammar level. They are lexed as identifiers and promoted during parsing.
+Keywords are just a convenient way a creating tokens for specific identifier.
 
 ### Definition Syntax
 
@@ -336,7 +336,7 @@ Overrides the default expected value used when generating `Missing` nodes.
 
 ---
 
-## Complete Example
+## Complete Example (json)
 
 ```gibberish
 keyword true;
