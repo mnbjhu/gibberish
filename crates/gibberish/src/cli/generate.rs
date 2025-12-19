@@ -8,11 +8,9 @@ use std::{
 };
 
 use ansi_term::Color;
-use tempfile::NamedTempFile;
 
 use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
-use crate::cli::build::{build_dynamic_lib, build_static_lib};
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
@@ -20,12 +18,9 @@ pub fn generate(src: &Path) {
     let qbe_str = builder.build_qbe();
     let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
-    build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
-    let qbe = NamedTempFile::new().unwrap();
-    let qbe_path = qbe.path().to_path_buf();
-    fs::write(&qbe, qbe_str).unwrap();
-    build_dynamic_lib(&qbe_path, &PathBuf::from(format!("lib/{name}-parser.so")));
-    build_crate(name, current_dir().unwrap(), &builder);
+    let crate_dir = current_dir().unwrap();
+    write_file(&crate_dir.join("lib/parser.qbe"), &qbe_str).unwrap();
+    build_crate(name, crate_dir, &builder);
     println!("{}", Color::Green.paint("[Build successful]"));
 }
 
@@ -77,14 +72,114 @@ gibberish-core = "0.1.0"
         write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
     }
 
+    use std::fmt::Write;
+
     let build_rs = format!(
-        "
+        r#"// build.rs
+//
+// Builds a static library from QBE IR at lib/parser.qbe and links it into this crate.
+// Assumes `qbe` and a C toolchain are available on PATH.
+// - Unix: uses `ar` to create lib<basename>.a
+// - Windows MSVC: uses `lib.exe` to create <basename>.lib (requires MSVC tools)
+// - Windows GNU (MinGW): uses `ar` (still produces .a)
+
+use std::{{
+    env,
+    path::{{Path, PathBuf}},
+    process::Command,
+}};
+
 fn main() {{
-    println!(\"cargo:rustc-link-search=native=lib\");
-    println!(\"cargo:rustc-link-lib=static={name}-parser\");
-    println!(\"cargo:rerun-if-changed=lib/lib{name}-parser.a\");
+    // ---- inputs ----
+    let qbe_ir = Path::new("lib/parser.qbe");
+    println!("cargo:rerun-if-changed={{}}", qbe_ir.display());
+
+    // ---- environment ----
+    let target = env::var("TARGET").expect("TARGET not set");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
+    // Parameterised static library basename (no "lib" prefix, no extension)
+    let lib_basename: &str = "{name}-parser";
+
+    // ---- derived paths ----
+    let asm_path = out_dir.join("parser.s");
+    let obj_path = if target.contains("windows") {{
+        out_dir.join("parser.obj")
+    }} else {{
+        out_dir.join("parser.o")
+    }};
+
+    let lib_path = static_lib_filename(&out_dir, &target, lib_basename);
+
+    // ---- 1) QBE: IR -> assembly ----
+    run(
+        "qbe",
+        &["-o", asm_path.to_str().unwrap(), qbe_ir.to_str().unwrap()],
+    );
+
+    // ---- 2) CC: assembly -> object ----
+    let cc = env::var("CC").unwrap_or_else(|_| "cc".to_string());
+
+    let mut cc_cmd = Command::new(cc);
+    cc_cmd.arg("-c").arg(&asm_path).arg("-o").arg(&obj_path);
+
+    if !target.contains("windows") {{
+        cc_cmd.arg("-fPIC");
+    }}
+
+    cc_cmd.arg("-g").arg("-fno-omit-frame-pointer");
+
+    run_cmd(cc_cmd);
+
+    // ---- 3) Archive: object -> static library ----
+    if target.contains("windows-msvc") {{
+        let lib_tool = env::var("LIB").unwrap_or_else(|_| "lib".to_string());
+        let out_flag = format!("/OUT:{{}}", lib_path.to_str().unwrap());
+        run(&lib_tool, &[&out_flag, obj_path.to_str().unwrap()]);
+    }} else {{
+        let ar = env::var("AR").unwrap_or_else(|_| "ar".to_string());
+        run(
+            &ar,
+            &[
+                "rcs",
+                lib_path.to_str().unwrap(),
+                obj_path.to_str().unwrap(),
+            ],
+        );
+    }}
+
+    // ---- 4) Tell Cargo/rustc how to link it ----
+    println!("cargo:rustc-link-search=native={{}}", out_dir.display());
+    println!("cargo:rustc-link-lib=static={{}}", lib_basename);
 }}
-"
+
+fn static_lib_filename(out_dir: &Path, target: &str, basename: &str) -> PathBuf {{
+    if target.contains("windows-msvc") {{
+        out_dir.join(format!("{{basename}}.lib"))
+    }} else {{
+        out_dir.join(format!("lib{{basename}}.a"))
+    }}
+}}
+
+fn run(program: &str, args: &[&str]) {{
+    let status = Command::new(program)
+        .args(args)
+        .status()
+        .unwrap_or_else(|e| panic!("failed to run {{program}}: {{e}}"));
+    if !status.success() {{
+        panic!("{{program}} failed with status {{status}}");
+    }}
+}}
+
+fn run_cmd(mut cmd: Command) {{
+    let status = cmd
+        .status()
+        .unwrap_or_else(|e| panic!("failed to run command: {{e}}"));
+    if !status.success() {{
+        panic!("command failed with status {{status}}");
+    }}
+}}
+"#
     );
     if !crate_dir.join("build.rs").exists() {
         write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
