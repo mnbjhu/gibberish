@@ -177,7 +177,7 @@ data ${name}_{kind}_name_len = {{ l {name_len} }}
     write!(
         f,
         "
-data $err_{kind}_name = {{ b \"{kind}_error\", b 0}}
+data $err_{kind}_name = {{ b \"error\", b 0}}
 
 
 export function :str_slice ${kind}_name(w %kind) {{"

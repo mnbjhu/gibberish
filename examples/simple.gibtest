@@ -1,1 +1,1 @@
- [123,  123]
+select 123 from table ;
