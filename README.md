@@ -16,8 +16,6 @@ Prebuilt binaries are available on the **GitHub Releases** page.
 - Place it somewhere on your `$PATH`
 - The executable is called `gibberish`
 
-> At the moment, building from source is possible but not yet well-documented. Using a release binary is the recommended way to get started.
-
 ---
 
 ### Trying an Example Grammar
@@ -190,13 +188,3 @@ Gibberish is under active development.
 - The **documentation is incomplete and rough**
 
 If something feels underspecified, it probably is—feedback and experimentation are encouraged.
-
----
-
-## License
-
-[Specify license here]
-
-```
-
-```
