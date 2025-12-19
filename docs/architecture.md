@@ -2,7 +2,7 @@
 
 This document describes the **runtime architecture of the Gibberish parser**. It focuses on how parsing is executed, how state is managed, and how lossless syntax trees (LSTs) and error recovery are implemented.
 
-This is not a language reference; instead, it explains _how_ Gibberish works under the hood.
+This is not a language reference; instead, it explains _how_ Gibberish works under the hood, in order to explain how the generated parsers will behave.
 
 ---
 
@@ -173,13 +173,14 @@ A delimiter is a _sentinel_ representing a parser’s expectation of when parsin
 Parsers return an integer value that controls outer parsing behavior.
 
 - **`OK`** (`0`)
-  The parser successfully consumed what it was responsible for.
+  The parser consumed at least one **non-skipped** token. Once a parser has consumed any non-skipped input, it will always return `OK`, even if it later encounters a delimiter and must synthesize `Missing` nodes.
 
 - **`ERR`** (`1`)
-  The parser failed in a way it could not recover from locally.
+  The parser failed parse the first token, but it doesn't indicate any `BREAK` this generally means that the token should be bumped as `ERR`.
+  (in the case of choice `ERR` would also indicate you should try the next option)
 
 - **`BREAK(index)`** (`>= 2`)
-  Parsing should stop because a delimiter was encountered.
+  Parsing should stop because a delimiter was encountered _before the parser consumed any non-skipped input_.
 
 `BREAK(EOF)` is represented by `2`.
 
@@ -187,27 +188,34 @@ Parsers return an integer value that controls outer parsing behavior.
 
 ## BREAK Semantics
 
+A `BREAK` represents a refusal to begin parsing, not a failure during parsing.
+
 When a parser begins execution:
 
 - It records the current delimiter stack depth
 - It may push one or more delimiters
+- It has not yet consumed any non-skipped tokens
 
 While parsing:
 
-- If a delimiter **older than the parser** is encountered, the parser must immediately return that `BREAK`
-- If the delimiter was introduced by the parser itself, it may be handled internally
+- If the **first non-skipped token** encountered matches a delimiter older than the parser, the parser must immediately return that `BREAK`
+- If the parser consumes any non-skipped token, it becomes _committed_ and will never return `BREAK`
+- Once committed, encountering delimiters causes the parser to synthesize `Missing` nodes and return `OK`
 
-This enforces _ownership_ of errors and recovery.
+This enforces clear ownership rules:
+
+- Parsers may decline to start (`BREAK`)
+- Parsers may not abandon work once started
 
 ---
 
 ## Recovery Model
 
-Unexpected tokens are consumed eagerly and recorded as `Unexpected` nodes unless a delimiter forces termination.
+Unexpected tokens are consumed eagerly and recorded as `Unexpected` nodes unless a `BREAK` occurs before parsing begins.
 
 Missing nodes are synthesized when:
 
-- A delimiter is encountered where a parser expected input
+- A delimiter is encountered after the parser has committed
 - A parser completes without finding required elements
 
 This ensures that:
@@ -223,20 +231,13 @@ This ensures that:
 This architecture avoids:
 
 - Global backtracking
-- Implicit failure propagation
-- Ambiguous recovery behavior
+- Parsers partially undoing work
+- Ambiguous failure vs recovery semantics
 
 In exchange, it provides:
 
 - Deterministic parsing
-- Clear recovery boundaries
+- Explicit commitment points
 - Trees suitable for IDEs, formatters, and analyzers
 
 The complexity is explicit, but controlled.
-
----
-
-## Next Sections
-
-- **Parser Combinators** → `combinators.md`
-- **Error Recovery Model** → `error-recovery.md`

@@ -281,11 +281,3 @@ parser _expr =
 parser root =
   _expr.skip(whitespace);
 ```
-
----
-
-## Next Sections
-
-- **Parser Combinators** → `combinators.md`
-- **Error Recovery Model** → `error-recovery.md`
-- **Architecture & Runtime** → `architecture.md`
