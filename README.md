@@ -6,6 +6,71 @@ Unlike traditional parser combinator libraries that fail fast and discard struct
 
 ---
 
+## Getting Started
+
+### Installing the Compiler
+
+Prebuilt binaries are available on the **GitHub Releases** page.
+
+- Download the appropriate binary for your platform
+- Place it somewhere on your `$PATH`
+- The executable is called `gibberish`
+
+> At the moment, building from source is possible but not yet well-documented. Using a release binary is the recommended way to get started.
+
+---
+
+### Trying an Example Grammar
+
+The fastest way to understand Gibberish is to look at and run the example grammars.
+
+Examples live in:
+
+```
+docs/examples/
+```
+
+For example, the JSON grammar can be parsed and tested against an input file:
+
+```sh
+gibberish parse examples/test.json --parser docs/examples/json.gib
+```
+
+This will print the **lossless syntax tree**, including errors, skipped tokens, and structure.
+
+---
+
+### Common Workflows
+
+**Lex a file**
+
+```sh
+gibberish lex input.txt
+```
+
+**Parse a file and inspect the tree**
+
+```sh
+gibberish parse input.txt --parser grammar.gib
+```
+
+**Hide tokens or errors for readability**
+
+```sh
+gibberish parse input.txt --hide-tokens
+gibberish parse input.txt --hide-errors
+```
+
+**Watch a file while editing**
+
+```sh
+gibberish watch input.txt --parser grammar.gib
+```
+
+This is especially useful when developing or debugging grammars.
+
+---
+
 ## Key Features
 
 - **Lossless Syntax Trees (LSTs)**
@@ -35,43 +100,55 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
   Lex a file and display the resulting tokens.
 
   ```sh
-  gibberish lex <src> [--parser <parser>]
+
   ```
+
+gibberish lex <src> [--parser <parser>]
+
+````
 
 - **`parse`**
-  Parse a file and display its lossless syntax tree.
+Parse a file and display its lossless syntax tree.
 
-  ```sh
-  gibberish parse <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
-  ```
+```sh
+gibberish parse <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
+````
 
 - **`watch`**
   Watch a file, reparse it on changes, and display the updated syntax tree.
 
   ```sh
-  gibberish watch <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
+
   ```
+
+gibberish watch <path> [--hide-errors] [--hide-tokens] [--parser <parser>]
+
+````
 
 - **`build`**
-  Compile a `.gib` grammar into a parser library.
+Compile a `.gib` grammar into a parser library.
 
-  ```sh
-  gibberish build <path> --output <output>
-  ```
+```sh
+gibberish build <path> --output <output>
+````
 
 - **`generate`**
   Generate libraries and APIs from a grammar.
 
   ```sh
-  gibberish generate <path>
+
   ```
+
+gibberish generate <path>
+
+````
 
 - **`lsp`**
-  Start the Gibberish language server.
+Start the Gibberish language server.
 
-  ```sh
-  gibberish lsp
-  ```
+```sh
+gibberish lsp
+````
 
 ---
 
@@ -88,9 +165,11 @@ This allows Gibberish to recover gracefully from deeply broken input while still
 
 ---
 
-## Documentation
+## Documentation (Early & Evolving)
 
-The full documentation is split into focused sections:
+The documentation is still **early-stage and evolving**. It reflects the current implementation but is not yet exhaustive or fully polished. Expect rough edges, missing sections, and ongoing changes.
+
+That said, the following documents capture the core ideas accurately:
 
 - **Architecture & Concepts**
   Parser state, nodes, delimiters, and `BREAK` semantics
@@ -116,7 +195,13 @@ The full documentation is split into focused sections:
 
 ## Status
 
-Gibberish is under active development. The API and grammar language are still evolving, but the core parsing model and tree representation are stable enough for experimentation and tooling work.
+Gibberish is under active development.
+
+- The **core parsing model is stable**
+- The **grammar language may still change**
+- The **documentation is incomplete and rough**
+
+If something feels underspecified, it probably is—feedback and experimentation are encouraged.
 
 ---
 
