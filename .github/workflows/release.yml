@@ -69,14 +69,14 @@ jobs:
             archive: tar.gz
             bin_ext: ""
 
-          # macOS Intel (run on Intel runner)
-          - os: macos-13
+          # macOS Intel (x86_64)
+          - os: macos-15-intel
             target: x86_64-apple-darwin
             archive: tar.gz
             bin_ext: ""
 
-          # macOS Apple Silicon (run on Apple Silicon runner)
-          - os: macos-14
+          # macOS Apple Silicon (arm64)
+          - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
             bin_ext: ""
