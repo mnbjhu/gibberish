@@ -4,6 +4,9 @@ This document describes the **runtime architecture of the Gibberish parser**. It
 
 This is not a language reference; instead, it explains _how_ Gibberish works under the hood, in order to explain how the generated parsers will behave.
 
+> **Note**
+> This document reflects the current implementation but is still **evolving**. Terminology and details may change as the parsing model is refined.
+
 ---
 
 ## Overview
@@ -38,7 +41,7 @@ The parser state consists of:
   A `u64` index into the token array.
 
 - **Delimiter stack**
-  A stack of delimiter sentinels used to control recovery and termination.
+  A stack of delimiter sentinels used to detect recovery boundaries.
 
 - **Skip set**
   A set of token kinds that should be skipped (but still recorded).
@@ -156,31 +159,32 @@ Skipped tokens are still consumed and emitted as `Skip` nodes.
 
 ## Delimiters
 
-Delimiters are the core mechanism used to control recovery and termination.
+Delimiters are the core mechanism used to coordinate recovery between parsers.
 
-A delimiter is a _sentinel_ representing a parser’s expectation of when parsing should stop. Each delimiter corresponds to a parser’s **peeking condition**.
+A delimiter is a _sentinel_ representing a parser’s **start condition** rather than a hard stop. Delimiters are used to determine whether a parser should _begin_, not to force it to stop once committed.
 
 ### Delimiter Stack
 
-- Delimiters are pushed when parsers begin
-- Delimiters are popped when parsers finish
-- The stack encodes nested recovery scopes
+- Delimiters are pushed by parsers to advertise their start tokens
+- Delimiters are removed dynamically as parsing progresses (e.g. in sequences)
+- The stack represents nested parsing expectations, not strict termination points
+
+Delimiters are consulted **only before a parser commits**. Once a parser has consumed any non-skipped token, delimiters no longer cause a `BREAK`.
 
 ---
 
 ## Parser Results
 
-Parsers return an integer value that controls outer parsing behavior.
+Parsers return an integer value that communicates how outer parsers should proceed.
 
 - **`OK`** (`0`)
-  The parser consumed at least one **non-skipped** token. Once a parser has consumed any non-skipped input, it will always return `OK`, even if it later encounters a delimiter and must synthesize `Missing` nodes.
+  The parser consumed at least one **non-skipped** token. Once a parser commits, it will always return `OK`, even if it later encounters delimiters and must synthesize `Missing` nodes.
 
 - **`ERR`** (`1`)
-  The parser failed parse the first token, but it doesn't indicate any `BREAK` this generally means that the token should be bumped as `ERR`.
-  (in the case of choice `ERR` would also indicate you should try the next option)
+  The parser failed to parse its first non-skipped token but did not encounter a delimiter. This indicates that the token should generally be consumed as `Unexpected`. In the case of `choice`, `ERR` signals that the next alternative should be tried.
 
 - **`BREAK(index)`** (`>= 2`)
-  Parsing should stop because a delimiter was encountered _before the parser consumed any non-skipped input_.
+  The parser declined to begin because the **first non-skipped token** matched a delimiter older than the parser.
 
 `BREAK(EOF)` is represented by `2`.
 
@@ -188,21 +192,20 @@ Parsers return an integer value that controls outer parsing behavior.
 
 ## BREAK Semantics
 
-A `BREAK` represents a refusal to begin parsing, not a failure during parsing.
+A `BREAK` represents a refusal to start parsing, not a failure during parsing.
 
 When a parser begins execution:
 
-- It records the current delimiter stack depth
-- It may push one or more delimiters
 - It has not yet consumed any non-skipped tokens
+- It may push delimiters advertising its start tokens
 
 While parsing:
 
-- If the **first non-skipped token** encountered matches a delimiter older than the parser, the parser must immediately return that `BREAK`
+- If the **first non-skipped token** matches an older delimiter, the parser must immediately return that `BREAK`
 - If the parser consumes any non-skipped token, it becomes _committed_ and will never return `BREAK`
-- Once committed, encountering delimiters causes the parser to synthesize `Missing` nodes and return `OK`
+- After commitment, delimiters are ignored for control flow and only influence error synthesis
 
-This enforces clear ownership rules:
+This establishes clear ownership rules:
 
 - Parsers may decline to start (`BREAK`)
 - Parsers may not abandon work once started
@@ -211,11 +214,11 @@ This enforces clear ownership rules:
 
 ## Recovery Model
 
-Unexpected tokens are consumed eagerly and recorded as `Unexpected` nodes unless a `BREAK` occurs before parsing begins.
+Unexpected tokens are consumed eagerly and recorded as `Unexpected` nodes unless a parser declines to start via `BREAK`.
 
 Missing nodes are synthesized when:
 
-- A delimiter is encountered after the parser has committed
+- A delimiter is encountered _after_ a parser has committed
 - A parser completes without finding required elements
 
 This ensures that:

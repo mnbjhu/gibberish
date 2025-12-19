@@ -8,13 +8,26 @@ Unlike traditional parser combinator libraries that fail fast and discard struct
 
 ## Getting Started
 
+### Prerequisites
+
+Gibberish relies on **QBE** for code generation.
+
+- `qbe` must be installed
+- `qbe` must be available on your `$PATH`
+
+If `qbe` is not present, grammar compilation (`build`, `generate`) will fail.
+
+---
+
 ### Installing the Compiler
 
-Prebuilt binaries are available on the **GitHub Releases** page.
+Prebuilt binaries are available on the [**GitHub Releases**](https://github.com/mnbjhu/gibberish/releases) page.
 
 - Download the appropriate binary for your platform
 - Place it somewhere on your `$PATH`
 - The executable is called `gibberish`
+
+At the moment, using a release binary is the recommended way to get started.
 
 ---
 
@@ -34,7 +47,7 @@ For example, the JSON grammar can be parsed and tested against an input file:
 gibberish parse examples/test.json --parser docs/examples/json.gib
 ```
 
-This will print the **lossless syntax tree**, including errors, skipped tokens, and structure.
+This will print the **lossless syntax tree**, including structure, skipped tokens, and explicit error nodes.
 
 ---
 
@@ -78,13 +91,13 @@ This is especially useful when developing or debugging grammars.
   Missing and unexpected elements are first-class nodes, not side effects.
 
 - **Deterministic Parsing Model**
-  Parsing control flow is explicit and local, using delimiters and `BREAK`s instead of backtracking.
+  Parsers either refuse to start or commit and recover locally—no backtracking.
 
 - **Parser Combinator Language**
-  Grammars are written compositionally using sequences, choices, repetition, separators, and delimiters.
+  Grammars are written compositionally using sequences, choice, repetition, separation, and folding.
 
-- **Tooling-Oriented**
-  Designed from the ground up to support IDEs, diagnostics, and formatting.
+- **Tooling-Oriented by Design**
+  Designed from the ground up for IDEs, diagnostics, formatting, and incremental workflows.
 
 ---
 
@@ -116,14 +129,14 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
   ```
 
 - **`build`**
-  Compile a `.gib` grammar into a parser library.
+  Compile a `.gib` grammar into a parser library (requires `qbe`).
 
   ```sh
   gibberish build <path> --output <output>
   ```
 
 - **`generate`**
-  Generate libraries and APIs from a grammar.
+  Generate libraries and APIs from a grammar (requires `qbe`).
 
   ```sh
   gibberish generate <path>
@@ -132,20 +145,21 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
 - **`lsp`**
   Start the Gibberish language server.
 
-  ```sh
-  gibberish lsp
-  ```
+```sh
+gibberish lsp
+```
 
 ---
 
 ## What Makes Gibberish Different?
 
-Most parser combinator systems revolve around _success vs failure_. Gibberish instead models parsing as **progress through structured boundaries**:
+Most parser combinator systems revolve around _success vs failure_. Gibberish instead models parsing as **commitment and local recovery**:
 
-- Parsers return `OK`, `ERR`, or `BREAK`
-- Delimiters define recovery points
-- Errors are owned and handled locally
-- Parsing continues whenever possible
+- Parsers may **refuse to start** (`BREAK` or `ERR`)
+- Once a parser consumes input, it **must commit and finish responsibly** (`OK`)
+- Parsers can tell child parsers to `BREAK` rather than `ERR` when failing to pass specific tokens.
+- When a parser encounters a `BREAK` (that it wasn't the author of) the parser will **finish responsibly**
+- Errors are synthesized structurally, not thrown
 
 This allows Gibberish to recover gracefully from deeply broken input while still producing a meaningful, navigable tree.
 
@@ -153,29 +167,25 @@ This allows Gibberish to recover gracefully from deeply broken input while still
 
 ## Documentation (Early & Evolving)
 
-The documentation is still **early-stage and evolving**. It reflects the current implementation but is not yet exhaustive or fully polished. Expect rough edges, missing sections, and ongoing changes.
+The documentation reflects the current implementation but is still **early-stage and evolving**. Expect rough edges and underspecified areas.
 
-That said, the following documents capture the core ideas accurately:
+The following documents capture the core ideas accurately:
 
-- **Architecture & Concepts**
-  Parser state, nodes, delimiters, and `BREAK` semantics
-  → `docs/architecture.md`
+- **Architecture & Runtime Model**
+  Parser state, commitment, delimiters, and `BREAK` semantics
+  → [`docs/architecture.md`](docs/architecture.md)
 
 - **Language & Grammar Syntax**
-  Tokens, keywords, parsers, and combinators
-  → `docs/language.md`
-
-- **Parser Combinators**
-  Sequence, choice, repeated, `sep_by`, `delim_by`, skip, labelled
-  → `docs/combinators.md`
+  Tokens, keywords, parsers, and grammar expressions
+  → [`docs/language.md`](docs/language.md)
 
 - **Error Recovery Model**
-  Missing vs unexpected nodes, delimiter interaction
-  → `docs/error-recovery.md`
+  Missing vs unexpected nodes, commitment, and recovery behavior
+  → [`docs/error-recovery.md`](docs/error-recovery.md)
 
 - **Examples**
   Complete grammars (JSON, SQL, etc.)
-  → `docs/examples/`
+  → [`docs/examples/`](docs/examples/)
 
 ---
 
@@ -185,6 +195,6 @@ Gibberish is under active development.
 
 - The **core parsing model is stable**
 - The **grammar language may still change**
-- The **documentation is incomplete and rough**
+- The **documentation is incomplete and evolving**
 
 If something feels underspecified, it probably is—feedback and experimentation are encouraged.

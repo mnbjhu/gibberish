@@ -4,6 +4,9 @@ This document describes how **Gibberish detects, represents, and recovers from s
 
 Error recovery is not an add-on in Gibberish; it is a core design constraint. All parsers are expected to cooperate with the recovery model.
 
+> **Note**
+> This document reflects the current parsing model but is still **evolving**. The high-level behavior is stable, but details may change as the system is refined.
+
 ---
 
 ## Design Goals
@@ -27,22 +30,23 @@ There are two primary error node types:
 - **`Missing`** — something was expected but not found
 - **`Unexpected`** — something was found but not expected
 
-Both are first-class `Node` variants.
+Both are first-class `Node` variants and participate in normal tree structure.
 
 ---
 
 ## Unexpected Nodes
 
-An `Unexpected` node represents one or more tokens that could not be parsed at the current position.
+An `Unexpected` node represents one or more tokens that were consumed even though they did not match the current parser’s expectation.
 
 ### Creation
 
 Unexpected nodes are created when:
 
-- A token does not match the current parser’s expectation
-- No delimiter forces an immediate `BREAK`
+- A parser has already committed (consumed a non-skipped token)
+- The next token does not match the expected input
+- No `BREAK` occurs (i.e. the parser is not allowed to decline)
 
-The token is consumed and recorded instead of aborting parsing.
+In this situation, the token is consumed and recorded rather than causing parsing to stop.
 
 ### Accumulation
 
@@ -54,7 +58,7 @@ Unexpected
   ident: "abc"
 ```
 
-This avoids creating long chains of single-token errors.
+This avoids creating long chains of single-token error nodes.
 
 ---
 
@@ -64,11 +68,13 @@ A `Missing` node represents a syntactic element that was expected but absent.
 
 ### Creation
 
-Missing nodes are created when:
+Missing nodes are synthesized only **after a parser has committed**.
 
-- A delimiter is encountered before the expected element
+They are created when:
+
+- A delimiter is encountered after commitment
 - A parser completes without finding a required component
-- A repeated or separated parser breaks early
+- A repeated or separated parser terminates early
 
 The node records _what was expected_, not how parsing failed.
 
@@ -83,26 +89,36 @@ The contents of a `Missing` node are influenced by:
 - The parser’s natural expectation
 - Any explicit `labelled(...)` overrides
 
-This allows grammars to produce meaningful diagnostics.
+This allows grammars to produce meaningful and stable diagnostics.
 
 ---
 
-## Delimiters as Recovery Boundaries
+## Delimiters and Recovery
 
-Delimiters define **where a parser is allowed to recover** and **where it must stop**.
+Delimiters do **not** force parsers to stop once they have begun parsing.
 
-Each delimiter corresponds to a parser’s peeking condition (e.g. `]`, `}`, `,`, or the start of another construct).
+Instead, delimiters serve two related purposes:
+
+1. They determine whether a parser is allowed to _begin_ parsing
+2. After commitment, they influence where `Missing` nodes are synthesized
+
+Delimiters correspond to parser _start conditions_, not hard termination points.
 
 ---
 
-## BREAK Ownership
+## BREAK and Error Ownership
 
-When a delimiter is encountered, it produces a `BREAK(index)`.
+A `BREAK` represents a parser’s refusal to start, not an error during parsing.
 
-- If the delimiter was introduced by the _current parser_, it may be handled locally
-- If the delimiter predates the parser, it must be returned immediately
+- A `BREAK` may only occur before a parser consumes any non-skipped token
+- Once a parser commits, it will never return `BREAK`
 
-This establishes clear ownership of recovery responsibilities.
+Ownership rules:
+
+- If the first non-skipped token matches a delimiter older than the parser, the parser returns that `BREAK`
+- If the parser introduced the delimiter, it may handle it internally
+
+This ensures that errors are handled by the smallest responsible parser.
 
 ---
 
@@ -116,22 +132,23 @@ l_bracket + ident + r_bracket
 
 ### Input: `[]`
 
-- `l_bracket` succeeds
+- `l_bracket` commits
 - `ident` sees `r_bracket`
-- `r_bracket` is a delimiter
-- `ident` is marked as `Missing`
+- The parser is already committed
+- `ident` is synthesized as `Missing`
+- `r_bracket` is consumed normally
 
-The parser does **not** consume `]` prematurely.
+The parser does **not** produce a `BREAK` and does not abandon parsing.
 
 ---
 
 ### Input: `[123 abc]`
 
-- `l_bracket` succeeds
+- `l_bracket` commits
 - `ident` sees `123`
 - `123` is not a delimiter
 - Token is consumed as `Unexpected`
-- Parsing continues until `ident` succeeds or a delimiter is found
+- Parsing continues until `ident` succeeds or the sequence completes
 
 ---
 
@@ -147,11 +164,10 @@ parser list = item.sep_by(comma);
 item item
 ```
 
-When parsing the second `item`:
-
+- `item` commits
 - `comma` is expected
-- `item` start is encountered instead
-- A `Missing: comma` node is created
+- Start of another `item` is encountered
+- A `Missing: comma` node is synthesized
 - Parsing continues with the next `item`
 
 ---
@@ -164,14 +180,15 @@ item , , item
 
 - After the first `comma`, `item` is expected
 - Another `comma` is encountered
-- A `Missing: item` node is created
+- The parser is committed
+- A `Missing: item` node is synthesized
 - Parsing continues
 
 ---
 
 ## Repetition and Early Termination
 
-Repeated parsers introduce their own delimiters.
+Repeated parsers introduce delimiters representing the start of another element.
 
 ```gibberish
 parser stmts = stmt.repeated();
@@ -179,34 +196,35 @@ parser stmts = stmt.repeated();
 
 If a new `stmt` begins while parsing the previous one:
 
-- The inner parser encounters a delimiter
-- A `BREAK(stmt)` is returned
-- Missing components of the first statement are synthesized
+- The inner parser has already committed
+- Encountering a start delimiter causes missing components to be synthesized
 - Parsing continues with the next statement
+
+No `BREAK` is produced once parsing has begun.
 
 ---
 
 ## End-of-File Recovery
 
-EOF is treated as an implicit delimiter.
+EOF acts like an implicit delimiter.
 
 When EOF is encountered:
 
-- Active parsers may generate missing nodes
-- Open delimiters are closed
+- Active parsers synthesize any required `Missing` nodes
+- Open constructs are closed
 - Parsing terminates cleanly
 
-This ensures even truncated files produce valid trees.
+This ensures that even truncated files produce valid trees.
 
 ---
 
 ## Skipped Tokens and Errors
 
-Skipped tokens (e.g. whitespace) do not participate in recovery decisions.
+Skipped tokens (e.g. whitespace or comments) do not participate in commitment or `BREAK` decisions.
 
 - They are consumed as `Skip` nodes
-- They do not trigger or suppress `BREAK`s
-- Errors are attributed to the surrounding structure
+- They do not trigger or suppress `BREAK`
+- Errors are attributed to the surrounding syntactic structure
 
 ---
 
@@ -226,8 +244,8 @@ The error recovery model guarantees that:
 Gibberish’s error recovery model is based on:
 
 - Lossless error representation
-- Delimiter-scoped recovery
-- Explicit ownership via `BREAK`
+- Commit-on-first-token semantics
+- Delimiter-guided synthesis of missing structure
 - Deterministic, single-pass parsing
 
 This makes Gibberish particularly well-suited for language tooling, where partial and invalid input is the norm.
