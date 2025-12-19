@@ -181,9 +181,7 @@ fn run_cmd(mut cmd: Command) {{
 }}
 "#
     );
-    if !crate_dir.join("build.rs").exists() {
-        write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
-    }
+    write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
 
     let mut token_body = String::new();
     for (name, _) in &builder.lexer {

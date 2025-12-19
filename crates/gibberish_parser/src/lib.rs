@@ -75,8 +75,8 @@ pub enum GibberishSyntax {
 	Label = 15,
 	LabelledQuery = 16,
 	HighlightDef = 18,
-	Root = 21,
-	Unmatched = 22,
+	Root = 20,
+	Unmatched = 21,
 
 }
 
