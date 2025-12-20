@@ -3,8 +3,8 @@ name: Release
 on:
   release:
     types: [published]
-  # pull_request:
-  #   branches: ["master"]
+  pull_request:
+    branches: ["master"]
 
   # Allows testing from ANY branch without merging
   workflow_dispatch:
