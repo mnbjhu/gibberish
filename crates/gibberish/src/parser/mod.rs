@@ -438,13 +438,31 @@ mod tests {
     use crate::cli::{self};
 
     pub fn build_test_parser(src: &'static str) -> CompiledLang {
-        let mut src_file = Builder::new().suffix(".gib").tempfile().unwrap();
+        let mut src_file = Builder::new()
+            .suffix(shared_lib_suffix())
+            .tempfile()
+            .unwrap();
         write!(&mut src_file, "{src}").unwrap();
         let src_file_path = src_file.path();
         let lib = Builder::new().suffix(".so").tempfile().unwrap();
         let lib_path = lib.path();
         cli::build::build(src_file_path, lib_path);
         CompiledLang::load(lib_path)
+    }
+
+    pub fn shared_lib_suffix() -> &'static str {
+        #[cfg(target_os = "macos")]
+        {
+            ".dylib"
+        }
+        #[cfg(target_os = "linux")]
+        {
+            ".so"
+        }
+        #[cfg(windows)]
+        {
+            ".dll"
+        }
     }
 
     #[macro_export]
