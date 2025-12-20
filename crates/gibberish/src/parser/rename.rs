@@ -22,26 +22,36 @@ impl Rename {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.inner.build(builder, f);
+        let name = builder.get_group_id(&self.name);
+
+        // C version of "Parse Rename"
+        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
+        // If inner succeeds, wrap/move nodes after checkpoint into a new group (rename) and succeed.
+        // If inner fails, propagate its error code.
         write!(
             f,
-            "
+            r#"
 
-# Parse Rename
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, @ret_err, @rename
-@rename
-    call $group_at(l %state_ptr, w {name}, l %unmatched_checkpoint)
-    ret 0
-@ret_err
-    ret %res
-}}",
-            name = builder.get_group_id(&self.name),
+/* Parse Rename */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    size_t res = parse_{inner}(state, unmatched_checkpoint);
+    if (res != 0) {{
+        return res;
+    }}
+
+    /* group_at makes a new group from elements after checkpoint; then we tag it with `name`. */
+    (void)group_at(state, unmatched_checkpoint, {name});
+
+
+    return 0;
+}}
+"#,
+            id = id,
+            inner = inner,
+            name = name
         )
         .unwrap()
     }
-
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
         self.inner.start_tokens(builder)
     }

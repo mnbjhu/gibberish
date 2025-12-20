@@ -117,7 +117,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
                 f,
                 r#"
     /* default branch */
-    group_at(state, (uint32_t){gid}, unmatched_checkpoint);
+    group_at(state, unmatched_checkpoint, (uint32_t){gid});
 "#,
             )
             .unwrap();

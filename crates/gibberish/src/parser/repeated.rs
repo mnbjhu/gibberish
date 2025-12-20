@@ -23,6 +23,7 @@ impl Repeated {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         self.0.expected(builder)
     }
+
     pub fn build_parse(
         &self,
         id: usize,
@@ -30,36 +31,66 @@ impl Repeated {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.0.build(builder, f);
-        write!(
+
+        // PeakFunc wrapper for inner (PeakFunc is bool (*)(ParserState*))
+        writeln!(
             f,
-            "
-# Parse Rep0
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    call $push_delim(l %state_ptr, l {inner})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, @ret_err, @check_eof
-@check_eof
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @ret_ok, @try_parse_inner
-",
+            r#"
+/* Rep0 break predicate wrapper */
+static bool break_pred_rep0_{id}(ParserState *state) {{
+    return peak_{inner}(state, 0, false);
+}}
+"#,
         )
         .unwrap();
-        try_parse(inner, "inner", "@iter", f);
+
+        // C version of Parse Rep0
+        // - push_break for inner so inner parsers can "break" out cleanly
+        // - repeatedly parse inner
+        // - if parse returns 1: bump_err and retry (your rule)
+        // - if parse returns 0: continue
+        // - if parse returns 2 (EOF) or break code: stop successfully
+        // - pop break before returning
         write!(
             f,
-            "
-@iter
-    jnz %res, @ret_ok, @try_parse_inner
-@ret_ok
-    call $pop_delim(l %state_ptr)
-    ret 0
-@ret_err
-    call $pop_delim(l %state_ptr)
-    ret %res
-}}",
+            r#"
+/* Parse Rep0 */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    size_t brk = push_break(state, break_pred_rep0_{id});
+    size_t res = parse_{inner}(state, unmatched_checkpoint);
+    if(res != 0) {{
+        (void)break_stack_pop(&state->breaks, NULL);
+        return res;
+    }}
+    for (;;) {{
+        size_t res = parse_{inner}(state, unmatched_checkpoint);
+
+        if (res == 0) {{
+            /* matched one occurrence */
+            continue;
+        }}
+
+        if (res == 1) {{
+            /* always bump_err and retry */
+            bump_err(state);
+            continue;
+        }}
+
+        if (res == brk) {{
+            /* broke on our delimiter => stop */
+            continue;
+        }}
+        return 0;
+    }}
+
+    (void)break_stack_pop(&state->breaks, NULL);
+    return 0;
+}}
+"#,
+            id = id,
+            inner = inner
         )
-        .unwrap()
+        .unwrap();
     }
 
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {

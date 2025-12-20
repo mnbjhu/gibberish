@@ -85,6 +85,9 @@ impl Display for Parser {
 impl Parser {
     pub fn build(&self, builder: &mut ParserBuilder, f: &mut impl Write) -> usize {
         let (id, built) = builder.built.get_mut(self).unwrap();
+        if *built {
+            return *id;
+        }
         *built = true;
         let id = *id;
         self.build_parse(id, builder, f);

@@ -24,24 +24,30 @@ impl Skip {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.inner.build(builder, f);
+        let kind = builder.get_token_id(&self.token);
+
+        // C version of "Parse Skip"
+        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
+        // Temporarily marks `kind` as skippable, parses inner, then restores previous state.
         write!(
             f,
-            "
-# Parse Skip
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    %skipped =l call $skip(l %state_ptr, l {kind})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %skipped, @unskip, @ret
-@unskip
-    call $unskip(l %state_ptr, l {kind})
-    ret %res
-@ret
-    ret %res
-}}",
-            kind = builder.get_token_id(&self.token)
+            r#"
+
+/* Parse Skip */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    bool did_skip = skip(state, (uint32_t){kind});
+    size_t res = parse_{inner}(state, unmatched_checkpoint);
+    if (did_skip) {{
+        (void)unskip(state, (uint32_t){kind});
+    }}
+    return res;
+}}
+"#,
+            id = id,
+            inner = inner,
+            kind = kind
         )
-        .unwrap()
+        .unwrap();
     }
 
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {

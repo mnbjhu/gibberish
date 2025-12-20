@@ -354,8 +354,10 @@ static inline bool unskip(ParserState *state, uint32_t token) {
 }
 
 static inline void missing(ParserState *state, ExpectedVec expected) {
-  Node *current = current_node(state);
-  node_vec_push(&current->as.group, new_missing_node(expected));
+  if (expected.len != 0) {
+    Node *current = current_node(state);
+    node_vec_push(&current->as.group, new_missing_node(expected));
+  }
 }
 
 static const Expected EXPECTED[] = {
@@ -377,7 +379,7 @@ static size_t checkpoint(ParserState *state) {
   return current->as.group.len;
 }
 
-static void group_at(ParserState *state, size_t checkpoint) {
+static void group_at(ParserState *state, size_t checkpoint, size_t name) {
   if (state->stack.len == 0) {
     abort();
   }
@@ -387,7 +389,7 @@ static void group_at(ParserState *state, size_t checkpoint) {
     return;
   }
   size_t moved = children->len - checkpoint;
-  Node new_group = new_group_node(0);
+  Node new_group = new_group_node(name);
   new_group.as.group = node_vec_new();
 
   if (moved != 0) {

@@ -14,9 +14,6 @@ pub fn build_parser_c(builder: &mut ParserBuilder, f: &mut impl Write) {
 
     // Main parse entrypoint now: Node parse(char*, size_t)
     emit_parse_entry_c(builder, f);
-
-    // Optional dispatcher if other generated code still needs it
-    emit_parse_by_id_c(builder, f);
 }
 
 fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
@@ -132,34 +129,6 @@ Node parse(char *ptr, size_t len) {{
         )
         .unwrap();
     }
-}
-
-fn emit_parse_by_id_c(builder: &ParserBuilder, f: &mut impl Write) {
-    writeln!(
-        f,
-        r#"
-/* Dispatch parse functions by numeric id */
-static size_t parse_by_id(ParserState *state, size_t unmatched_checkpoint, size_t id) {{
-    switch (id) {{"#
-    )
-    .unwrap();
-
-    for index in 0..builder.built.len() {
-        writeln!(
-            f,
-            "        case {index}: return parse_{index}(state, unmatched_checkpoint);"
-        )
-        .unwrap();
-    }
-
-    writeln!(
-        f,
-        r#"        default: return 1;
-    }}
-}}
-"#
-    )
-    .unwrap();
 }
 
 pub fn build_default_state(builder: &ParserBuilder, f: &mut impl Write) {

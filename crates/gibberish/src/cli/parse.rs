@@ -44,11 +44,11 @@ pub fn load_parser(parser: &Path) -> CompiledLang {
             lib_path
         }
         GIBBERISH_EXT => {
-            let qbe_str = build_c_str(parser);
-            let qbe = NamedTempFile::new().unwrap();
-            fs::write(&qbe, qbe_str).unwrap();
+            let c_str = build_c_str(parser);
+            let c = Builder::new().suffix(".c").tempfile().unwrap();
+            fs::write(&c, c_str).unwrap();
             let lib_path = lib.path().to_path_buf();
-            build_dynamic_lib(qbe.path(), &lib_path);
+            build_dynamic_lib(c.path(), &lib_path);
             lib_path
         }
         _ => {

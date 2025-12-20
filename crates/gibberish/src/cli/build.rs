@@ -17,7 +17,7 @@ use crate::lexer::build::create_name_function;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
-    Qbe,
+    C,
     Static,
     Dynamic,
 }
@@ -27,7 +27,7 @@ impl BuildKind {
         match path.extension().unwrap().to_str().unwrap() {
             DYN_LIB_EXT => BuildKind::Dynamic,
             STATIC_LIB_EXT => BuildKind::Static,
-            C_EXT => BuildKind::Qbe,
+            C_EXT => BuildKind::C,
             _ => panic!(
                 "File format not supported: expected output file ending .{}, .{} or .{}",
                 DYN_LIB_EXT, STATIC_LIB_EXT, C_EXT
@@ -39,15 +39,15 @@ impl BuildKind {
 pub fn build(parser_file: &Path, output: &Path) {
     let res = build_c_str(parser_file);
     match BuildKind::from_path(output) {
-        BuildKind::Qbe => fs::write(output, res).unwrap(),
+        BuildKind::C => fs::write(output, res).unwrap(),
         BuildKind::Static => {
             build_static_lib(&res, output);
         }
         BuildKind::Dynamic => {
-            let qbe = NamedTempFile::new().unwrap();
-            let qbe_path = qbe.path().to_path_buf();
-            fs::write(&qbe, res).unwrap();
-            build_dynamic_lib(&qbe_path, output);
+            let c = Builder::new().suffix(".c").tempfile().unwrap();
+            let c_path = c.path().to_path_buf();
+            fs::write(&c, res).unwrap();
+            build_dynamic_lib(&c_path, output);
         }
     }
     println!("{}", Color::Green.paint("[Build successful]"));
@@ -70,6 +70,11 @@ impl ParserBuilder {
         write!(&mut res, "{}", pre).unwrap();
         create_name_function(&mut res, "group", &group_names);
         create_name_function(&mut res, "label", &self.labels);
+        create_name_function(
+            &mut res,
+            "token",
+            &self.lexer.iter().map(|(name, _)| name).collect::<Vec<_>>(),
+        );
         build_parser_c(self, &mut res);
         res
     }

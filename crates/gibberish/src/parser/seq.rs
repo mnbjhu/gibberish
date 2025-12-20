@@ -91,15 +91,16 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             r#"    size_t res;
 
     /* Part 0 */
-    for (;;) {{
-        res = parse_{p0}(state, unmatched_checkpoint);
-        if (res == 1) {{
-            bump_err(state);
-            continue;
+    res = parse_{p0}(state, unmatched_checkpoint);
+    if (res != 0) {{
+        for(int i = 0; i < {delim_count};i++) {{
+            (void)break_stack_pop(&state->breaks, NULL);
         }}
-        break;
+        return res;
     }}
+
 "#,
+            delim_count = part_ids.len() - 1
         )
         .unwrap();
 
@@ -129,6 +130,10 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             }}
             break;
         }}
+        if (res >= 2 && res != brk_{i}) {{
+            ExpectedVec e = expected_{pi}();
+            missing(state, e);
+        }}
     }}
 
 "#,
@@ -136,15 +141,9 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         .unwrap();
         }
 
-        // Final return:
-        // - if res==1 => hard error (should be rare due to retry loop, but keep it)
-        // - if res==0 => success
-        // - if res>=2 => we recorded missings, treat as success
         writeln!(
             f,
-            r#"    if (res == 1) {{
-        return 1;
-    }}
+            r#"
     return 0;
 }}
 "#,

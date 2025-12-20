@@ -77,9 +77,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         break;
     }}
 
-    /* checkpoint: number of children currently in the active group */
-    Node *cg = current_node(state);
-    size_t checkpoint = cg->as.group.len;
+    size_t c = checkpoint(state);
 
     /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_{id});
@@ -96,24 +94,16 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     }}
 
     /* Try parse next */
-    {{
+    for(;;){{
         size_t res_next = parse_{next}(state, unmatched_checkpoint);
-        if (res_next == 0) {{
+        if (res_next == 1) {{
+            bump_err(state);
+            continue;
+        }}
+        if (res_next != 0) {{
             return 0;
         }}
-
-        /* next didn't parse: create a group out of everything after checkpoint */
-        (void)group_at(state, checkpoint);
-
-        /* Tag the just-created group with this fold's group kind (if desired) */
-        {{
-            Node *cg2 = current_node(state);
-            if (cg2->as.group.len != 0) {{
-                size_t last = cg2->as.group.len - 1;
-                cg2->as.group.data[last].group_kind = (uint32_t){group_kind};
-            }}
-        }}
-
+        (void)group_at(state, c, {group_kind});
         return 0;
     }}
 }}

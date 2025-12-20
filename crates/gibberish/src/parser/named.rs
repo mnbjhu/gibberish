@@ -44,46 +44,11 @@ impl Named {
 
 /* Parse Named */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
-    /* Skip leading skipped tokens until either EOF or peak(inner) says we can start. */
-    for (;;) {{
-        if (state->offset >= state->tokens.len) {{
-            return 2; /* EOF */
-        }}
-
-        if (peak_{inner}(state, 0, false)) {{
-            break;
-        }}
-
-        uint32_t k = current_kind(state);
-        if (skipped_vec_contains(&state->skipped, k)) {{
-            bump_skipped(state);
-            continue;
-        }}
-
-        /* Not a start token and not skippable: fall through and attempt parse anyway */
-        break;
-    }}
-
-    /* Enter group */
-    enter_group(state, (uint32_t){name});
-
+    size_t c = checkpoint(state);
     size_t res = parse_{inner}(state, unmatched_checkpoint);
-
     if (res == 0) {{
-        /* Success: close group and attach to parent */
-        exit_group(state, (uint32_t){name});
-        return 0;
+        group_at(state, c, {name});
     }}
-
-    /* Failure: remove the just-entered group from the stack */
-    {{
-        Node tmp;
-        bool popped = node_vec_pop(&state->stack, &tmp);
-        if (!popped) {{
-            abort();
-        }}
-    }}
-
     return res;
 }}
 "#,
