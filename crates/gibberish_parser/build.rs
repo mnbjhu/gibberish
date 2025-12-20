@@ -1,7 +1,8 @@
+
 // build.rs
 //
-// Builds a static library from QBE IR at lib/parser.qbe and links it into this crate.
-// Assumes `qbe` and a C toolchain are available on PATH.
+// Builds a static library from a C source at lib/parser.c and links it into this crate.
+// Assumes a C toolchain is available on PATH.
 // - Unix: uses `ar` to create lib<basename>.a
 // - Windows MSVC: uses `lib.exe` to create <basename>.lib (requires MSVC tools)
 // - Windows GNU (MinGW): uses `ar` (still produces .a)
@@ -14,8 +15,14 @@ use std::{
 
 fn main() {
     // ---- inputs ----
-    let qbe_ir = Path::new("lib/parser.qbe");
-    println!("cargo:rerun-if-changed={}", qbe_ir.display());
+    let c_src = Path::new("lib/parser.c");
+    println!("cargo:rerun-if-changed={}", c_src.display());
+
+    // Optional: if you have a header and want rebuilds when it changes
+    let c_hdr = Path::new("lib/parser.h");
+    if c_hdr.exists() {
+        println!("cargo:rerun-if-changed={}", c_hdr.display());
+    }
 
     // ---- environment ----
     let target = env::var("TARGET").expect("TARGET not set");
@@ -25,7 +32,6 @@ fn main() {
     let lib_basename: &str = "gibberish-parser";
 
     // ---- derived paths ----
-    let asm_path = out_dir.join("parser.s");
     let obj_path = if target.contains("windows") {
         out_dir.join("parser.obj")
     } else {
@@ -34,27 +40,28 @@ fn main() {
 
     let lib_path = static_lib_filename(&out_dir, &target, lib_basename);
 
-    // ---- 1) QBE: IR -> assembly ----
-    run(
-        "qbe",
-        &["-o", asm_path.to_str().unwrap(), qbe_ir.to_str().unwrap()],
-    );
-
-    // ---- 2) CC: assembly -> object ----
+    // ---- 1) CC: C -> object ----
     let cc = env::var("CC").unwrap_or_else(|_| "cc".to_string());
 
     let mut cc_cmd = Command::new(cc);
-    cc_cmd.arg("-c").arg(&asm_path).arg("-o").arg(&obj_path);
+    cc_cmd.arg("-c").arg(&c_src).arg("-o").arg(&obj_path);
+
+    // If your C file includes headers from lib/, add include path:
+    cc_cmd.arg("-I").arg("lib");
 
     if !target.contains("windows") {
         cc_cmd.arg("-fPIC");
     }
 
+    // Keep your previous debug-ish flags; adjust as desired.
     cc_cmd.arg("-g").arg("-fno-omit-frame-pointer");
+
+    // If you want C standard selection, uncomment:
+    // cc_cmd.arg("-std=c11");
 
     run_cmd(cc_cmd);
 
-    // ---- 3) Archive: object -> static library ----
+    // ---- 2) Archive: object -> static library ----
     if target.contains("windows-msvc") {
         let lib_tool = env::var("LIB").unwrap_or_else(|_| "lib".to_string());
         let out_flag = format!("/OUT:{}", lib_path.to_str().unwrap());
@@ -71,7 +78,7 @@ fn main() {
         );
     }
 
-    // ---- 4) Tell Cargo/rustc how to link it ----
+    // ---- 3) Tell Cargo/rustc how to link it ----
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!("cargo:rustc-link-lib=static={}", lib_basename);
 }

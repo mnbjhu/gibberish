@@ -3,17 +3,14 @@ use std::{fmt::Display, mem};
 
 use gibberish_core::{
     lang::Lang,
-    node::{Lexeme, LexemeData, Node},
+    node::{Lexeme, LexemeData, Node, NodeData},
     state::{State, StateData},
     vec::RawVec,
 };
 
-#[link(name = "gibberish-parser", kind = "static")]
 unsafe extern "C" {
     fn lex(ptr: *const u8, len: usize) -> RawVec<LexemeData>;
-    fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;
-    fn parse(ptr: *const StateData) -> u32;
-    fn get_state(ptr: *const StateData) -> StateData;
+    fn parse(ptr: *const u8, len: usize) -> NodeData;
 }
 
 use parse as p;
@@ -53,6 +50,7 @@ pub enum GibberishToken {
 	Semi,
 	String,
 	At,
+	Err,
 
 }
 
@@ -130,12 +128,8 @@ impl Gibberish {
 
     pub fn parse(text: &str) -> Node<Gibberish> {
         unsafe {
-            let state_ptr = default_state_ptr(text.as_ptr(), text.len());
-            p(state_ptr);
-            let state_data = get_state(state_ptr);
-            let mut state = State::from_data(state_data, text);
-            assert_eq!(state.stack.len(), 1);
-            mem::transmute(state.stack.pop().unwrap())
+            let n = p(text.as_ptr(), text.len());
+            mem::transmute(Node::from_data(n, text, &mut 0))
         }
     }
 }
