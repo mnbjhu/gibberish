@@ -69,97 +69,86 @@ impl Choice {
             .map(|it| it.build(builder, f))
             .collect::<Vec<_>>();
 
-        let ret_err = match &self.default {
-            Some(d) if d == "%default_unmatched%" => &format!(
-                "\n@ret_err
-    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
-    ret %res
-",
-                default = builder.vars.len(),
-            ),
-            Some(default) => {
-                let default = builder.get_group_id(default);
-                if self.after_default.is_empty() {
-                    &format!(
-                        "\n@ret_err
-    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
-    ret %res
-"
-                    )
-                } else {
-                    &format!(
-                        "\n@ret_err
-    call $group_at(l %state_ptr, w {default}, l %unmatched_checkpoint)
-    jmp @check_after_0
-"
-                    )
-                }
-            }
-            None => {
-                "\n@ret_err
-    ret %res"
-            }
+        // Decide how to perform the "default" action in C
+        // We emit code that runs when all options fail.
+        let (has_default, default_group_id) = match &self.default {
+            Some(d) if d == "%default_unmatched%" => (true, Some(builder.vars.len() as u32)),
+            Some(name) => (true, Some(builder.get_group_id(name) as u32)),
+            None => (false, None),
         };
 
-        write!(
+        // Function header
+        writeln!(
             f,
-            "
-# Build Choice
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{",
+            r#"
+/* Build Choice */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+"#,
         )
         .unwrap();
 
-        for (index, option) in options.iter().enumerate() {
-            let next = if index + 1 == options.len() {
-                "@ret_err"
-            } else {
-                &format!("@check_{}", index + 1)
-            };
-            write!(
-                f,
-                "
-@check_{index}
-    %res =l call $parse_{option}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, {next}, @ret",
-            )
-            .unwrap();
-        }
+        // Try each option: if option returns 0 => success, return 0.
+        // If option returns nonzero => treat as failure for "choice" purposes and try next,
+        // but keep last result in case we need to return it (when no default).
         if options.is_empty() {
+            writeln!(f, "    size_t res = 1;").unwrap();
+        } else {
+            writeln!(f, "    size_t res = 1;").unwrap();
+            for opt in &options {
+                writeln!(
+                    f,
+                    r#"
+    res = parse_{opt}(state, unmatched_checkpoint);
+    if (res == 0) {{
+        return 0;
+    }}
+"#,
+                )
+                .unwrap();
+            }
+        }
+
+        // If we got here, all options "failed" (res != 0).
+        // If there's a default: perform group_at then run after_default chain if any,
+        // returning their first nonzero result, else success.
+        if has_default {
+            let gid = default_group_id.unwrap();
             writeln!(
                 f,
-                "
-@start
-    jmp @ret_err"
-            )
-            .unwrap()
-        }
-
-        write!(
-            f,
-            "
-@ret
-    ret %res
-{ret_err}
-"
-        )
-        .unwrap();
-        for (index, option) in after_default.iter().enumerate() {
-            let next = if index + 1 == after_default.len() {
-                "@ret"
-            } else {
-                &format!("@check_after_{}", index + 1)
-            };
-            write!(
-                f,
-                "
-@check_after_{index}
-    %res =l call $parse_{option}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, {next}, @ret
-",
+                r#"
+    /* default branch */
+    group_at(state, (uint32_t){gid}, unmatched_checkpoint);
+"#,
             )
             .unwrap();
+
+            if after_default.is_empty() {
+                // Default only => success (mirrors the QBE jump to @ret or @ret_err->ret)
+                writeln!(f, "    return res;").unwrap();
+                // NOTE: Your QBE returned %res after group_at, but %res at that point is the last failure code.
+                // If you intended default to *turn failure into success*, change to `return 0;`.
+            } else {
+                // Run after_default parsers: if any returns nonzero, return that; else return 0.
+                for aft in &after_default {
+                    writeln!(
+                        f,
+                        r#"
+    res = parse_{aft}(state, unmatched_checkpoint);
+    if (res != 0) {{
+        return res;
+    }}
+"#,
+                    )
+                    .unwrap();
+                }
+                writeln!(f, "    return 0;").unwrap();
+            }
+        } else {
+            // No default: return the last failure code from the last option
+            writeln!(f, "    return res;").unwrap();
         }
-        write!(f, "}}").unwrap();
+
+        writeln!(f, "}}\n").unwrap();
     }
 
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {

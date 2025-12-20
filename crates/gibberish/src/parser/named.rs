@@ -25,6 +25,7 @@ impl Named {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         vec![Expected::Group(self.name_id(builder))]
     }
+
     pub fn build_parse(
         &self,
         id: usize,
@@ -32,42 +33,63 @@ impl Named {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.inner.build(builder, f);
+        let name = self.name_id(builder);
+
+        // C version of "Parse Named"
+        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
+        // Return codes preserved: 0 ok, 1 err, 2 eof, >=3 break.
         write!(
             f,
-            "
-# Parse Named
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    jmp @check_eof
-@check_eof
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @eof, @check_ok
-@check_ok
-    %res =l call $peak_{inner}(l %state_ptr, l 0, w 0)
-    jnz %res, @check_skip, @parse
-@check_skip
-    %current_kind =l call $current_kind(l %state_ptr)
-    %skip_ptr =l add %state_ptr, 80
-    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
-    jnz %is_skipped, @bump_skipped, @parse
-@bump_skipped
-    call $bump_skipped(l %state_ptr)
-    jmp @check_eof
-@parse
-    call $enter_group(l %state_ptr, w {name})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, @remove_group, @exit
-@exit
-    call $exit_group(l %state_ptr)
-    ret %res
-@remove_group
-    %stack_ptr =l add %state_ptr, 24
-    call $pop(l %stack_ptr, l 32)
-    ret %res
-@eof
-    ret 2
-}}",
-            name = self.name_id(builder),
+            r#"
+
+/* Parse Named */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    /* Skip leading skipped tokens until either EOF or peak(inner) says we can start. */
+    for (;;) {{
+        if (state->offset >= state->tokens.len) {{
+            return 2; /* EOF */
+        }}
+
+        if (peak_{inner}(state, 0, false)) {{
+            break;
+        }}
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {{
+            bump_skipped(state);
+            continue;
+        }}
+
+        /* Not a start token and not skippable: fall through and attempt parse anyway */
+        break;
+    }}
+
+    /* Enter group */
+    enter_group(state, (uint32_t){name});
+
+    size_t res = parse_{inner}(state, unmatched_checkpoint);
+
+    if (res == 0) {{
+        /* Success: close group and attach to parent */
+        exit_group(state, (uint32_t){name});
+        return 0;
+    }}
+
+    /* Failure: remove the just-entered group from the stack */
+    {{
+        Node tmp;
+        bool popped = node_vec_pop(&state->stack, &tmp);
+        if (!popped) {{
+            abort();
+        }}
+    }}
+
+    return res;
+}}
+"#,
+            id = id,
+            inner = inner,
+            name = name
         )
         .unwrap()
     }

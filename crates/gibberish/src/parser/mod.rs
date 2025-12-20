@@ -84,24 +84,81 @@ impl Display for Parser {
 
 impl Parser {
     pub fn build(&self, builder: &mut ParserBuilder, f: &mut impl Write) -> usize {
-        if let Some(existing) = builder.built.get(self) {
-            *existing
-        } else {
-            let id = builder.built.len();
-            builder.built.insert(self.clone(), id);
-            self.build_parse(id, builder, f);
-            self.build_peak(id, builder, f);
-            self.build_expected(id, builder, f);
-            id
-        }
+        let (id, built) = builder.built.get_mut(self).unwrap();
+        *built = true;
+        let id = *id;
+        self.build_parse(id, builder, f);
+        self.build_peak(id, builder, f);
+        self.build_expected(id, builder, f);
+        id
     }
 
     pub fn get_id(&self, builder: &mut ParserBuilder) -> usize {
-        *builder
+        builder
             .built
             .get(self)
             .expect("Parser has not been built yet")
+            .0
     }
+
+    pub fn predefine(&self, builder: &mut ParserBuilder, f: &mut impl Write) {
+        if builder.built.contains_key(self) {
+            return;
+        }
+        let id = builder.built.len();
+        writeln!(
+            f,
+            "static bool peak_{id}(ParserState *state, size_t offset, bool recover);"
+        )
+        .unwrap();
+        writeln!(
+            f,
+            "static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint);"
+        )
+        .unwrap();
+
+        writeln!(f, "static inline ExpectedVec expected_{id}(void);").unwrap();
+
+        builder
+            .built
+            .insert(self.clone(), (builder.built.len(), false));
+        match self {
+            Parser::Just(_) => (),
+            Parser::Choice(choice) => {
+                choice
+                    .options
+                    .iter()
+                    .for_each(|it| it.predefine(builder, f));
+                choice
+                    .after_default
+                    .iter()
+                    .for_each(|it| it.predefine(builder, f));
+            }
+            Parser::Seq(seq) => seq.0.iter().for_each(|it| it.predefine(builder, f)),
+            Parser::Sep(sep) => {
+                sep.item.predefine(builder, f);
+                sep.sep.predefine(builder, f);
+            }
+            Parser::Delim(_) => todo!(),
+            Parser::Named(named) => named.inner.predefine(builder, f),
+            Parser::Skip(skip) => skip.inner.predefine(builder, f),
+            Parser::UnSkip(un_skip) => un_skip.inner.predefine(builder, f),
+            Parser::Optional(optional) => optional.0.predefine(builder, f),
+            Parser::FoldOnce(fold_once) => {
+                fold_once.first.predefine(builder, f);
+                fold_once.next.predefine(builder, f);
+            }
+            Parser::Repeated(repeated) => {
+                repeated.0.predefine(builder, f);
+            }
+            Parser::Rename(rename) => rename.inner.predefine(builder, f),
+            Parser::Checkpoint(checkpoint) => checkpoint.0.predefine(builder, f),
+            Parser::Empty => todo!(),
+            Parser::Reference(r) => builder.get_var(r).unwrap().clone().predefine(builder, f),
+            Parser::Label(label) => label.inner.predefine(builder, f),
+        }
+    }
+
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         debug!("Getting expected for {}", self.name());
         match self {

@@ -34,8 +34,9 @@ fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
             .unwrap();
         }
 
-        // Emit underlying parse_* functions first
-        let inner_id = builder.vars[root].1.clone().build(builder, f);
+        let p = builder.vars[root].1.clone();
+        p.predefine(builder, f);
+        let inner_id = p.build(builder, f);
 
         // Emit C parse(ptr,len) -> Node
         writeln!(

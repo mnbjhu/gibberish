@@ -371,3 +371,44 @@ static inline ExpectedVec get_expected() {
       .cap = 1,
   };
 }
+
+static size_t checkpoint(ParserState *state) {
+  Node *current = current_node(state);
+  return current->as.group.len;
+}
+
+static void group_at(ParserState *state, size_t checkpoint) {
+  if (state->stack.len == 0) {
+    abort();
+  }
+  Node *current_group = current_node(state);
+  NodeVec *children = &current_group->as.group;
+  if (checkpoint > children->len) {
+    return;
+  }
+  size_t moved = children->len - checkpoint;
+  Node new_group = new_group_node(0);
+  new_group.as.group = node_vec_new();
+
+  if (moved != 0) {
+    new_group.as.group.data = (Node *)malloc(moved * sizeof(Node));
+    if (!new_group.as.group.data)
+      abort();
+    new_group.as.group.len = moved;
+    new_group.as.group.cap = moved;
+
+    memcpy(new_group.as.group.data, &children->data[checkpoint],
+           moved * sizeof(Node));
+  }
+
+  children->len = checkpoint;
+
+  node_vec_push(children, new_group);
+
+  return;
+}
+
+static inline size_t push_break(ParserState *state, PeakFunc f) {
+  break_stack_push(&state->breaks, f);
+  return state->breaks.len + 2;
+}
