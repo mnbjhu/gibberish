@@ -20,8 +20,8 @@ typedef struct {
 } TokenVec;
 
 typedef struct {
-  u_int32_t kind;
-  u_int32_t id;
+  uint32_t kind;
+  uint32_t id;
 } Expected;
 
 typedef struct {
@@ -5850,8 +5850,8 @@ static bool peak_53(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6320,8 +6320,8 @@ static bool peak_33(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6362,8 +6362,8 @@ static bool peak_32(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -6682,8 +6682,8 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -7044,8 +7044,8 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -7086,8 +7086,8 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -8796,10 +8796,10 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     return false;
 }
 
@@ -8843,10 +8843,10 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8988,10 +8988,10 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)0) return true;
     return false;
 }
 
@@ -9037,10 +9037,10 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 

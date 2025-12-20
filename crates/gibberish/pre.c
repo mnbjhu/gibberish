@@ -20,8 +20,8 @@ typedef struct {
 } TokenVec;
 
 typedef struct {
-  u_int32_t kind;
-  u_int32_t id;
+  uint32_t kind;
+  uint32_t id;
 } Expected;
 
 typedef struct {
