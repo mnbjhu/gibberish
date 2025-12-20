@@ -19,49 +19,46 @@ pub fn parse_exact(regex: &str, offset: &mut usize) -> Option<RegexAst> {
 
 pub fn build_exact_regex(f: &mut impl Write, state: &mut LexerBuilderState, text: &str) -> usize {
     let id = state.id();
-    write!(
-        f,
-        "
-# Exact
-function l $lex_{id} (l %lexer_state) {{
-@start
-    %offset_ptr =l add %lexer_state, 16
-    %start =l loadl %offset_ptr
-    jmp @part_0
-"
-    )
-    .unwrap();
-    let end = text.len() - 1;
-    for (index, part) in text.char_indices() {
-        let next = if index == end {
-            "pass"
-        } else {
-            &format!("part_{}", index + 1)
-        };
-        write!(
-            f,
-            "
-@part_{index}
-    %res =w call $cmp_current(l %lexer_state, w {})
-    call $inc_offset(l %lexer_state)
-    jnz %res, @{next}, @fail
-",
-            part as u8
-        )
-        .unwrap()
-    }
-    write!(
-        f,
-        "
-@pass
-    ret 1
 
-@fail
-    storel %start, %offset_ptr
-    ret 0
-}}
-"
+    // Emit function header
+    writeln!(
+        f,
+        r#"
+/* Exact */
+static bool lex_{id}(LexerState *lexer_state) {{
+    size_t start = lexer_state->offset;
+"#,
     )
     .unwrap();
+
+    // Emit per-byte checks
+    for &b in text.as_bytes() {
+        writeln!(
+            f,
+            r#"
+    if (lexer_state->offset >= lexer_state->len) {{
+        lexer_state->offset = start;
+        return false;
+    }}
+    if ((unsigned char)lexer_state->data[lexer_state->offset] != (unsigned char){b}) {{
+        lexer_state->offset = start;
+        return false;
+    }}
+    lexer_state->offset += 1;
+"#,
+        )
+        .unwrap();
+    }
+
+    // Success
+    writeln!(
+        f,
+        r#"
+    return true;
+}}
+"#,
+    )
+    .unwrap();
+
     id
 }

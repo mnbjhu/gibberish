@@ -45,71 +45,79 @@ impl Display for OptionAst {
 impl OptionAst {
     pub fn build(&self, state: &mut LexerBuilderState, f: &mut impl Write) -> usize {
         let id = state.id();
+
         match self {
-            OptionAst::Range(range) => write!(
-                f,
-                "
-# RegexRange
-function w $lex_{id}(l %lexer_state) {{
-@start
-    %len_ptr =l add %lexer_state, 8
-    %len =l loadl %len_ptr
-    %ptr =l loadl %lexer_state
-    %offset_ptr =l add %lexer_state, 16
-    %offset =l loadl %offset_ptr
-    %is_eof =w ceql %offset, %len
-    jnz %is_eof, @fail, @cmp
-@cmp
-    %index =l add %offset, %ptr
-    %current =w loadub %index
-    %lower =w cugew %current, {start}
-    %upper =w culew %current, {end}
-    %res =w and %lower, %upper
-    jnz %res, @pass, @fail
-@pass
-    call $inc_offset(l %lexer_state)
-    ret 1
-@fail
-    ret 0
+            OptionAst::Range(range) => {
+                // range.start / range.end are assumed to already be numeric byte values (0..=255)
+                writeln!(
+                    f,
+                    r#"
+/* RegexRange */
+static bool lex_{id}(LexerState *lexer_state) {{
+    if (lexer_state->offset >= lexer_state->len) {{
+        return false; /* EOF */
+    }}
+
+    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
+    if (current >= (unsigned char){start} && current <= (unsigned char){end}) {{
+        lexer_state->offset += 1;
+        return true;
+    }}
+
+    return false;
 }}
-",
-                start = range.start,
-                end = range.end
-            )
-            .unwrap(),
-            OptionAst::Char(char) => write!(
-                f,
-                "
-# RegexChar
-function w $lex_{id}(l %lexer_state) {{
-@start
-    %res =w call $cmp_current(l %lexer_state, w {char})
-    jnz %res, @pass, @fail
-@pass
-    call $inc_offset(l %lexer_state)
-    ret 1
-@fail
-    ret 0
+"#,
+                    id = id,
+                    start = range.start,
+                    end = range.end
+                )
+                .unwrap();
+            }
+
+            OptionAst::Char(ch) => {
+                // Important: in your QBE you used a byte compare (w {char}), so we treat it as a byte here too.
+                // If OptionAst::Char stores a Rust `char`, you probably want to emit `(*ch as u32)` or encode to UTF-8.
+                // Since you said you're ignoring UTF-8 complications, we assume it's already a 0..=255 value.
+                writeln!(
+                    f,
+                    r#"
+/* RegexChar */
+static bool lex_{id}(LexerState *lexer_state) {{
+    if (lexer_state->offset >= lexer_state->len) {{
+        return false; /* EOF */
+    }}
+
+    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char){byte}) {{
+        lexer_state->offset += 1;
+        return true;
+    }}
+
+    return false;
 }}
-"
-            )
-            .unwrap(),
+"#,
+                    id = id,
+                    byte = *ch
+                )
+                .unwrap();
+            }
+
             OptionAst::Regex(regex_ast) => {
                 let inner_id = regex_ast.build(state, f);
-                write!(
+                writeln!(
                     f,
-                    "
-# RegexRegexOption
-function w $lex_{id}(l %offset_ptr) {{
-@start
-    %res =w call $lex_{inner_id}(l %offset_ptr)
-    ret %res
+                    r#"
+/* RegexRegexOption */
+static bool lex_{id}(LexerState *lexer_state) {{
+    return lex_{inner}(lexer_state);
 }}
-"
+"#,
+                    id = id,
+                    inner = inner_id
                 )
-                .unwrap()
+                .unwrap();
             }
         }
+
         id
     }
 }

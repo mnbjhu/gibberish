@@ -9,8 +9,8 @@ use tempfile::{Builder, NamedTempFile};
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
-use crate::cli::parse::{DYN_LIB_EXT, QBE_EXT, STATIC_LIB_EXT};
-use crate::parser::build::build_parser_qbe;
+use crate::cli::parse::{C_EXT, DYN_LIB_EXT, STATIC_LIB_EXT};
+use crate::parser::build::build_parser_c;
 
 use crate::ast::{CheckError, CheckState, RootAst};
 use crate::lexer::build::create_name_function;
@@ -27,17 +27,17 @@ impl BuildKind {
         match path.extension().unwrap().to_str().unwrap() {
             DYN_LIB_EXT => BuildKind::Dynamic,
             STATIC_LIB_EXT => BuildKind::Static,
-            QBE_EXT => BuildKind::Qbe,
+            C_EXT => BuildKind::Qbe,
             _ => panic!(
                 "File format not supported: expected output file ending .{}, .{} or .{}",
-                DYN_LIB_EXT, STATIC_LIB_EXT, QBE_EXT
+                DYN_LIB_EXT, STATIC_LIB_EXT, C_EXT
             ),
         }
     }
 }
 
 pub fn build(parser_file: &Path, output: &Path) {
-    let res = build_qbe_str(parser_file);
+    let res = build_c_str(parser_file);
     match BuildKind::from_path(output) {
         BuildKind::Qbe => fs::write(output, res).unwrap(),
         BuildKind::Static => {
@@ -53,24 +53,24 @@ pub fn build(parser_file: &Path, output: &Path) {
     println!("{}", Color::Green.paint("[Build successful]"));
 }
 
-pub fn build_qbe_str(parser_file: &Path) -> String {
+pub fn build_c_str(parser_file: &Path) -> String {
     let mut builder = build_parser_from_src(parser_file);
-    builder.build_qbe()
+    builder.build_c()
 }
 
 impl ParserBuilder {
-    pub fn build_qbe(&mut self) -> String {
+    pub fn build_c(&mut self) -> String {
         let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
         group_names.push("unmatched");
         if !self.vars.iter().any(|(it, _)| it == "root") {
             group_names.push("root");
         }
         let mut res = String::new();
-        let pre = include_str!("../../pre.qbe");
+        let pre = include_str!("../../pre.c");
         write!(&mut res, "{}", pre).unwrap();
         create_name_function(&mut res, "group", &group_names);
         create_name_function(&mut res, "label", &self.labels);
-        build_parser_qbe(self, &mut res);
+        build_parser_c(self, &mut res);
         res
     }
 }
@@ -130,68 +130,64 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
     }
 }
 
-pub fn build_static_lib(qbe_text: &str, out: &Path) {
-    let qbe = NamedTempFile::new().unwrap();
-    let qbe_path = qbe.path().to_path_buf();
+pub fn build_static_lib(c_text: &str, out: &Path) {
+    let c_file = Builder::new().suffix(".c").tempfile().unwrap();
+    let c_path = c_file.path().to_path_buf();
 
-    let lib = Builder::new().suffix(".s").tempfile().unwrap();
-    let lib_path = lib.path().to_path_buf();
+    let obj_file = Builder::new().suffix(".o").tempfile().unwrap();
+    let obj_path = obj_file.path().to_path_buf();
 
-    let lib_o = Builder::new().suffix(".o").tempfile().unwrap();
-    let lib_o_path = lib_o.path().to_path_buf();
+    fs::write(&c_path, c_text).unwrap();
 
-    fs::write(&qbe_path, qbe_text).unwrap();
-    Command::new("qbe")
-        .arg("-o")
-        .arg(&lib_path)
-        .arg(&qbe_path)
-        .status()
-        .unwrap();
-    Command::new("cc")
+    // C -> object
+    let status = Command::new("cc")
         .arg("-g")
         .arg("-fno-omit-frame-pointer")
         .arg("-c")
-        // .arg("-fPIC")
-        .arg(&lib_path)
-        .arg("-o")
-        .arg(&lib_o_path)
-        .status()
-        .unwrap();
-    Command::new("ar")
-        .arg("rcs")
-        .arg(out)
-        .arg(&lib_o_path)
-        .status()
-        .unwrap();
-}
-
-pub fn build_dynamic_lib(qbe_path: &Path, out: &Path) {
-    let lib = Builder::new().suffix(".s").tempfile().unwrap();
-    let lib_path = lib.path().to_path_buf();
-
-    let obj = Builder::new().suffix(".o").tempfile().unwrap();
-    let obj_path = obj.path().to_path_buf();
-    Command::new("qbe")
-        .arg("-o")
-        .arg(&lib_path)
-        .arg(qbe_path)
-        .status()
-        .unwrap();
-
-    Command::new("cc")
-        .arg("-c")
-        .arg("-fPIC")
-        .arg(&lib_path)
+        // .arg("-fPIC") // enable if you want PIC objects in your .a
+        .arg(&c_path)
         .arg("-o")
         .arg(&obj_path)
         .status()
         .unwrap();
+    assert!(status.success(), "cc failed");
 
-    Command::new("cc")
+    // object -> static archive
+    let status = Command::new("ar")
+        .arg("rcs")
+        .arg(out)
+        .arg(&obj_path)
+        .status()
+        .unwrap();
+    assert!(status.success(), "ar failed");
+}
+
+/// Build a shared library from a C source file.
+///
+/// - Compiles `.c` to PIC `.o`
+/// - Links into a shared lib at `out` (typically `.so` / `.dylib`)
+pub fn build_dynamic_lib(c_path: &Path, out: &Path) {
+    let obj_file = Builder::new().suffix(".o").tempfile().unwrap();
+    let obj_path = obj_file.path().to_path_buf();
+
+    // C -> PIC object
+    let status = Command::new("cc")
+        .arg("-c")
+        .arg("-fPIC")
+        .arg(c_path)
+        .arg("-o")
+        .arg(&obj_path)
+        .status()
+        .unwrap();
+    assert!(status.success(), "cc -c failed");
+
+    // object -> shared lib
+    let status = Command::new("cc")
         .arg("-shared")
         .arg("-o")
         .arg(out)
         .arg(&obj_path)
         .status()
         .unwrap();
+    assert!(status.success(), "cc -shared failed");
 }

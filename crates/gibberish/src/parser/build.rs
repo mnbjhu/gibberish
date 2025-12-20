@@ -2,12 +2,16 @@ use std::fmt::Write;
 
 use crate::{
     ast::builder::ParserBuilder,
-    lexer::build::build_lexer_qbe,
+    lexer::build::build_lexer_c,
     parser::{Parser, skip::Skip},
 };
 
+pub fn build_parser_c(builder: &mut ParserBuilder, f: &mut impl Write) {
+    build_lexer_c(&builder.lexer, f);
+}
+
 pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
-    build_lexer_qbe(&builder.lexer, f);
+    build_lexer_c(&builder.lexer, f);
 
     if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
         let mut inner = builder.vars[root].1.clone();
