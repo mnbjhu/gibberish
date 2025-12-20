@@ -438,13 +438,13 @@ mod tests {
     use crate::cli::{self};
 
     pub fn build_test_parser(src: &'static str) -> CompiledLang {
-        let mut src_file = Builder::new()
+        let mut src_file = Builder::new().suffix(".gib").tempfile().unwrap();
+        write!(&mut src_file, "{src}").unwrap();
+        let src_file_path = src_file.path();
+        let lib = Builder::new()
             .suffix(shared_lib_suffix())
             .tempfile()
             .unwrap();
-        write!(&mut src_file, "{src}").unwrap();
-        let src_file_path = src_file.path();
-        let lib = Builder::new().suffix(".so").tempfile().unwrap();
         let lib_path = lib.path();
         cli::build::build(src_file_path, lib_path);
         CompiledLang::load(lib_path)

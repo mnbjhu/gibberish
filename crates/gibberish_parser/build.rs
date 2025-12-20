@@ -1,16 +1,16 @@
 // build.rs
 //
 // Builds a static library from a C source at lib/parser.c and links it into this crate.
-// Assumes a C toolchain is available on PATH.
 //
 // Platform behavior:
 // - Unix (linux/macos): uses `cc` + `ar` to create `lib<basename>.a`
 // - Windows MSVC: uses `cl.exe` + `lib.exe` to create `<basename>.lib`
 // - Windows GNU (MinGW): uses `cc` + `ar` (or `llvm-ar`) to create `lib<basename>.a`
 //
-// Notes:
-// - Do NOT use the Windows `LIB` env var as a program name; it is a search-path variable.
-// - On Windows GNU, `ar` may not be on PATH unless MinGW/MSYS2 is installed; `llvm-ar` may exist instead.
+// Key robustness details:
+// - Uses absolute paths derived from CARGO_MANIFEST_DIR (fixes "lib/parser.c not found" on Windows).
+// - Never uses the Windows `LIB` env var as a program name (it’s a search-path variable).
+// - On Windows GNU, tries `ar`, `llvm-ar`, `gcc-ar` if AR isn’t set.
 
 use std::{
     env,
@@ -19,42 +19,71 @@ use std::{
 };
 
 fn main() {
-    // ---- inputs ----
-    let c_src = Path::new("lib/parser.c");
-    println!("cargo:rerun-if-changed={}", c_src.display());
+    // ---- stable base paths ----
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
-    let c_hdr = Path::new("lib/parser.h");
+    // ---- inputs (absolute paths) ----
+    let c_src = manifest_dir.join("lib").join("parser.c");
+    println!("cargo:rerun-if-changed={}", c_src.display());
+    if !c_src.exists() {
+        panic!("C source not found at {}", c_src.display());
+    }
+
+    let c_hdr = manifest_dir.join("lib").join("parser.h");
     if c_hdr.exists() {
         println!("cargo:rerun-if-changed={}", c_hdr.display());
     }
 
-    // ---- environment ----
+    // ---- target info ----
     let target = env::var("TARGET").expect("TARGET not set");
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default(); // "gnu" | "msvc" | ...
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default(); // "windows" | "linux" | "macos" | ...
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
-    // Parameterized static library basename (no "lib" prefix, no extension)
-    let lib_basename: &str = "gibberish-parser";
-
-    // ---- derived paths ----
     let is_windows = target_os == "windows" || target.contains("windows");
     let is_msvc = target_env == "msvc" || target.contains("windows-msvc");
 
+    // ---- configuration ----
+    // Static library basename (no "lib" prefix, no extension)
+    let lib_basename: &str = "gibberish-parser";
+
+    // ---- derived outputs ----
     let obj_path = if is_msvc {
         out_dir.join("parser.obj")
     } else {
-        // GCC/Clang on Unix and Windows GNU produce .o
         out_dir.join("parser.o")
     };
-
     let lib_path = static_lib_path(&out_dir, is_msvc, lib_basename);
+
+    // ---- diagnostics (useful on CI) ----
+    println!(
+        "cargo:warning=build.rs cwd={}",
+        env::current_dir().unwrap().display()
+    );
+    println!(
+        "cargo:warning=build.rs manifest_dir={}",
+        manifest_dir.display()
+    );
+    println!("cargo:warning=build.rs out_dir={}", out_dir.display());
+    println!("cargo:warning=build.rs target={target}");
+    println!("cargo:warning=build.rs target_os={target_os}");
+    println!("cargo:warning=build.rs target_env={target_env}");
+    println!("cargo:warning=build.rs c_src={}", c_src.display());
+    println!("cargo:warning=build.rs obj={}", obj_path.display());
+    println!("cargo:warning=build.rs lib={}", lib_path.display());
 
     // ---- 1) Compile: C -> object ----
     if is_msvc {
-        compile_c_msvc(c_src, &obj_path);
+        compile_c_msvc(&c_src, &obj_path, &manifest_dir.join("lib"));
     } else {
-        compile_c_cc(c_src, &obj_path, /*pic*/ !is_windows);
+        // PIC matters on Unix; on Windows GNU it’s not needed.
+        compile_c_cc(
+            &c_src,
+            &obj_path,
+            &manifest_dir.join("lib"),
+            /*pic*/ !is_windows,
+        );
     }
 
     // ---- 2) Archive: object -> static library ----
@@ -67,13 +96,6 @@ fn main() {
     // ---- 3) Tell Cargo/rustc how to link it ----
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!("cargo:rustc-link-lib=static={}", lib_basename);
-
-    // Helpful diagnostics when something goes wrong on CI.
-    println!("cargo:warning=build.rs target={target}");
-    println!("cargo:warning=build.rs target_env={target_env}");
-    println!("cargo:warning=build.rs target_os={target_os}");
-    println!("cargo:warning=build.rs obj={}", obj_path.display());
-    println!("cargo:warning=build.rs lib={}", lib_path.display());
 }
 
 fn static_lib_path(out_dir: &Path, is_msvc: bool, basename: &str) -> PathBuf {
@@ -84,7 +106,7 @@ fn static_lib_path(out_dir: &Path, is_msvc: bool, basename: &str) -> PathBuf {
     }
 }
 
-fn compile_c_cc(c_src: &Path, obj_path: &Path, pic: bool) {
+fn compile_c_cc(c_src: &Path, obj_path: &Path, include_dir: &Path, pic: bool) {
     let cc = env::var("CC").unwrap_or_else(|_| "cc".to_string());
 
     let mut cmd = Command::new(cc);
@@ -92,38 +114,37 @@ fn compile_c_cc(c_src: &Path, obj_path: &Path, pic: bool) {
         .arg(c_src)
         .arg("-o")
         .arg(obj_path)
-        // If your C file includes headers from lib/, add include path:
+        // headers in lib/
         .arg("-I")
-        .arg("lib")
-        // Debug-ish flags (keep if you want):
+        .arg(include_dir)
+        // debug-ish flags (optional)
         .arg("-g")
         .arg("-fno-omit-frame-pointer");
 
-    // PIC is relevant on Unix; on Windows GNU it’s usually unnecessary.
     if pic {
         cmd.arg("-fPIC");
     }
 
-    // If you want C standard selection:
+    // If you want a C standard:
     // cmd.arg("-std=c11");
 
     run_cmd(&mut cmd);
 }
 
-fn compile_c_msvc(c_src: &Path, obj_path: &Path) {
-    // Use cl.exe when building with MSVC. This assumes the MSVC developer tools are on PATH.
-    // If not, consider using the `cc` crate which handles MSVC tool discovery.
-    let cl = env::var("CL").unwrap_or_else(|_| "cl.exe".to_string());
+fn compile_c_msvc(c_src: &Path, obj_path: &Path, include_dir: &Path) {
+    // CL can be overridden; otherwise default to cl.exe.
+    // This assumes MSVC dev tools are available on PATH.
+    let cl = env::var("CL_EXE").unwrap_or_else(|_| "cl.exe".to_string());
 
-    // cl.exe requires `/Fo<path>` (no space) to set object output.
+    // cl.exe expects /Fo<path> (no space)
     let fo = format!("/Fo{}", obj_path.to_string_lossy());
+    let inc = format!("/I{}", include_dir.to_string_lossy());
 
     let mut cmd = Command::new(cl);
     cmd.arg("/nologo")
         .arg("/c")
-        // include path
-        .arg("/Ilib")
-        // debug-ish flags comparable to -g (optional)
+        .arg(inc)
+        // debug-ish flags (optional)
         .arg("/Zi")
         .arg("/Od")
         .arg(fo)
@@ -133,14 +154,12 @@ fn compile_c_msvc(c_src: &Path, obj_path: &Path) {
 }
 
 fn archive_ar(obj_path: &Path, lib_path: &Path) {
-    // Prefer explicit AR override; else try a few common candidates.
-    let ar = pick_tool(&["AR"], &["ar", "llvm-ar", "gcc-ar"])
-        .unwrap_or_else(|| {
-            panic!(
-                "No archiver found. Install MinGW/MSYS2 (providing `ar`) or LLVM (providing `llvm-ar`), \
+    let ar = pick_tool(&["AR"], &["ar", "llvm-ar", "gcc-ar"]).unwrap_or_else(|| {
+        panic!(
+            "No archiver found. Install MinGW/MSYS2 (providing `ar`) or LLVM (providing `llvm-ar`), \
 or set AR=/path/to/ar."
-            )
-        });
+        )
+    });
 
     let mut cmd = Command::new(ar);
     cmd.args([
@@ -152,7 +171,7 @@ or set AR=/path/to/ar."
 }
 
 fn archive_msvc(obj_path: &Path, lib_path: &Path) {
-    // IMPORTANT: Do NOT use the `LIB` env var. It is a search-path, not the tool.
+    // IMPORTANT: Do NOT use the `LIB` env var. It is a search path, not the tool.
     // Allow override via LIB_EXE; default to lib.exe.
     let libexe = env::var("LIB_EXE").unwrap_or_else(|_| "lib.exe".to_string());
     let out_flag = format!("/OUT:{}", lib_path.to_string_lossy());
@@ -165,8 +184,9 @@ fn archive_msvc(obj_path: &Path, lib_path: &Path) {
 fn pick_tool(env_vars: &[&str], candidates: &[&str]) -> Option<String> {
     for &var in env_vars {
         if let Ok(v) = env::var(var) {
-            if !v.trim().is_empty() {
-                return Some(v);
+            let v = v.trim();
+            if !v.is_empty() {
+                return Some(v.to_string());
             }
         }
     }
@@ -192,7 +212,6 @@ fn tool_exists(name: &str) -> bool {
 
 fn run_cmd(cmd: &mut Command) {
     eprintln!("Running: {:?}", cmd);
-
     let status = cmd
         .status()
         .unwrap_or_else(|e| panic!("failed to run {:?}: {e}", cmd));
