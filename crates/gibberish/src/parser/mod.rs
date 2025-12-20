@@ -172,94 +172,103 @@ impl Parser {
     pub fn build_peak(&self, id: usize, builder: &ParserBuilder, f: &mut impl Write) {
         let options = self.start_tokens(builder);
 
-        write!(
+        // Emits:
+        //   static bool peak_<id>(ParserState *state, size_t offset, bool recover)
+        //
+        // Notes:
+        // - offset/recover are kept for signature compatibility (like your old QBE),
+        //   but this peak implementation only checks the current token kind (same as before).
+        // - returns true if the current token kind is in the start set, else false.
+        writeln!(
             f,
-            "
-function w $peak_{id}(l %state_ptr, l %offset, w %recover) {{
-@start
-    %current =l call $current_kind(l %state_ptr)
-    jmp @check_0
-",
+            r#"
+/* peak_{id} */
+static bool peak_{id}(ParserState *state, size_t offset, bool recover) {{
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+"#,
         )
         .unwrap();
-        for (index, option) in options.iter().enumerate() {
-            let next = if index + 1 == options.len() {
-                "@ret_err"
-            } else {
-                &format!("@check_{}", index + 1)
-            };
-            write!(
-                f,
-                "
-@check_{index}
-    %res =l ceql %current, {option}
-    jnz %res, @ret_ok, {next}",
-                option = builder.get_token_id(option)
-            )
-            .unwrap();
+
+        if options.is_empty() {
+            // If there are no start tokens, it can never start.
+            writeln!(f, "    return false;\n}}\n").unwrap();
+            return;
         }
-        write!(
-            f,
-            "
-@ret_ok
-    ret 0
-@ret_err
-    ret 1
-}}",
-        )
-        .unwrap();
+
+        // Generate a chain of comparisons (keeps output C89/C99-friendly without switch fallthrough tricks)
+        for (i, option) in options.iter().enumerate() {
+            let tok_id = builder.get_token_id(option);
+            if i == 0 {
+                writeln!(f, "    if (current == (uint32_t){tok_id}) return true;").unwrap();
+            } else {
+                writeln!(f, "    if (current == (uint32_t){tok_id}) return true;").unwrap();
+            }
+        }
+
+        writeln!(f, "    return false;\n}}\n").unwrap();
     }
 
     pub fn build_expected(&self, id: usize, builder: &ParserBuilder, f: &mut impl Write) {
+        // Optional => empty vec, no allocation
         if self.is_optional(builder) {
-            write!(
+            writeln!(
                 f,
-                "
-function :vec $expected_{id}() {{
-@start
-    %res =l alloc8 24
-    storel 0, %res
-    ret %res
+                r#"
+/* expected_{id}: optional => empty */
+static inline ExpectedVec expected_{id}(void) {{
+    return (ExpectedVec){{ .data = NULL, .len = 0, .cap = 0 }};
 }}
-",
+"#,
             )
             .unwrap();
             return;
         }
 
         let expected = self.expected(builder);
-        write!(f, "\ndata $expected_{id}_data = {{").unwrap();
-        expected.iter().enumerate().for_each(|(index, it)| {
-            if index != 0 {
-                write!(f, ",").unwrap();
-            }
-            let (kind, id) = match it {
-                Expected::Token(id) => (0, id),
-                Expected::Group(id) => (1, id),
-                Expected::Label(id) => (2, id),
-            };
-            write!(f, "l {kind}, l {id}",).unwrap()
-        });
-        writeln!(f, "}}").unwrap();
-        write!(
+
+        // Emit static const Expected table
+        writeln!(
             f,
-            "
-function :vec $expected_{id}() {{
-@start
-    %ptr =l call $malloc(l {size})
-    %res =l alloc8 24
-    call $memcpy(l %ptr, l $expected_{id}_data, l {size})
-    %len_ptr =l add %res, 8
-    %cap_ptr =l add %res, 16
-    
-    storel %ptr, %res
-    storel {len}, %len_ptr
-    storel {len}, %cap_ptr
-    ret %res
+            r#"
+/* expected_{id} data */
+static const Expected expected_{id}_data[] = {{"#
+        )
+        .unwrap();
+
+        for it in &expected {
+            let (kind, eid) = match it {
+                Expected::Token(id) => (0u32, *id),
+                Expected::Group(id) => (1u32, *id),
+                Expected::Label(id) => (2u32, *id),
+            };
+            writeln!(f, "    (Expected){{ .kind = {kind}u, .id = {eid}u }},",).unwrap();
+        }
+
+        writeln!(f, "}};\n").unwrap();
+
+        // Emit function that heap-copies the table and returns an owning ExpectedVec
+        writeln!(
+            f,
+            r#"
+/* expected_{id}: owning ExpectedVec copy */
+static inline ExpectedVec expected_{id}(void) {{
+    size_t count = sizeof(expected_{id}_data) / sizeof(expected_{id}_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_{id}_data, count * sizeof *data);
+
+    return (ExpectedVec){{
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    }};
 }}
-",
-            size = expected.len() * 16,
-            len = expected.len()
+"#,
         )
         .unwrap();
     }

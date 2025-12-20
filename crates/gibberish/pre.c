@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 
 typedef struct {
@@ -173,11 +174,11 @@ static inline bool skipped_vec_pop(SkippedVec *v, uint32_t *out) {
 
 /* ---------------- BreakStack ---------------- */
 
-static inline BreakStack break_vec_new(void) {
+static inline BreakStack break_stack_new(void) {
   return (BreakStack){.data = NULL, .len = 0, .cap = 0};
 }
 
-static inline void break_vec_push(BreakStack *v, PeakFunc value) {
+static inline void break_stack_push(BreakStack *v, PeakFunc value) {
   if (v->len == v->cap) {
     size_t new_cap = v->cap ? v->cap * 2 : 4;
     void *new_data = realloc(v->data, new_cap * sizeof *v->data);
@@ -189,7 +190,7 @@ static inline void break_vec_push(BreakStack *v, PeakFunc value) {
   v->data[v->len++] = value;
 }
 
-static inline bool break_vec_pop(BreakStack *v, PeakFunc *out) {
+static inline bool break_stack_pop(BreakStack *v, PeakFunc *out) {
   if (v->len == 0)
     return false;
   PeakFunc value = v->data[--v->len];
@@ -307,13 +308,16 @@ static inline void bump_err(ParserState *state) {
   Token current = current_token(state);
   state->offset += 1;
   Node *current_group = current_node(state);
-  size_t last = current_group->as.group.len - 1;
-  Node *last_elem = &current_group->as.group.data[last];
-  if (last_elem->kind == 2) {
-    token_vec_push(&last_elem->as.unexpected, current);
-  } else {
-    node_vec_push(&current_group->as.group, new_unexpected_node(current));
+  size_t group_len = current_group->as.group.len;
+  if (group_len != 0) {
+    size_t last = group_len - 1;
+    Node *last_elem = &current_group->as.group.data[last];
+    if (last_elem->kind == 2) {
+      token_vec_push(&last_elem->as.unexpected, current);
+      return;
+    }
   }
+  node_vec_push(&current_group->as.group, new_unexpected_node(current));
 }
 
 static inline void enter_group(ParserState *state, uint32_t name) {
@@ -352,4 +356,18 @@ static inline bool unskip(ParserState *state, uint32_t token) {
 static inline void missing(ParserState *state, ExpectedVec expected) {
   Node *current = current_node(state);
   node_vec_push(&current->as.group, new_missing_node(expected));
+}
+
+static const Expected EXPECTED[] = {
+    (Expected){.kind = 0, .id = 1},
+};
+
+static inline ExpectedVec get_expected() {
+  Expected *data = malloc(1 * sizeof(Expected));
+  memcpy(data, EXPECTED, 8);
+  return (ExpectedVec){
+      .data = data,
+      .len = 1,
+      .cap = 1,
+  };
 }

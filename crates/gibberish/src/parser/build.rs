@@ -8,128 +8,186 @@ use crate::{
 
 pub fn build_parser_c(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_c(&builder.lexer, f);
+
+    // You said you added default_state; emit it (or keep if emitted elsewhere)
+    build_default_state(builder, f);
+
+    // Main parse entrypoint now: Node parse(char*, size_t)
+    emit_parse_entry_c(builder, f);
+
+    // Optional dispatcher if other generated code still needs it
+    emit_parse_by_id_c(builder, f);
 }
 
-pub fn build_parser_qbe(builder: &mut ParserBuilder, f: &mut impl Write) {
-    build_lexer_c(&builder.lexer, f);
-
+fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
     if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
+        // Peel Skip wrappers to produce initial skip setup calls
         let mut inner = builder.vars[root].1.clone();
-        let mut skipped = String::new();
+        let mut skipped_calls = String::new();
         while let Parser::Skip(Skip { token, inner: i }) = inner {
             inner = *i;
+            let tok_id = builder.get_token_id(&token);
             writeln!(
-                &mut skipped,
-                "call $skip(l %state_ptr, l {})",
-                builder.get_token_id(&token)
+                &mut skipped_calls,
+                "        skip(&state, (uint32_t){tok_id});"
             )
             .unwrap();
         }
-        let inner = builder.vars[root].1.clone().build(builder, f);
 
-        write!(
+        // Emit underlying parse_* functions first
+        let inner_id = builder.vars[root].1.clone().build(builder, f);
+
+        // Emit C parse(ptr,len) -> Node
+        writeln!(
             f,
-            "
-data $root_group_id = {{ w {root} }}
+            r#"
+/* root group id */
+enum {{ ROOT_GROUP_ID = {root} }};
 
-export function w $parse(l %state_ptr) {{
-@start
-    jmp @loop
-@loop
-    {skipped}
-    %res =l call $parse_{inner}(l %state_ptr, w 1, l 0)
-    jnz %res, @check_eof, @end
-@check_eof
-    %is_eof =l ceql %res, 2
-    jnz %is_eof, @missing, @bump_err
-@missing
-    %expected =:vec call $expected_{inner}()
-    call $missing(l %state_ptr, l %expected)
-    jmp @end
-@bump_err
-    call $bump_err(l %state_ptr)
-    jmp @loop
-@end
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @ret, @check_skip
-@check_skip
-    %current_kind =l call $current_kind(l %state_ptr)
-    %skip_ptr =l add %state_ptr, 80
-    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
-    jnz %is_skipped, @bump_skipped, @expected_eof
-@bump_skipped
-    call $bump_skipped(l %state_ptr)
-    jmp @end
-@expected_eof
-    call $bump_err(l %state_ptr)
-    jmp @end
-@ret
-    ret 1
+/* parse entrypoint */
+Node parse(char *ptr, size_t len) {{
+    ParserState state = default_state(ptr, len);
+
+    for (;;) {{
+        /* Apply initial skip rules (from Skip wrappers) */
+{skipped_calls}
+        size_t res = parse_{inner_id}(&state, 0);
+
+        if (res != 0) {{
+            /* res == 2 => missing expected */
+            if (res == 2) {{
+                ExpectedVec expected = expected_{inner_id}();
+                missing(&state, expected);
+            }} else {{
+                bump_err(&state);
+                continue;
+            }}
+        }}
+
+        break;
+    }}
+
+    /* After parse: consume skipped tokens until EOF; otherwise emit error until EOF */
+    for (;;) {{
+        if (state.offset >= state.tokens.len) {{
+            break;
+        }}
+
+        uint32_t k = current_kind(&state);
+        if (skipped_vec_contains(&state.skipped, k)) {{
+            bump_skipped(&state);
+            continue;
+        }}
+
+        bump_err(&state);
+    }}
+
+    /* There should be exactly one item left on the stack: the root node */
+    if (state.stack.len != 1) {{
+        abort();
+    }}
+
+    Node out;
+    bool ok = node_vec_pop(&state.stack, &out);
+    if (!ok) {{
+        abort();
+    }}
+
+    return out;
 }}
-"
+"#,
+            root = root,
+            skipped_calls = skipped_calls,
+            inner_id = inner_id
         )
-        .unwrap()
+        .unwrap();
     } else {
-        write!(
+        // No root rule: return a root group node containing only errors/tokens, then return it.
+        let root_id = builder.vars.len() + 1;
+        writeln!(
             f,
-            "
-data $root_group_id = {{ w {root} }}
+            r#"
+enum {{ ROOT_GROUP_ID = {root_id} }};
 
-export function w $parse(l %state_ptr) {{
-@start
-    jmp @check_eof
-@check_eof
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @ret, @bump_err
-@bump_err
-    call $bump_err(l %state_ptr)
-    jmp @check_eof
-@ret
-    ret 1
+Node parse(char *ptr, size_t len) {{
+    ParserState state = default_state(ptr, len);
+
+    while (state.offset < state.tokens.len) {{
+        bump_err(&state);
+    }}
+
+    if (state.stack.len != 1) {{
+        abort();
+    }}
+
+    Node out;
+    bool ok = node_vec_pop(&state.stack, &out);
+    if (!ok) {{
+        abort();
+    }}
+    return out;
 }}
-",
-            root = builder.vars.len() + 1
+"#,
         )
-        .unwrap()
+        .unwrap();
     }
-    build_parse_by_id(builder, f);
 }
 
-pub fn build_parse_by_id(builder: &ParserBuilder, f: &mut impl Write) {
-    write!(
+fn emit_parse_by_id_c(builder: &ParserBuilder, f: &mut impl Write) {
+    writeln!(
         f,
-        "
-function l $peak_by_id(l %state_ptr, l %offset, w %recover, l %id) {{
-"
+        r#"
+/* Dispatch parse functions by numeric id */
+static size_t parse_by_id(ParserState *state, size_t unmatched_checkpoint, size_t id) {{
+    switch (id) {{"#
     )
     .unwrap();
 
     for index in 0..builder.built.len() {
-        let next = if index + 1 == builder.built.len() {
-            "@err".to_string()
-        } else {
-            format!("@check_{}", index + 1)
-        };
-        write!(
+        writeln!(
             f,
-            "
-@check_{index}
-    %res =l ceql %id, {index}
-    jnz %res, @do_{index}, {next}
-@do_{index}
-    %ret =l call $peak_{index}(l %state_ptr, l %offset, w %recover)
-    ret %ret
-"
+            "        case {index}: return parse_{index}(state, unmatched_checkpoint);"
         )
         .unwrap();
     }
-    write!(
+
+    writeln!(
         f,
-        "
-@err
-    ret 0
+        r#"        default: return 1;
+    }}
 }}
-"
+"#
+    )
+    .unwrap();
+}
+
+pub fn build_default_state(builder: &ParserBuilder, f: &mut impl Write) {
+    let root_id = builder
+        .vars
+        .iter()
+        .position(|(name, _)| name == "root")
+        .unwrap();
+
+    writeln!(
+        f,
+        r#"
+ParserState default_state(char *ptr, size_t len) {{
+    Node root = new_group_node({root_id});
+
+    NodeVec stack = node_vec_new();
+    node_vec_push(&stack, root);
+
+    TokenVec tokens = lex(ptr, len);
+
+    return (ParserState){{
+        .tokens  = tokens,
+        .stack   = stack,
+        .offset  = 0,
+        .breaks  = break_stack_new(),   /* <-- make sure this matches your actual constructor name */
+        .skipped = skipped_vec_new(),
+    }};
+}}
+"#,
     )
     .unwrap();
 }

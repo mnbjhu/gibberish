@@ -21,58 +21,64 @@ impl Just {
 
     pub fn build_parse(&self, id: usize, builder: &ParserBuilder, f: &mut impl std::fmt::Write) {
         let kind = builder.get_token_id(&self.0);
+
+        // C version of "Parse Just"
+        // Return convention preserved from QBE:
+        //   0 => ok (token consumed)
+        //   1 => error
+        //   2 => eof
+        //   >=3 => break code (index + 3)
         write!(
             f,
-            "
+            r#"
 
-# Parse Just
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    jmp @check_eof
-@check_eof
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @eof, @check_ok
-@check_ok
-    %current_kind =l call $current_kind(l %state_ptr)
-    %res =l ceql %current_kind, {kind}
-    jnz %res, @ret_ok, @check_skip
-@check_skip
-    %skip_ptr =l add %state_ptr, 80
-    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
-    jnz %is_skipped, @bump_skipped, @recover
-@bump_skipped
-    call $bump_skipped(l %state_ptr)
-    jmp @check_eof
-@recover
-    jnz %recover, @check_delims, @ret_err
-@check_delims
-    %delim_stack_ptr =l add %state_ptr, 56
-    %delim_stack_len =l add %state_ptr, 64
-    %index =l loadl %delim_stack_len
-    jnz %index, @loop, @ret_err
-@loop
-    %index =l sub %index, 1
-    %parser_index_ptr =l call $get(l %delim_stack_ptr, l 8, l %index)
-    %parser_index =l loadl %parser_index_ptr
-    %rec_res =l call $peak_by_id(l %state_ptr, l 0, w 0, l %parser_index)
-    jnz %rec_res, @iter, @ret_break
-@iter
-    jnz %index, @loop, @ret_err
-@eof
-    ret 2
-@ret_break
-    %break =l add %index, 3
-    ret %break
-@ret_ok
-    call $bump(l %state_ptr)
-    ret 0
-@ret_err
-    ret 1
-}}",
+/* Parse Just */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    (void)unmatched_checkpoint;
+
+    for (;;) {{
+        /* EOF */
+        if (state->offset >= state->tokens.len) {{
+            return 2;
+        }}
+
+        uint32_t current = current_kind(state);
+
+        /* Match expected token */
+        if (current == (uint32_t){kind}) {{
+            bump(state);
+            return 0;
+        }}
+
+        /* Skip token if configured */
+        if (skipped_vec_contains(&state->skipped, current)) {{
+            bump_skipped(state);
+            continue;
+        }}
+
+        /* Mismatch */
+        break;
+    }}
+
+    /* Recovery: walk break stack from top to bottom.
+       If any PeakFunc matches, return (index + 3) like QBE. */
+    size_t index = state->breaks.len;
+    while (index != 0) {{
+        index -= 1;
+        PeakFunc pf = state->breaks.data[index];
+        if (pf && pf(state)) {{
+            return index + 3;
+        }}
+    }}
+
+    return 1;
+}}
+"#,
+            id = id,
+            kind = kind
         )
         .unwrap()
     }
-
     pub fn start_tokens(&self, _: &ParserBuilder) -> HashSet<String> {
         let mut res = HashSet::new();
         res.insert(self.0.clone());

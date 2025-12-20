@@ -42,14 +42,14 @@ typedef struct {
   Node *data;
   size_t len;
   size_t cap;
-} NodeVec;
+} NodeStack;
 
 struct Node {
   uint32_t kind;
   uint32_t group_kind;
   union {
     Token tok;
-    NodeVec group;
+    NodeStack group;
     ExpectedVec missing;
     TokenVec unexpected;
   } as;
@@ -57,7 +57,7 @@ struct Node {
 
 struct ParserState {
   TokenVec tokens;
-  NodeVec stack;
+  NodeStack stack;
   size_t offset;
   bool (*op[])(ParserState *);
 };
@@ -164,11 +164,11 @@ static inline bool skipped_vec_pop(SkippedVec *v, uint32_t *out) {
 
 /* ---------------- NodeVec ---------------- */
 
-static inline NodeVec node_vec_new(void) {
-  return (NodeVec){.data = NULL, .len = 0, .cap = 0};
+static inline NodeStack node_vec_new(void) {
+  return (NodeStack){.data = NULL, .len = 0, .cap = 0};
 }
 
-static inline void node_vec_push(NodeVec *v, Node value) {
+static inline void node_vec_push(NodeStack *v, Node value) {
   if (v->len == v->cap) {
     size_t new_cap = v->cap ? v->cap * 2 : 4;
     void *new_data = realloc(v->data, new_cap * sizeof *v->data);
@@ -180,7 +180,7 @@ static inline void node_vec_push(NodeVec *v, Node value) {
   v->data[v->len++] = value;
 }
 
-static inline bool node_vec_pop(NodeVec *v, Node *out) {
+static inline bool node_vec_pop(NodeStack *v, Node *out) {
   if (v->len == 0)
     return false;
   Node value = v->data[--v->len];

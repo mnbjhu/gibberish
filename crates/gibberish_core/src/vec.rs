@@ -70,12 +70,20 @@ impl From<SliceData> for &str {
 
 impl<T> From<RawVec<T>> for Vec<T> {
     fn from(value: RawVec<T>) -> Self {
-        unsafe { Vec::from_raw_parts(value.ptr, value.len, value.cap) }
+        if value.cap == 0 {
+            Vec::new()
+        } else {
+            unsafe { Vec::from_raw_parts(value.ptr, value.len, value.cap) }
+        }
     }
 }
 
 impl From<IntVec> for Vec<u64> {
     fn from(value: IntVec) -> Self {
-        unsafe { Vec::from_raw_parts(value.ptr, value.len, value.cap) }
+        if value.cap == 0 {
+            Vec::new()
+        } else {
+            unsafe { Vec::from_raw_parts(value.ptr, value.len, value.cap) }
+        }
     }
 }
