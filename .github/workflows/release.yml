@@ -22,8 +22,13 @@ permissions:
 
 jobs:
   test:
-    name: Tests (Ubuntu, with QBE)
-    runs-on: ubuntu-latest
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -31,20 +36,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install QBE (Linux)
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
-          tar -xf qbe.tar.xz
-          cd qbe-1.2
-          make -j"$(nproc)"
-          sudo install qbe /usr/local/bin/qbe
-          qbe -h >/dev/null
-
-      - name: Build workspace
-        run: cargo build --verbose
-
+      # No separate "build" step: cargo test compiles what it needs.
       - name: Run tests
         run: cargo test --verbose
 
@@ -94,76 +86,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      # -------- QBE install (Linux/macOS) --------
-      - name: Install QBE (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
-          tar -xf qbe.tar.xz
-          cd qbe-1.2
-          make -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
-          sudo install qbe /usr/local/bin/qbe
-          qbe -h >/dev/null
-
-      # -------- QBE install (Windows) --------
-      - name: Setup MSYS2 (Windows)
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            make
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-binutils
-            tar
-            xz
-            curl
-
-      - name: Configure GNU toolchain for Rust (Windows GNU)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $mingw = "C:\msys64\mingw64\bin"
-          Add-Content -Path $env:GITHUB_PATH -Value $mingw
-
-      - name: Build QBE (Windows via MSYS2)
-        if: runner.os == 'Windows'
-        shell: msys2 {0}
-        env:
-          MSYS2_PATH_TYPE: inherit
-        run: |
-          set -euo pipefail
-          curl -L https://c9x.me/compile/release/qbe-1.2.tar.xz -o qbe.tar.xz
-          tar -xf qbe.tar.xz
-          cd qbe-1.2
-          make -j"$(nproc)"
-
-          mkdir -p "$GITHUB_WORKSPACE/qbe-bin"
-          cp -f qbe.exe "$GITHUB_WORKSPACE/qbe-bin/qbe.exe"
-          ls -la "$GITHUB_WORKSPACE/qbe-bin"
-
-      - name: Add QBE to PATH (Windows) and verify
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $qbeDir = Join-Path $env:GITHUB_WORKSPACE "qbe-bin"
-          $qbeExe = Join-Path $qbeDir "qbe.exe"
-
-          if (!(Test-Path $qbeExe)) {
-            Write-Error "qbe.exe not found at $qbeExe"
-            Get-ChildItem -Recurse -Force $env:GITHUB_WORKSPACE | Select-Object FullName | Out-Host
-            exit 1
-          }
-
-          Add-Content -Path $env:GITHUB_PATH -Value $qbeDir
-          $env:PATH = "$qbeDir;$env:PATH"
-
-          Get-Command qbe | Out-Host
-          qbe -h | Out-Null
 
       # -------- other toolchain bits --------
       - name: Install musl tools (Linux musl only)

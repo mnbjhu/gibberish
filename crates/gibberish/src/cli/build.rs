@@ -5,7 +5,7 @@ use std::{fs, path::Path};
 
 use ansi_term::Color;
 use gibberish_gibberish_parser::Gibberish;
-use tempfile::{Builder, NamedTempFile};
+use tempfile::Builder;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
@@ -22,17 +22,33 @@ pub enum BuildKind {
     Dynamic,
 }
 
+fn ext_eq(path: &Path, ext: &str) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+}
+
 impl BuildKind {
     pub fn from_path(path: &Path) -> Self {
-        match path.extension().unwrap().to_str().unwrap() {
-            DYN_LIB_EXT => BuildKind::Dynamic,
-            STATIC_LIB_EXT => BuildKind::Static,
-            C_EXT => BuildKind::C,
-            _ => panic!(
-                "File format not supported: expected output file ending .{}, .{} or .{}",
-                DYN_LIB_EXT, STATIC_LIB_EXT, C_EXT
-            ),
+        if ext_eq(path, DYN_LIB_EXT) {
+            return BuildKind::Dynamic;
         }
+        if ext_eq(path, STATIC_LIB_EXT) {
+            return BuildKind::Static;
+        }
+        if ext_eq(path, C_EXT) {
+            return BuildKind::C;
+        }
+
+        let got = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("<no extension>");
+
+        panic!(
+            "File format not supported: got .{}; expected output file ending .{}, .{} or .{}",
+            got, DYN_LIB_EXT, STATIC_LIB_EXT, C_EXT
+        )
     }
 }
 
@@ -135,64 +151,189 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
     }
 }
 
+fn obj_suffix() -> &'static str {
+    #[cfg(windows)]
+    {
+        ".obj"
+    }
+    #[cfg(not(windows))]
+    {
+        ".o"
+    }
+}
+
+fn static_lib_suffix() -> &'static str {
+    #[cfg(windows)]
+    {
+        ".lib"
+    }
+    #[cfg(not(windows))]
+    {
+        ".a"
+    }
+}
+
+fn shared_lib_suffix() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        ".dylib"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        ".so"
+    }
+    #[cfg(windows)]
+    {
+        ".dll"
+    }
+}
+
+/// Build a static library from in-memory C source.
 pub fn build_static_lib(c_text: &str, out: &Path) {
     let c_file = Builder::new().suffix(".c").tempfile().unwrap();
     let c_path = c_file.path().to_path_buf();
 
-    let obj_file = Builder::new().suffix(".o").tempfile().unwrap();
+    let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
     let obj_path = obj_file.path().to_path_buf();
 
     fs::write(&c_path, c_text).unwrap();
 
     // C -> object
-    let status = Command::new("cc")
-        .arg("-g")
-        .arg("-fno-omit-frame-pointer")
-        .arg("-c")
-        // .arg("-fPIC") // enable if you want PIC objects in your .a
-        .arg(&c_path)
-        .arg("-o")
-        .arg(&obj_path)
-        .status()
-        .unwrap();
-    assert!(status.success(), "cc failed");
+    compile_c_to_object(&c_path, &obj_path, /*pic*/ false);
 
     // object -> static archive
-    let status = Command::new("ar")
-        .arg("rcs")
-        .arg(out)
-        .arg(&obj_path)
-        .status()
-        .unwrap();
-    assert!(status.success(), "ar failed");
+    archive_static(&obj_path, out);
 }
 
 /// Build a shared library from a C source file.
 ///
-/// - Compiles `.c` to PIC `.o`
-/// - Links into a shared lib at `out` (typically `.so` / `.dylib`)
+/// Produces platform-appropriate shared library output:
+/// - Linux: .so
+/// - macOS: .dylib
+/// - Windows: .dll
 pub fn build_dynamic_lib(c_path: &Path, out: &Path) {
-    let obj_file = Builder::new().suffix(".o").tempfile().unwrap();
+    let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
     let obj_path = obj_file.path().to_path_buf();
 
-    // C -> PIC object
-    let status = Command::new("cc")
-        .arg("-c")
-        .arg("-fPIC")
-        .arg(c_path)
-        .arg("-o")
-        .arg(&obj_path)
-        .status()
-        .unwrap();
-    assert!(status.success(), "cc -c failed");
+    // C -> object (PIC where relevant)
+    // PIC is required on many Unix platforms; on Windows it's not a thing.
+    compile_c_to_object(c_path, &obj_path, /*pic*/ true);
 
     // object -> shared lib
-    let status = Command::new("cc")
-        .arg("-shared")
-        .arg("-o")
-        .arg(out)
-        .arg(&obj_path)
-        .status()
-        .unwrap();
-    assert!(status.success(), "cc -shared failed");
+    link_shared(&obj_path, out);
+}
+
+fn compile_c_to_object(c_path: &Path, obj_path: &Path, pic: bool) {
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // cl.exe produces .obj
+        // /nologo: quieter, /Zi: debug info, /Od: no optimizations (closest to -g-ish)
+        let mut cmd = Command::new("cl.exe");
+        cmd.arg("/nologo")
+            .arg("/c")
+            .arg("/Zi")
+            .arg("/Od")
+            .arg("/Fo:".to_string() + obj_path.to_string_lossy().as_ref())
+            .arg(c_path);
+
+        let status = cmd.status().unwrap();
+        assert!(status.success(), "cl.exe /c failed");
+    }
+
+    #[cfg(not(all(windows, target_env = "msvc")))]
+    {
+        // cc/clang/gcc path (Linux/macOS/MinGW)
+        let mut cmd = Command::new("cc");
+        cmd.arg("-g").arg("-fno-omit-frame-pointer").arg("-c");
+
+        // -fPIC matters on ELF platforms; harmless on macOS; not used on MSVC.
+        if pic {
+            // On macOS this is fine; on Linux required for shared libs.
+            cmd.arg("-fPIC");
+        }
+
+        cmd.arg(c_path).arg("-o").arg(obj_path);
+
+        let status = cmd.status().unwrap();
+        assert!(status.success(), "cc -c failed");
+    }
+}
+
+fn archive_static(obj_path: &Path, out: &Path) {
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // lib.exe creates .lib archives
+        let status = Command::new("lib.exe")
+            .arg("/nologo")
+            .arg(format!("/OUT:{}", out.to_string_lossy()))
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "lib.exe failed");
+    }
+
+    #[cfg(not(all(windows, target_env = "msvc")))]
+    {
+        // ar on Unix / MinGW
+        let status = Command::new("ar")
+            .arg("rcs")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "ar failed");
+    }
+}
+
+fn link_shared(obj_path: &Path, out: &Path) {
+    #[cfg(target_os = "macos")]
+    {
+        // macOS wants -dynamiclib instead of -shared
+        let status = Command::new("cc")
+            .arg("-dynamiclib")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -dynamiclib failed");
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let status = Command::new("cc")
+            .arg("-shared")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -shared failed");
+    }
+
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // link.exe builds DLLs. If you also want an import library, add /IMPLIB:...
+        let status = Command::new("link.exe")
+            .arg("/nologo")
+            .arg("/DLL")
+            .arg(format!("/OUT:{}", out.to_string_lossy()))
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "link.exe /DLL failed");
+    }
+
+    #[cfg(all(windows, not(target_env = "msvc")))]
+    {
+        // MinGW/clang on Windows: cc can link a .dll with -shared
+        let status = Command::new("cc")
+            .arg("-shared")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -shared failed (windows gnu)");
+    }
 }

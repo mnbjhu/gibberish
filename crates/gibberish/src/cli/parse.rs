@@ -14,8 +14,23 @@ use crate::{
 
 pub const C_EXT: &str = "c";
 pub const GIBBERISH_EXT: &str = "gib";
+
+// --- Dynamic library extension (per-platform) ---
+#[cfg(target_os = "linux")]
 pub const DYN_LIB_EXT: &str = "so";
+
+#[cfg(target_os = "macos")]
+pub const DYN_LIB_EXT: &str = "dylib";
+
+#[cfg(windows)]
+pub const DYN_LIB_EXT: &str = "dll";
+
+// --- Static library extension (per-platform) ---
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub const STATIC_LIB_EXT: &str = "a";
+
+#[cfg(windows)]
+pub const STATIC_LIB_EXT: &str = "lib";
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
     let text = fs::read_to_string(path).unwrap();
