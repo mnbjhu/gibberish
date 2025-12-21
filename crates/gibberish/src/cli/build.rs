@@ -198,10 +198,7 @@ pub fn build_static_lib(c_text: &str, out: &Path) {
 
     fs::write(&c_path, c_text).unwrap();
 
-    // C -> object
-    compile_c_to_object(&c_path, &obj_path, /*pic*/ false);
-
-    // object -> static archive
+    compile_c_to_object(&c_path, &obj_path, false);
     archive_static(&obj_path, out);
 }
 
@@ -213,7 +210,7 @@ pub fn build_static_lib(c_text: &str, out: &Path) {
 /// - Windows: .dll
 pub fn build_dynamic_lib(c_path: &Path, out: &Path) {
     let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
-    let obj_path = obj_file.path().to_path_buf();
+    let obj_path = obj_file.into_temp_path();
 
     // C -> object (PIC where relevant)
     // PIC is required on many Unix platforms; on Windows it's not a thing.
