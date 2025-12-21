@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: ["master"]
 
-  # Allows testing from ANY branch without merging
   workflow_dispatch:
     inputs:
       tag_name:
@@ -36,7 +35,11 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      # No separate "build" step: cargo test compiles what it needs.
+      # ✅ Ensure cl.exe + MSVC env vars exist on Windows
+      - name: Setup MSVC dev cmd
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Run tests
         run: cargo test --verbose
 
@@ -49,31 +52,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux (glibc)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
             bin_ext: ""
 
-          # Linux (musl)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             archive: tar.gz
             bin_ext: ""
 
-          # macOS Intel (x86_64)
           - os: macos-15-intel
             target: x86_64-apple-darwin
             archive: tar.gz
             bin_ext: ""
 
-          # macOS Apple Silicon (arm64)
           - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
             bin_ext: ""
 
-          # Windows (MSVC)
+          # ✅ Windows (MSVC)
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
@@ -87,7 +86,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # -------- other toolchain bits --------
+      # ✅ Ensure cl.exe + MSVC env vars exist on Windows
+      - name: Setup MSVC dev cmd
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install musl tools (Linux musl only)
         if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-musl'
         shell: bash
@@ -96,10 +99,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      - name: Build gibberish (release)
+      # ✅ Build (unix)
+      - name: Build gibberish (release) [unix]
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           set -euo pipefail
+          cargo build -p gibberish --release --target "${{ matrix.target }}"
+
+      # ✅ Build (windows) — use pwsh, not bash
+      - name: Build gibberish (release) [windows]
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
           cargo build -p gibberish --release --target "${{ matrix.target }}"
 
       - name: Package (unix)
