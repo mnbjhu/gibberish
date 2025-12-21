@@ -35,7 +35,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      # ✅ Ensure cl.exe + MSVC env vars exist on Windows
+      - name: Setup MSBuild (find VS)
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+
       - name: Setup MSVC dev cmd
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
