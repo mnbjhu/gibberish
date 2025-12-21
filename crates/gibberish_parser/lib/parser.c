@@ -4124,7 +4124,7 @@ static bool peak_86(ParserState *state, size_t offset, bool recover) {
 
 /* expected_86 data */
 static const Expected expected_86_data[] = {
-    (Expected){ .kind = 0u, .id = 20u },
+    { .kind = 0u, .id = 20u },
 };
 
 
@@ -4202,7 +4202,7 @@ static bool peak_8(ParserState *state, size_t offset, bool recover) {
 
 /* expected_8 data */
 static const Expected expected_8_data[] = {
-    (Expected){ .kind = 0u, .id = 0u },
+    { .kind = 0u, .id = 0u },
 };
 
 
@@ -4280,7 +4280,7 @@ static bool peak_10(ParserState *state, size_t offset, bool recover) {
 
 /* expected_10 data */
 static const Expected expected_10_data[] = {
-    (Expected){ .kind = 0u, .id = 19u },
+    { .kind = 0u, .id = 19u },
 };
 
 
@@ -4321,7 +4321,7 @@ static bool peak_9(ParserState *state, size_t offset, bool recover) {
 
 /* expected_9 data */
 static const Expected expected_9_data[] = {
-    (Expected){ .kind = 2u, .id = 1u },
+    { .kind = 2u, .id = 1u },
 };
 
 
@@ -4410,7 +4410,7 @@ static bool peak_7(ParserState *state, size_t offset, bool recover) {
 
 /* expected_7 data */
 static const Expected expected_7_data[] = {
-    (Expected){ .kind = 0u, .id = 0u },
+    { .kind = 0u, .id = 0u },
 };
 
 
@@ -4456,7 +4456,7 @@ static bool peak_5(ParserState *state, size_t offset, bool recover) {
 
 /* expected_5 data */
 static const Expected expected_5_data[] = {
-    (Expected){ .kind = 1u, .id = 9u },
+    { .kind = 1u, .id = 9u },
 };
 
 
@@ -4534,7 +4534,7 @@ static bool peak_14(ParserState *state, size_t offset, bool recover) {
 
 /* expected_14 data */
 static const Expected expected_14_data[] = {
-    (Expected){ .kind = 0u, .id = 2u },
+    { .kind = 0u, .id = 2u },
 };
 
 
@@ -4612,7 +4612,7 @@ static bool peak_15(ParserState *state, size_t offset, bool recover) {
 
 /* expected_15 data */
 static const Expected expected_15_data[] = {
-    (Expected){ .kind = 0u, .id = 18u },
+    { .kind = 0u, .id = 18u },
 };
 
 
@@ -4690,7 +4690,7 @@ static bool peak_17(ParserState *state, size_t offset, bool recover) {
 
 /* expected_17 data */
 static const Expected expected_17_data[] = {
-    (Expected){ .kind = 0u, .id = 21u },
+    { .kind = 0u, .id = 21u },
 };
 
 
@@ -4731,7 +4731,7 @@ static bool peak_16(ParserState *state, size_t offset, bool recover) {
 
 /* expected_16 data */
 static const Expected expected_16_data[] = {
-    (Expected){ .kind = 2u, .id = 2u },
+    { .kind = 2u, .id = 2u },
 };
 
 
@@ -4884,7 +4884,7 @@ static bool peak_13(ParserState *state, size_t offset, bool recover) {
 
 /* expected_13 data */
 static const Expected expected_13_data[] = {
-    (Expected){ .kind = 0u, .id = 2u },
+    { .kind = 0u, .id = 2u },
 };
 
 
@@ -4930,7 +4930,7 @@ static bool peak_11(ParserState *state, size_t offset, bool recover) {
 
 /* expected_11 data */
 static const Expected expected_11_data[] = {
-    (Expected){ .kind = 1u, .id = 10u },
+    { .kind = 1u, .id = 10u },
 };
 
 
@@ -5008,7 +5008,7 @@ static bool peak_21(ParserState *state, size_t offset, bool recover) {
 
 /* expected_21 data */
 static const Expected expected_21_data[] = {
-    (Expected){ .kind = 0u, .id = 1u },
+    { .kind = 0u, .id = 1u },
 };
 
 
@@ -5049,7 +5049,7 @@ static bool peak_22(ParserState *state, size_t offset, bool recover) {
 
 /* expected_22 data */
 static const Expected expected_22_data[] = {
-    (Expected){ .kind = 2u, .id = 3u },
+    { .kind = 2u, .id = 3u },
 };
 
 
@@ -5127,7 +5127,7 @@ static bool peak_39(ParserState *state, size_t offset, bool recover) {
 
 /* expected_39 data */
 static const Expected expected_39_data[] = {
-    (Expected){ .kind = 0u, .id = 13u },
+    { .kind = 0u, .id = 13u },
 };
 
 
@@ -5205,7 +5205,7 @@ static bool peak_40(ParserState *state, size_t offset, bool recover) {
 
 /* expected_40 data */
 static const Expected expected_40_data[] = {
-    (Expected){ .kind = 0u, .id = 14u },
+    { .kind = 0u, .id = 14u },
 };
 
 
@@ -5326,7 +5326,7 @@ static bool peak_38(ParserState *state, size_t offset, bool recover) {
 
 /* expected_38 data */
 static const Expected expected_38_data[] = {
-    (Expected){ .kind = 0u, .id = 13u },
+    { .kind = 0u, .id = 13u },
 };
 
 
@@ -5372,7 +5372,7 @@ static bool peak_41(ParserState *state, size_t offset, bool recover) {
 
 /* expected_41 data */
 static const Expected expected_41_data[] = {
-    (Expected){ .kind = 1u, .id = 0u },
+    { .kind = 1u, .id = 0u },
 };
 
 
@@ -5420,16 +5420,16 @@ static bool peak_37(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
 
 /* expected_37 data */
 static const Expected expected_37_data[] = {
-    (Expected){ .kind = 0u, .id = 13u },
-    (Expected){ .kind = 1u, .id = 0u },
+    { .kind = 0u, .id = 13u },
+    { .kind = 1u, .id = 0u },
 };
 
 
@@ -5471,7 +5471,7 @@ static bool peak_35(ParserState *state, size_t offset, bool recover) {
 
 /* expected_35 data */
 static const Expected expected_35_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -5549,7 +5549,7 @@ static bool peak_47(ParserState *state, size_t offset, bool recover) {
 
 /* expected_47 data */
 static const Expected expected_47_data[] = {
-    (Expected){ .kind = 0u, .id = 10u },
+    { .kind = 0u, .id = 10u },
 };
 
 
@@ -5595,7 +5595,7 @@ static bool peak_48(ParserState *state, size_t offset, bool recover) {
 
 /* expected_48 data */
 static const Expected expected_48_data[] = {
-    (Expected){ .kind = 1u, .id = 2u },
+    { .kind = 1u, .id = 2u },
 };
 
 
@@ -5673,7 +5673,7 @@ static bool peak_55(ParserState *state, size_t offset, bool recover) {
 
 /* expected_55 data */
 static const Expected expected_55_data[] = {
-    (Expected){ .kind = 0u, .id = 8u },
+    { .kind = 0u, .id = 8u },
 };
 
 
@@ -5808,15 +5808,15 @@ static bool peak_54(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
 
 /* expected_54 data */
 static const Expected expected_54_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -5962,7 +5962,7 @@ static bool peak_52(ParserState *state, size_t offset, bool recover) {
 
 /* expected_52 data */
 static const Expected expected_52_data[] = {
-    (Expected){ .kind = 0u, .id = 13u },
+    { .kind = 0u, .id = 13u },
 };
 
 
@@ -6008,7 +6008,7 @@ static bool peak_50(ParserState *state, size_t offset, bool recover) {
 
 /* expected_50 data */
 static const Expected expected_50_data[] = {
-    (Expected){ .kind = 1u, .id = 3u },
+    { .kind = 1u, .id = 3u },
 };
 
 
@@ -6129,7 +6129,7 @@ static bool peak_46(ParserState *state, size_t offset, bool recover) {
 
 /* expected_46 data */
 static const Expected expected_46_data[] = {
-    (Expected){ .kind = 0u, .id = 10u },
+    { .kind = 0u, .id = 10u },
 };
 
 
@@ -6175,7 +6175,7 @@ static bool peak_44(ParserState *state, size_t offset, bool recover) {
 
 /* expected_44 data */
 static const Expected expected_44_data[] = {
-    (Expected){ .kind = 1u, .id = 4u },
+    { .kind = 1u, .id = 4u },
 };
 
 
@@ -6320,15 +6320,15 @@ static bool peak_33(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
 
 /* expected_33 data */
 static const Expected expected_33_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -6370,7 +6370,7 @@ static bool peak_32(ParserState *state, size_t offset, bool recover) {
 
 /* expected_32 data */
 static const Expected expected_32_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -6448,7 +6448,7 @@ static bool peak_58(ParserState *state, size_t offset, bool recover) {
 
 /* expected_58 data */
 static const Expected expected_58_data[] = {
-    (Expected){ .kind = 0u, .id = 17u },
+    { .kind = 0u, .id = 17u },
 };
 
 
@@ -6537,7 +6537,7 @@ static bool peak_57(ParserState *state, size_t offset, bool recover) {
 
 /* expected_57 data */
 static const Expected expected_57_data[] = {
-    (Expected){ .kind = 0u, .id = 17u },
+    { .kind = 0u, .id = 17u },
 };
 
 
@@ -6682,15 +6682,15 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
 
 /* expected_30 data */
 static const Expected expected_30_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -6724,15 +6724,15 @@ static bool peak_29(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
 
 /* expected_29 data */
 static const Expected expected_29_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -6810,7 +6810,7 @@ static bool peak_61(ParserState *state, size_t offset, bool recover) {
 
 /* expected_61 data */
 static const Expected expected_61_data[] = {
-    (Expected){ .kind = 0u, .id = 9u },
+    { .kind = 0u, .id = 9u },
 };
 
 
@@ -6899,7 +6899,7 @@ static bool peak_60(ParserState *state, size_t offset, bool recover) {
 
 /* expected_60 data */
 static const Expected expected_60_data[] = {
-    (Expected){ .kind = 0u, .id = 9u },
+    { .kind = 0u, .id = 9u },
 };
 
 
@@ -7044,15 +7044,15 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
 
 /* expected_27 data */
 static const Expected expected_27_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -7086,15 +7086,15 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
 
 /* expected_25 data */
 static const Expected expected_25_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -7172,7 +7172,7 @@ static bool peak_63(ParserState *state, size_t offset, bool recover) {
 
 /* expected_63 data */
 static const Expected expected_63_data[] = {
-    (Expected){ .kind = 0u, .id = 4u },
+    { .kind = 0u, .id = 4u },
 };
 
 
@@ -7261,7 +7261,7 @@ static bool peak_62(ParserState *state, size_t offset, bool recover) {
 
 /* expected_62 data */
 static const Expected expected_62_data[] = {
-    (Expected){ .kind = 0u, .id = 4u },
+    { .kind = 0u, .id = 4u },
 };
 
 
@@ -7357,7 +7357,7 @@ static bool peak_23(ParserState *state, size_t offset, bool recover) {
 
 /* expected_23 data */
 static const Expected expected_23_data[] = {
-    (Expected){ .kind = 2u, .id = 0u },
+    { .kind = 2u, .id = 0u },
 };
 
 
@@ -7510,7 +7510,7 @@ static bool peak_20(ParserState *state, size_t offset, bool recover) {
 
 /* expected_20 data */
 static const Expected expected_20_data[] = {
-    (Expected){ .kind = 0u, .id = 1u },
+    { .kind = 0u, .id = 1u },
 };
 
 
@@ -7556,7 +7556,7 @@ static bool peak_18(ParserState *state, size_t offset, bool recover) {
 
 /* expected_18 data */
 static const Expected expected_18_data[] = {
-    (Expected){ .kind = 1u, .id = 12u },
+    { .kind = 1u, .id = 12u },
 };
 
 
@@ -7634,7 +7634,7 @@ static bool peak_67(ParserState *state, size_t offset, bool recover) {
 
 /* expected_67 data */
 static const Expected expected_67_data[] = {
-    (Expected){ .kind = 0u, .id = 3u },
+    { .kind = 0u, .id = 3u },
 };
 
 
@@ -7712,7 +7712,7 @@ static bool peak_76(ParserState *state, size_t offset, bool recover) {
 
 /* expected_76 data */
 static const Expected expected_76_data[] = {
-    (Expected){ .kind = 0u, .id = 7u },
+    { .kind = 0u, .id = 7u },
 };
 
 
@@ -7854,7 +7854,7 @@ static bool peak_81(ParserState *state, size_t offset, bool recover) {
 
 /* expected_81 data */
 static const Expected expected_81_data[] = {
-    (Expected){ .kind = 1u, .id = 14u },
+    { .kind = 1u, .id = 14u },
 };
 
 
@@ -7999,7 +7999,7 @@ static bool peak_79(ParserState *state, size_t offset, bool recover) {
 
 /* expected_79 data */
 static const Expected expected_79_data[] = {
-    (Expected){ .kind = 0u, .id = 13u },
+    { .kind = 0u, .id = 13u },
 };
 
 
@@ -8045,7 +8045,7 @@ static bool peak_77(ParserState *state, size_t offset, bool recover) {
 
 /* expected_77 data */
 static const Expected expected_77_data[] = {
-    (Expected){ .kind = 1u, .id = 13u },
+    { .kind = 1u, .id = 13u },
 };
 
 
@@ -8134,7 +8134,7 @@ static bool peak_75(ParserState *state, size_t offset, bool recover) {
 
 /* expected_75 data */
 static const Expected expected_75_data[] = {
-    (Expected){ .kind = 0u, .id = 7u },
+    { .kind = 0u, .id = 7u },
 };
 
 
@@ -8247,7 +8247,7 @@ static bool peak_73(ParserState *state, size_t offset, bool recover) {
 
 /* expected_73 data */
 static const Expected expected_73_data[] = {
-    (Expected){ .kind = 1u, .id = 0u },
+    { .kind = 1u, .id = 0u },
 };
 
 
@@ -8293,7 +8293,7 @@ static bool peak_71(ParserState *state, size_t offset, bool recover) {
 
 /* expected_71 data */
 static const Expected expected_71_data[] = {
-    (Expected){ .kind = 1u, .id = 14u },
+    { .kind = 1u, .id = 14u },
 };
 
 
@@ -8371,7 +8371,7 @@ static bool peak_85(ParserState *state, size_t offset, bool recover) {
 
 /* expected_85 data */
 static const Expected expected_85_data[] = {
-    (Expected){ .kind = 0u, .id = 22u },
+    { .kind = 0u, .id = 22u },
 };
 
 
@@ -8460,7 +8460,7 @@ static bool peak_84(ParserState *state, size_t offset, bool recover) {
 
 /* expected_84 data */
 static const Expected expected_84_data[] = {
-    (Expected){ .kind = 0u, .id = 22u },
+    { .kind = 0u, .id = 22u },
 };
 
 
@@ -8506,7 +8506,7 @@ static bool peak_82(ParserState *state, size_t offset, bool recover) {
 
 /* expected_82 data */
 static const Expected expected_82_data[] = {
-    (Expected){ .kind = 1u, .id = 15u },
+    { .kind = 1u, .id = 15u },
 };
 
 
@@ -8601,7 +8601,7 @@ static bool peak_68(ParserState *state, size_t offset, bool recover) {
 
 /* expected_68 data */
 static const Expected expected_68_data[] = {
-    (Expected){ .kind = 1u, .id = 14u },
+    { .kind = 1u, .id = 14u },
 };
 
 
@@ -8690,7 +8690,7 @@ static bool peak_66(ParserState *state, size_t offset, bool recover) {
 
 /* expected_66 data */
 static const Expected expected_66_data[] = {
-    (Expected){ .kind = 0u, .id = 3u },
+    { .kind = 0u, .id = 3u },
 };
 
 
@@ -8736,7 +8736,7 @@ static bool peak_64(ParserState *state, size_t offset, bool recover) {
 
 /* expected_64 data */
 static const Expected expected_64_data[] = {
-    (Expected){ .kind = 1u, .id = 18u },
+    { .kind = 1u, .id = 18u },
 };
 
 
@@ -8796,20 +8796,20 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 
 
 /* expected_3 data */
 static const Expected expected_3_data[] = {
-    (Expected){ .kind = 1u, .id = 9u },
-    (Expected){ .kind = 1u, .id = 10u },
-    (Expected){ .kind = 1u, .id = 12u },
-    (Expected){ .kind = 1u, .id = 18u },
+    { .kind = 1u, .id = 9u },
+    { .kind = 1u, .id = 10u },
+    { .kind = 1u, .id = 12u },
+    { .kind = 1u, .id = 18u },
 };
 
 
@@ -8843,9 +8843,9 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)3) return true;
     return false;
 }
@@ -8853,7 +8853,7 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
 /* expected_2 data */
 static const Expected expected_2_data[] = {
-    (Expected){ .kind = 2u, .id = 4u },
+    { .kind = 2u, .id = 4u },
 };
 
 
@@ -8988,17 +8988,17 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)0) return true;
     return false;
 }
 
 
 /* expected_1 data */
 static const Expected expected_1_data[] = {
-    (Expected){ .kind = 2u, .id = 4u },
+    { .kind = 2u, .id = 4u },
 };
 
 
@@ -9037,17 +9037,17 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
 
 /* expected_0 data */
 static const Expected expected_0_data[] = {
-    (Expected){ .kind = 2u, .id = 4u },
+    { .kind = 2u, .id = 4u },
 };
 
 

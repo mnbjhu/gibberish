@@ -304,7 +304,7 @@ static const Expected expected_{id}_data[] = {{"#
                 Expected::Group(id) => (1u32, *id),
                 Expected::Label(id) => (2u32, *id),
             };
-            writeln!(f, "    (Expected){{ .kind = {kind}u, .id = {eid}u }},",).unwrap();
+            writeln!(f, "    {{ .kind = {kind}u, .id = {eid}u }},",).unwrap();
         }
 
         writeln!(f, "}};\n").unwrap();
