@@ -61,8 +61,8 @@ pub fn build(parser_file: &Path, output: &Path) {
         }
         BuildKind::Dynamic => {
             let c = Builder::new().suffix(".c").tempfile().unwrap();
-            let c_path = c.path().to_path_buf();
             fs::write(&c, res).unwrap();
+            let c_path = c.into_temp_path();
             build_dynamic_lib(&c_path, output);
         }
     }
