@@ -361,7 +361,7 @@ static inline void missing(ParserState *state, ExpectedVec expected) {
 }
 
 static const Expected EXPECTED[] = {
-    (Expected){.kind = 0, .id = 1},
+    {.kind = 0, .id = 1},
 };
 
 static inline ExpectedVec get_expected() {

@@ -44,7 +44,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test -vv
 
   build:
     name: Build & Upload (${{ matrix.target }})
@@ -75,7 +75,6 @@ jobs:
             archive: tar.gz
             bin_ext: ""
 
-          # ✅ Windows (MSVC)
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
@@ -89,7 +88,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # ✅ Ensure cl.exe + MSVC env vars exist on Windows
       - name: Setup MSVC dev cmd
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
@@ -102,7 +100,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      # ✅ Build (unix)
       - name: Build gibberish (release) [unix]
         if: runner.os != 'Windows'
         shell: bash
@@ -110,12 +107,11 @@ jobs:
           set -euo pipefail
           cargo build -p gibberish --release --target "${{ matrix.target }}"
 
-      # ✅ Build (windows) — use pwsh, not bash
       - name: Build gibberish (release) [windows]
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cargo build -p gibberish --release --target "${{ matrix.target }}"
+          cargo build -vv -p gibberish --release --target "${{ matrix.target }}"
 
       - name: Package (unix)
         if: runner.os != 'Windows'
