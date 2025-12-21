@@ -73,9 +73,9 @@ jobs:
             archive: tar.gz
             bin_ext: ""
 
-          # Windows (GNU)
+          # Windows (MSVC)
           - os: windows-latest
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
             archive: zip
             bin_ext: ".exe"
 
