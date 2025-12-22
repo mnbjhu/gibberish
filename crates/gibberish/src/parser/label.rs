@@ -14,16 +14,21 @@ impl Label {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.inner.build(builder, f);
+
+        // C version of "Parse Label"
+        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
+        // Just forwards to the inner parser.
         write!(
             f,
-            "
-# Parse Label
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    ret %res
+            r#"
+
+/* Parse Label */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    return parse_{inner}(state, unmatched_checkpoint);
 }}
-",
+"#,
+            id = id,
+            inner = inner
         )
         .unwrap();
     }

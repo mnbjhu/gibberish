@@ -37,116 +37,104 @@ pub fn build_choice_regex(
     options: &[OptionAst],
 ) -> usize {
     let id = state.id();
+
+    // Build sub-regex functions first (same as your old flow)
     let parts = options
         .iter()
         .map(|it| it.build(state, f))
         .collect::<Vec<_>>();
-    write!(
-        f,
-        "
-# RegexChoice
-function l $lex_{id} (l %lexer_state) {{
-@start
-    %offset_ptr =l add %lexer_state, 16
-    %start =l loadl %offset_ptr
-    jmp @part_0
-"
-    )
-    .unwrap();
-    let end = parts.len() - 1;
-    for (index, part) in parts.iter().enumerate() {
-        let next = if index == end {
-            "fail"
-        } else {
-            &format!("part_{}", index + 1)
-        };
-        write!(
-            f,
-            "
-@part_{index}
-    storel %start, %offset_ptr
-    %res =w call $lex_{part}(l %lexer_state)
-    jnz %res, @pass, @{next}
-"
-        )
-        .unwrap()
-    }
-    write!(
-        f,
-        "
-@pass
-    ret 1
 
-@fail
-    storel %start, %offset_ptr
-    ret 0
-}}
-"
+    // Emit C for the choice
+    writeln!(
+        f,
+        r#"
+/* RegexChoice */
+static bool lex_{id}(LexerState *lexer_state) {{
+    size_t start = lexer_state->offset;
+
+"#,
     )
     .unwrap();
+
+    // Try each part in order; reset offset before each attempt.
+    for part in &parts {
+        writeln!(
+            f,
+            r#"    lexer_state->offset = start;
+    if (lex_{part}(lexer_state)) {{
+        return true;
+    }}
+
+"#,
+        )
+        .unwrap();
+    }
+
+    // Total failure: restore offset and return false.
+    writeln!(
+        f,
+        r#"    lexer_state->offset = start;
+    return false;
+}}
+"#,
+    )
+    .unwrap();
+
     id
 }
 
-pub fn build_negated_chocie_regex(
+pub fn build_negated_choice_regex(
     state: &mut LexerBuilderState,
     f: &mut impl Write,
     options: &[OptionAst],
 ) -> usize {
     let id = state.id();
+
+    // Build sub-regex functions first
     let parts = options
         .iter()
         .map(|it| it.build(state, f))
         .collect::<Vec<_>>();
-    write!(
-        f,
-        "
-# RegexNegatedChoice
-function l $lex_{id} (l %lexer_state) {{
-@start
-    %len_ptr =l add %lexer_state, 8
-    %len =l loadl %len_ptr
-    %offset_ptr =l add %lexer_state, 16
-    %start =l loadl %offset_ptr
-    jmp @option_0
-"
-    )
-    .unwrap();
-    let end = parts.len() - 1;
-    for (index, part) in parts.iter().enumerate() {
-        let next = if index == end {
-            "pass"
-        } else {
-            &format!("option_{}", index + 1)
-        };
-        write!(
-            f,
-            "
-@option_{index}
-    %res =w call $lex_{part}(l %lexer_state)
-    jnz %res, @fail, @{next}
-"
-        )
-        .unwrap()
-    }
-    write!(
-        f,
-        "
-@pass
-    %offset =l loadl %offset_ptr
-    %is_eof =l ceql %offset, %len
-    jnz %is_eof, @eof, @inc
-@inc
-    call $inc_offset(l %lexer_state)
-    ret 1
-@eof
-    ret 1
 
-@fail
-    storel %start, %offset_ptr
-    ret 0
-}}
-"
+    writeln!(
+        f,
+        r#"
+/* RegexNegatedChoice */
+static bool lex_{id}(LexerState *lexer_state) {{
+    size_t len = lexer_state->len;
+    size_t start = lexer_state->offset;
+
+"#,
     )
     .unwrap();
+
+    // Try each option in order; if any succeeds -> fail.
+    for part in &parts {
+        writeln!(
+            f,
+            r#"    if (lex_{part}(lexer_state)) {{
+        lexer_state->offset = start;
+        return false;
+    }}
+"#,
+        )
+        .unwrap();
+    }
+
+    // None matched: succeed; consume one char unless we're at EOF.
+    writeln!(
+        f,
+        r#"
+    if (lexer_state->offset == len) {{
+        return true; /* EOF: succeed without consuming */
+    }}
+
+    lexer_state->offset += 1; /* consume one byte/char */
+    return true;
+}}
+"#,
+    )
+    .unwrap();
+
     id
 }

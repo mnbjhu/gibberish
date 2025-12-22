@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_regex};
 
 pub fn parse_seq(regex: &str, offset: &mut usize) -> Option<RegexAst> {
@@ -28,51 +27,44 @@ pub fn build_seq_regex(
     parts: &[RegexAst],
 ) -> usize {
     let id = state.id();
-    let parts = parts
+
+    let built_parts = parts
         .iter()
         .map(|it| it.build(state, f))
         .collect::<Vec<_>>();
-    write!(
-        f,
-        "
-# RegexSeq
-function l $lex_{id} (l %lexer_state) {{
-@start
-    %offset_ptr =l add %lexer_state, 16
-    %start =l loadl %offset_ptr
-    jmp @part_0
-"
-    )
-    .unwrap();
-    let end = parts.len() - 1;
-    for (index, part) in parts.iter().enumerate() {
-        let next = if index == end {
-            "pass"
-        } else {
-            &format!("part_{}", index + 1)
-        };
-        write!(
-            f,
-            "
-@part_{index}
-    %res =w call $lex_{part}(l %lexer_state)
-    jnz %res, @{next}, @fail
-"
-        )
-        .unwrap()
-    }
-    write!(
-        f,
-        "
-@pass
-    ret 1
 
-@fail
-    storel %start, %offset_ptr
-    ret 0
-}}
-"
+    writeln!(
+        f,
+        r#"
+/* RegexSeq */
+static bool lex_{id}(LexerState *lexer_state) {{
+    size_t start = lexer_state->offset;
+"#,
     )
     .unwrap();
+
+    // Run each part in order; on first failure, restore offset and fail.
+    for part in &built_parts {
+        writeln!(
+            f,
+            r#"
+    if (!lex_{part}(lexer_state)) {{
+        lexer_state->offset = start;
+        return false;
+    }}
+"#,
+        )
+        .unwrap();
+    }
+
+    writeln!(
+        f,
+        r#"
+    return true;
+}}
+"#,
+    )
+    .unwrap();
+
     id
 }

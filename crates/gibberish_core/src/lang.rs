@@ -1,5 +1,7 @@
+use std::ffi::CStr;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+use std::os::raw::c_char;
 
 use libloading::{AsFilename, Library, Symbol};
 
@@ -61,21 +63,17 @@ impl Lang for CompiledLang {
 
     fn token_name(&self, token: &Self::Token) -> String {
         unsafe {
-            let tok: Symbol<unsafe extern "C" fn(u32) -> (*const u8, usize)> =
+            let tok: Symbol<unsafe extern "C" fn(u32) -> *const c_char> =
                 self.0.get(b"token_name").unwrap();
-            let (ptr, len) = tok(*token);
-            let bytes = std::slice::from_raw_parts(ptr, len);
-            str::from_utf8_unchecked(bytes).to_string()
+            CStr::from_ptr(tok(*token)).to_str().unwrap().to_string()
         }
     }
 
     fn syntax_name(&self, syntax: &Self::Syntax) -> String {
         unsafe {
-            let syn: Symbol<unsafe extern "C" fn(u32) -> (*const u8, usize)> =
+            let syn: Symbol<unsafe extern "C" fn(u32) -> *const c_char> =
                 self.0.get(b"group_name").unwrap();
-            let (ptr, len) = syn(*syntax);
-            let bytes = std::slice::from_raw_parts(ptr, len);
-            str::from_utf8_unchecked(bytes).to_string()
+            CStr::from_ptr(syn(*syntax)).to_str().unwrap().to_string()
         }
     }
 

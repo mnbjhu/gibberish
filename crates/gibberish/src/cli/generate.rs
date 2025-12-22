@@ -1,4 +1,3 @@
-use std::fmt::Write as _;
 use std::fs::remove_dir_all;
 use std::{
     env::current_dir,
@@ -8,24 +7,19 @@ use std::{
 };
 
 use ansi_term::Color;
-use tempfile::NamedTempFile;
 
 use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
-use crate::cli::build::{build_dynamic_lib, build_static_lib};
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
     let mut builder = build_parser_from_src(src);
-    let qbe_str = builder.build_qbe();
+    let qbe_str = builder.build_c();
     let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
-    build_static_lib(&qbe_str, &PathBuf::from(format!("lib/lib{name}-parser.a")));
-    let qbe = NamedTempFile::new().unwrap();
-    let qbe_path = qbe.path().to_path_buf();
-    fs::write(&qbe, qbe_str).unwrap();
-    build_dynamic_lib(&qbe_path, &PathBuf::from(format!("lib/{name}-parser.so")));
-    build_crate(name, current_dir().unwrap(), &builder);
+    let crate_dir = current_dir().unwrap();
+    write_file(&crate_dir.join("lib/parser.c"), &qbe_str).unwrap();
+    build_crate(name, crate_dir, &builder);
     println!("{}", Color::Green.paint("[Build successful]"));
 }
 
@@ -77,24 +71,25 @@ gibberish-core = "0.1.0"
         write_file(&crate_dir.join("Cargo.toml"), &cargo_toml).unwrap();
     }
 
-    let build_rs = format!(
-        "
+    use std::fmt::Write;
+
+    let build_rs = r#"
 fn main() {{
-    println!(\"cargo:rustc-link-search=native=lib\");
-    println!(\"cargo:rustc-link-lib=static={name}-parser\");
-    println!(\"cargo:rerun-if-changed=lib/lib{name}-parser.a\");
+    println!("cargo:rerun-if-changed=lib/parser.c");
+
+    cc::Build::new()
+        .file("lib/parser.c")
+        .compile("gibberish-parser");
 }}
-"
-    );
-    if !crate_dir.join("build.rs").exists() {
-        write_file(&crate_dir.join("build.rs"), &build_rs).unwrap();
-    }
+"#;
+    write_file(&crate_dir.join("build.rs"), build_rs).unwrap();
 
     let mut token_body = String::new();
     for (name, _) in &builder.lexer {
         let name = snake_to_upper_camel(name);
         writeln!(&mut token_body, "\t{name},").unwrap();
     }
+    writeln!(&mut token_body, "\tErr,").unwrap();
 
     let mut label_body = String::new();
     for name in &builder.labels {
@@ -129,17 +124,14 @@ use std::{{fmt::Display, mem}};
 
 use gibberish_core::{{
     lang::Lang,
-    node::{{Lexeme, LexemeData, Node}},
+    node::{{Lexeme, LexemeData, Node, NodeData}},
     state::{{State, StateData}},
     vec::RawVec,
 }};
 
-#[link(name = \"{name}-parser\", kind = \"static\")]
 unsafe extern \"C\" {{
     fn lex(ptr: *const u8, len: usize) -> RawVec<LexemeData>;
-    fn default_state_ptr(ptr: *const u8, len: usize) -> *const StateData;
-    fn parse(ptr: *const StateData) -> u32;
-    fn get_state(ptr: *const StateData) -> StateData;
+    fn parse(ptr: *const u8, len: usize) -> NodeData;
 }}
 
 use parse as p;
@@ -210,12 +202,8 @@ impl {struct_name} {{
 
     pub fn parse(text: &str) -> Node<{struct_name}> {{
         unsafe {{
-            let state_ptr = default_state_ptr(text.as_ptr(), text.len());
-            p(state_ptr);
-            let state_data = get_state(state_ptr);
-            let mut state = State::from_data(state_data, text);
-            assert_eq!(state.stack.len(), 1);
-            mem::transmute(state.stack.pop().unwrap())
+            let n = p(text.as_ptr(), text.len());
+            mem::transmute(Node::from_data(n, text, &mut 0))
         }}
     }}
 }}

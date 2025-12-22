@@ -34,131 +34,119 @@ impl Seq {
         builder: &mut ParserBuilder,
         f: &mut impl std::fmt::Write,
     ) {
-        let parts = self
+        let part_ids = self
             .0
             .iter()
             .map(|it| it.build(builder, f))
             .collect::<Vec<_>>();
-        let new_delims_len = self.0.len() - 1;
-        let magic = new_delims_len + 3;
 
-        write!(
+        let n = part_ids.len();
+        assert!(n > 0);
+
+        // PeakFunc wrappers for parts[1..] so we can push them as breaks
+        for i in 1..n {
+            let pid = part_ids[i];
+            writeln!(
+                f,
+                r#"
+/* Seq break predicate wrapper for part {i} */
+static bool break_pred_seq_{id}_{i}(ParserState *state) {{
+    return peak_{pid}(state, 0, false);
+}}
+"#,
+            )
+            .unwrap();
+        }
+
+        writeln!(
             f,
-            "
-# Parse Seq
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@add_delims
-    %delim_stack_ptr =l add %state_ptr, 56
-    %delim_stack_len_ptr =l add %state_ptr, 64
-    %delim_stack_len =l loadl %delim_stack_len_ptr
-    %magic_num =l add %delim_stack_len, {magic}
-",
+            r#"
+/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+"#,
         )
         .unwrap();
-        let mut last_optional_index = 0;
 
-        for part in parts[1..].iter().rev() {
-            writeln!(f, "\tcall $push_long(l %delim_stack_ptr, l {part})",).unwrap()
-        }
-
-        writeln!(f, "\tjmp @check_start_0").unwrap();
-
-        for (i, parser) in self.0.iter().enumerate() {
-            last_optional_index = i;
-            if !parser.is_optional(builder) {
-                break;
-            }
-        }
-        let options = &self.0[..last_optional_index + 1];
-        for (index, option) in options.iter().enumerate() {
-            let fail = if index + 1 == options.len() {
-                "@ret_err"
-            } else {
-                &format!("@check_start_{}", index + 1)
-            };
-            let pass = if index + 1 == self.0.len() {
-                "@check_last"
-            } else {
-                &format!("@remove_delim_{}", index + 1)
-            };
-
-            write!(
+        // Push breaks for parts[1..] in reverse order so part 1 is on top.
+        if n > 1 {
+            writeln!(
                 f,
-                "
-@check_start_{index}
-    %res =l call $parse_{option_index}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %res, {fail}, {pass}",
-                option_index = option.get_id(builder),
+                "    /* Push breaks for upcoming parts (reverse so part 1 is on top) */"
             )
             .unwrap();
-        }
-
-        for (index, part) in self.0.iter().enumerate() {
-            if index == 0 {
-                continue;
+            for i in (1..n).rev() {
+                writeln!(
+                    f,
+                    "    size_t brk_{i} = push_break(state, break_pred_seq_{id}_{i});"
+                )
+                .unwrap();
             }
-            let next = if index + 1 == self.0.len() {
-                "@check_last"
-            } else {
-                &format!("@remove_delim_{}", index + 1)
-            };
+            writeln!(f).unwrap();
+        }
 
-            write!(
-                f,
-                "
-@remove_delim_{index}
-    call $pop_delim(l %state_ptr)
-    jnz %res, @check_eof_{index}, @try_parse_{index} 
-@check_eof_{index}
-    %is_eof =l ceql 2, %res
-    jnz %is_eof, @missing_{index}, @check_{index}
-@check_{index}
-    %break_index =l sub %magic_num, {index}
-    %is_me =l ceql %res, %break_index
-    %expected =:vec call $expected_{last}()
-    call $missing(l %state_ptr, l %expected)
-    jnz %is_me, @try_parse_{index}, {next}
-@missing_{index}
-    %expected =:vec call $expected_{last}()
-    call $missing(l %state_ptr, l %expected)
-    jmp @try_parse_{index}
-",
-                last = self.0[index - 1].get_id(builder)
-            )
-            .unwrap();
-            try_parse(part.get_id(builder), &format!("{index}"), next, f);
-        }
-        writeln!(f, "\n\t@ret_err",).unwrap();
-        for _ in self.0[1..].iter() {
-            writeln!(f, "\tcall $pop(l %delim_stack_ptr, l 8)",).unwrap()
-        }
-        write!(
+        // Part 0: parse with bump_err retry on 1.
+        let p0 = part_ids[0];
+        writeln!(
             f,
-            "
-    %delim_start_index =l add %delim_stack_len, 3
-    %invalid_delim =l cugel %res, %delim_start_index
-    jnz %invalid_delim, @ret_no_break, @ret_res
-@check_last
-    jnz %res, @check_eof_last, @ret_ok
-@check_eof_last
-    %is_eof =l ceql 2, %res
-    jnz %is_eof, @missing_last, @check_break_last
-@check_break_last
-    %break_index =l sub %magic_num, {last_optional_index}
-    %is_me =l ceql %res, %break_index
-    jnz %is_me, @ret_ok, @missing_last
-@missing_last
-    %expected =:vec call $expected_{last}()
-    call $missing(l %state_ptr, l %expected)
-    jmp @ret_ok
-@ret_no_break
-    ret 1
-@ret_res
-    ret %res
-@ret_ok
-    ret 0
-}}",
-            last = self.0.last().unwrap().get_id(builder),
+            r#"    size_t res;
+
+    /* Part 0 */
+    res = parse_{p0}(state, unmatched_checkpoint);
+    if (res != 0) {{
+        for(int i = 0; i < {delim_count};i++) {{
+            (void)break_stack_pop(&state->breaks, NULL);
+        }}
+        return res;
+    }}
+
+"#,
+            delim_count = part_ids.len() - 1
+        )
+        .unwrap();
+
+        // For parts i>=1:
+        // - pop break for i as we advance
+        // - if res indicates we should skip i, emit missing(expected_i)
+        // - else attempt to parse i, retrying on 1
+        for i in 1..n {
+            let pi = part_ids[i];
+            writeln!(
+            f,
+            r#"    /* Part {i}: pop its break as we move past it */
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
+    if (res >= 2 && res != brk_{i}) {{
+        ExpectedVec e = expected_{pi}();
+        missing(state, e);
+        /* keep res as-is so later parts are also treated as missing/skipped */
+    }} else {{
+        /* res == 0 (ok) OR res == brk_{i} (we broke here): attempt to parse this part */
+        for (;;) {{
+            res = parse_{pi}(state, unmatched_checkpoint);
+            if (res == 1) {{
+                bump_err(state);
+                continue;
+            }}
+            break;
+        }}
+        if (res >= 2 && res != brk_{i}) {{
+            ExpectedVec e = expected_{pi}();
+            missing(state, e);
+        }}
+    }}
+
+"#,
+        )
+        .unwrap();
+        }
+
+        writeln!(
+            f,
+            r#"
+    return 0;
+}}
+"#,
         )
         .unwrap();
     }

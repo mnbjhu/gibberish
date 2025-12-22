@@ -11,7 +11,7 @@ pub struct ParserBuilder {
     text: String,
     filename: String,
     has_errored: bool,
-    pub built: HashMap<Parser, usize>,
+    pub built: HashMap<Parser, (usize, bool)>,
 }
 
 impl ParserBuilder {

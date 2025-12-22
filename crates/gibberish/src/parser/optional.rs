@@ -11,6 +11,7 @@ impl Optional {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         self.0.expected(builder)
     }
+
     pub fn build_parse(
         &self,
         id: usize,
@@ -18,17 +19,20 @@ impl Optional {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.0.build(builder, f);
+
         write!(
             f,
-            "
-# Parse Optional
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    ret %res
-}}",
+            r#"
+
+/* Parse Optional */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    return parse_{inner}(state, unmatched_checkpoint);
+}}
+"#,
+            id = id,
+            inner = inner
         )
-        .unwrap()
+        .unwrap();
     }
 
     pub fn start_tokens(&self, cache: &ParserBuilder) -> HashSet<String> {

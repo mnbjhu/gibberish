@@ -1,4 +1,8 @@
-fn main() {
-    println!("cargo:rustc-link-search=native=crates/gibberish_parser/lib");
-    println!("cargo:rustc-link-lib=static=gibberish-parser");
-}
+
+fn main() {{
+    println!("cargo:rerun-if-changed=lib/parser.c");
+
+    cc::Build::new()
+        .file("lib/parser.c")
+        .compile("gibberish-parser");
+}}

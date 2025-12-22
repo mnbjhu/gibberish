@@ -8,14 +8,29 @@ use gibberish_gibberish_parser::Gibberish;
 use tempfile::{Builder, NamedTempFile};
 
 use crate::{
-    cli::build::{build_dynamic_lib, build_qbe_str},
+    cli::build::{build_c_str, build_dynamic_lib},
     report::report_errors,
 };
 
-pub const QBE_EXT: &str = "qbe";
+pub const C_EXT: &str = "c";
 pub const GIBBERISH_EXT: &str = "gib";
+
+// --- Dynamic library extension (per-platform) ---
+#[cfg(target_os = "linux")]
 pub const DYN_LIB_EXT: &str = "so";
+
+#[cfg(target_os = "macos")]
+pub const DYN_LIB_EXT: &str = "dylib";
+
+#[cfg(windows)]
+pub const DYN_LIB_EXT: &str = "dll";
+
+// --- Static library extension (per-platform) ---
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub const STATIC_LIB_EXT: &str = "a";
+
+#[cfg(windows)]
+pub const STATIC_LIB_EXT: &str = "lib";
 
 pub fn parse(path: &Path, errors: bool, tokens: bool) {
     let text = fs::read_to_string(path).unwrap();
@@ -39,22 +54,22 @@ pub fn load_parser(parser: &Path) -> CompiledLang {
     let lib_path = lib.path().to_path_buf();
     let parser = match parser.extension().unwrap().to_str().unwrap() {
         DYN_LIB_EXT => parser.canonicalize().unwrap(),
-        QBE_EXT => {
+        C_EXT => {
             build_dynamic_lib(parser, &lib_path);
             lib_path
         }
         GIBBERISH_EXT => {
-            let qbe_str = build_qbe_str(parser);
-            let qbe = NamedTempFile::new().unwrap();
-            fs::write(&qbe, qbe_str).unwrap();
+            let c_str = build_c_str(parser);
+            let c = Builder::new().suffix(".c").tempfile().unwrap();
+            fs::write(&c, c_str).unwrap();
             let lib_path = lib.path().to_path_buf();
-            build_dynamic_lib(qbe.path(), &lib_path);
+            build_dynamic_lib(c.path(), &lib_path);
             lib_path
         }
         _ => {
             panic!(
                 "File format not supported: expected parser file ending .{}, .{} or .{}",
-                DYN_LIB_EXT, GIBBERISH_EXT, QBE_EXT
+                DYN_LIB_EXT, GIBBERISH_EXT, C_EXT
             )
         }
     };

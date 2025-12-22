@@ -5,72 +5,93 @@ use std::{fs, path::Path};
 
 use ansi_term::Color;
 use gibberish_gibberish_parser::Gibberish;
-use tempfile::{Builder, NamedTempFile};
+use tempfile::Builder;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
-use crate::cli::parse::{DYN_LIB_EXT, QBE_EXT, STATIC_LIB_EXT};
-use crate::parser::build::build_parser_qbe;
+use crate::cli::parse::{C_EXT, DYN_LIB_EXT, STATIC_LIB_EXT};
+use crate::parser::build::build_parser_c;
 
 use crate::ast::{CheckError, CheckState, RootAst};
 use crate::lexer::build::create_name_function;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum BuildKind {
-    Qbe,
+    C,
     Static,
     Dynamic,
 }
 
+fn ext_eq(path: &Path, ext: &str) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+}
+
 impl BuildKind {
     pub fn from_path(path: &Path) -> Self {
-        match path.extension().unwrap().to_str().unwrap() {
-            DYN_LIB_EXT => BuildKind::Dynamic,
-            STATIC_LIB_EXT => BuildKind::Static,
-            QBE_EXT => BuildKind::Qbe,
-            _ => panic!(
-                "File format not supported: expected output file ending .{}, .{} or .{}",
-                DYN_LIB_EXT, STATIC_LIB_EXT, QBE_EXT
-            ),
+        if ext_eq(path, DYN_LIB_EXT) {
+            return BuildKind::Dynamic;
         }
+        if ext_eq(path, STATIC_LIB_EXT) {
+            return BuildKind::Static;
+        }
+        if ext_eq(path, C_EXT) {
+            return BuildKind::C;
+        }
+
+        let got = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("<no extension>");
+
+        panic!(
+            "File format not supported: got .{}; expected output file ending .{}, .{} or .{}",
+            got, DYN_LIB_EXT, STATIC_LIB_EXT, C_EXT
+        )
     }
 }
 
 pub fn build(parser_file: &Path, output: &Path) {
-    let res = build_qbe_str(parser_file);
+    let res = build_c_str(parser_file);
     match BuildKind::from_path(output) {
-        BuildKind::Qbe => fs::write(output, res).unwrap(),
+        BuildKind::C => fs::write(output, res).unwrap(),
         BuildKind::Static => {
             build_static_lib(&res, output);
         }
         BuildKind::Dynamic => {
-            let qbe = NamedTempFile::new().unwrap();
-            let qbe_path = qbe.path().to_path_buf();
-            fs::write(&qbe, res).unwrap();
-            build_dynamic_lib(&qbe_path, output);
+            let c = Builder::new().suffix(".c").tempfile().unwrap();
+            fs::write(&c, res).unwrap();
+            let c_path = c.into_temp_path();
+            build_dynamic_lib(&c_path, output);
         }
     }
     println!("{}", Color::Green.paint("[Build successful]"));
 }
 
-pub fn build_qbe_str(parser_file: &Path) -> String {
+pub fn build_c_str(parser_file: &Path) -> String {
     let mut builder = build_parser_from_src(parser_file);
-    builder.build_qbe()
+    builder.build_c()
 }
 
 impl ParserBuilder {
-    pub fn build_qbe(&mut self) -> String {
+    pub fn build_c(&mut self) -> String {
         let mut group_names = self.vars.iter().map(|it| it.0.as_str()).collect::<Vec<_>>();
         group_names.push("unmatched");
         if !self.vars.iter().any(|(it, _)| it == "root") {
             group_names.push("root");
         }
         let mut res = String::new();
-        let pre = include_str!("../../pre.qbe");
+        let pre = include_str!("../../pre.c");
         write!(&mut res, "{}", pre).unwrap();
         create_name_function(&mut res, "group", &group_names);
         create_name_function(&mut res, "label", &self.labels);
-        build_parser_qbe(self, &mut res);
+        create_name_function(
+            &mut res,
+            "token",
+            &self.lexer.iter().map(|(name, _)| name).collect::<Vec<_>>(),
+        );
+        build_parser_c(self, &mut res);
         res
     }
 }
@@ -130,68 +151,186 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
     }
 }
 
-pub fn build_static_lib(qbe_text: &str, out: &Path) {
-    let qbe = NamedTempFile::new().unwrap();
-    let qbe_path = qbe.path().to_path_buf();
-
-    let lib = Builder::new().suffix(".s").tempfile().unwrap();
-    let lib_path = lib.path().to_path_buf();
-
-    let lib_o = Builder::new().suffix(".o").tempfile().unwrap();
-    let lib_o_path = lib_o.path().to_path_buf();
-
-    fs::write(&qbe_path, qbe_text).unwrap();
-    Command::new("qbe")
-        .arg("-o")
-        .arg(&lib_path)
-        .arg(&qbe_path)
-        .status()
-        .unwrap();
-    Command::new("cc")
-        .arg("-g")
-        .arg("-fno-omit-frame-pointer")
-        .arg("-c")
-        // .arg("-fPIC")
-        .arg(&lib_path)
-        .arg("-o")
-        .arg(&lib_o_path)
-        .status()
-        .unwrap();
-    Command::new("ar")
-        .arg("rcs")
-        .arg(out)
-        .arg(&lib_o_path)
-        .status()
-        .unwrap();
+fn obj_suffix() -> &'static str {
+    #[cfg(windows)]
+    {
+        ".obj"
+    }
+    #[cfg(not(windows))]
+    {
+        ".o"
+    }
 }
 
-pub fn build_dynamic_lib(qbe_path: &Path, out: &Path) {
-    let lib = Builder::new().suffix(".s").tempfile().unwrap();
-    let lib_path = lib.path().to_path_buf();
+fn static_lib_suffix() -> &'static str {
+    #[cfg(windows)]
+    {
+        ".lib"
+    }
+    #[cfg(not(windows))]
+    {
+        ".a"
+    }
+}
 
-    let obj = Builder::new().suffix(".o").tempfile().unwrap();
-    let obj_path = obj.path().to_path_buf();
-    Command::new("qbe")
-        .arg("-o")
-        .arg(&lib_path)
-        .arg(qbe_path)
-        .status()
-        .unwrap();
+fn shared_lib_suffix() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        ".dylib"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        ".so"
+    }
+    #[cfg(windows)]
+    {
+        ".dll"
+    }
+}
 
-    Command::new("cc")
-        .arg("-c")
-        .arg("-fPIC")
-        .arg(&lib_path)
-        .arg("-o")
-        .arg(&obj_path)
-        .status()
-        .unwrap();
+/// Build a static library from in-memory C source.
+pub fn build_static_lib(c_text: &str, out: &Path) {
+    let c_file = Builder::new().suffix(".c").tempfile().unwrap();
+    let c_path = c_file.path().to_path_buf();
 
-    Command::new("cc")
-        .arg("-shared")
-        .arg("-o")
-        .arg(out)
-        .arg(&obj_path)
-        .status()
-        .unwrap();
+    let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
+    let obj_path = obj_file.path().to_path_buf();
+
+    fs::write(&c_path, c_text).unwrap();
+
+    compile_c_to_object(&c_path, &obj_path, false);
+    archive_static(&obj_path, out);
+}
+
+/// Build a shared library from a C source file.
+///
+/// Produces platform-appropriate shared library output:
+/// - Linux: .so
+/// - macOS: .dylib
+/// - Windows: .dll
+pub fn build_dynamic_lib(c_path: &Path, out: &Path) {
+    let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
+    let obj_path = obj_file.into_temp_path();
+
+    // C -> object (PIC where relevant)
+    // PIC is required on many Unix platforms; on Windows it's not a thing.
+    compile_c_to_object(c_path, &obj_path, /*pic*/ true);
+
+    // object -> shared lib
+    link_shared(&obj_path, out);
+}
+
+fn compile_c_to_object(c_path: &Path, obj_path: &Path, pic: bool) {
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // cl.exe produces .obj
+        // /nologo: quieter, /Zi: debug info, /Od: no optimizations (closest to -g-ish)
+        let mut cmd = Command::new("cl.exe");
+        cmd.arg("/nologo")
+            .arg("/c")
+            .arg("/Zi")
+            .arg("/Od")
+            .arg("/Fo:".to_string() + obj_path.to_string_lossy().as_ref())
+            .arg(c_path);
+
+        let status = cmd.status().unwrap();
+        assert!(status.success(), "cl.exe /c failed");
+    }
+
+    #[cfg(not(all(windows, target_env = "msvc")))]
+    {
+        // cc/clang/gcc path (Linux/macOS/MinGW)
+        let mut cmd = Command::new("cc");
+        cmd.arg("-g").arg("-fno-omit-frame-pointer").arg("-c");
+
+        // -fPIC matters on ELF platforms; harmless on macOS; not used on MSVC.
+        if pic {
+            // On macOS this is fine; on Linux required for shared libs.
+            cmd.arg("-fPIC");
+        }
+
+        cmd.arg(c_path).arg("-o").arg(obj_path);
+
+        let status = cmd.status().unwrap();
+        assert!(status.success(), "cc -c failed");
+    }
+}
+
+fn archive_static(obj_path: &Path, out: &Path) {
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // lib.exe creates .lib archives
+        let status = Command::new("lib.exe")
+            .arg("/nologo")
+            .arg(format!("/OUT:{}", out.to_string_lossy()))
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "lib.exe failed");
+    }
+
+    #[cfg(not(all(windows, target_env = "msvc")))]
+    {
+        // ar on Unix / MinGW
+        let status = Command::new("ar")
+            .arg("rcs")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "ar failed");
+    }
+}
+
+fn link_shared(obj_path: &Path, out: &Path) {
+    #[cfg(target_os = "macos")]
+    {
+        // macOS wants -dynamiclib instead of -shared
+        let status = Command::new("cc")
+            .arg("-dynamiclib")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -dynamiclib failed");
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let status = Command::new("cc")
+            .arg("-shared")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -shared failed");
+    }
+
+    #[cfg(all(windows, target_env = "msvc"))]
+    {
+        // link.exe builds DLLs. If you also want an import library, add /IMPLIB:...
+        let status = Command::new("link.exe")
+            .arg("/nologo")
+            .arg("/DLL")
+            .arg(format!("/OUT:{}", out.to_string_lossy()))
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "link.exe /DLL failed");
+    }
+
+    #[cfg(all(windows, not(target_env = "msvc")))]
+    {
+        // MinGW/clang on Windows: cc can link a .dll with -shared
+        let status = Command::new("cc")
+            .arg("-shared")
+            .arg("-o")
+            .arg(out)
+            .arg(obj_path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "cc -shared failed (windows gnu)");
+    }
 }

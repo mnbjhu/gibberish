@@ -45,68 +45,59 @@ pub fn build_group_regex(
     capture: bool,
 ) -> usize {
     let id = state.id();
+
     let parts = options
         .iter()
         .map(|it| it.build(state, f))
         .collect::<Vec<_>>();
-    write!(
+
+    writeln!(
         f,
-        "
-# RegexGroup
-function l $lex_{id} (l %lexer_state) {{
-@start
-    %offset_ptr =l add %lexer_state, 16
-    %group_end_ptr =l add %lexer_state, 24
-    %start =l loadl %offset_ptr
-    jmp @part_0
-"
+        r#"
+/* RegexGroup */
+static bool lex_{id}(LexerState *lexer_state) {{
+    size_t start = lexer_state->offset;
+"#,
     )
     .unwrap();
-    let end = parts.len() - 1;
-    for (index, part) in parts.iter().enumerate() {
-        let next = if index == end {
-            "fail"
-        } else {
-            &format!("part_{}", index + 1)
-        };
-        write!(
+
+    // Try each option from the same starting offset.
+    for part in &parts {
+        writeln!(
             f,
-            "
-@part_{index}
-    storel %start, %offset_ptr
-    %res =w call $lex_{part}(l %lexer_state)
-    jnz %res, @pass, @{next}
-"
+            r#"
+    lexer_state->offset = start;
+    if (lex_{part}(lexer_state)) {{
+"#,
         )
-        .unwrap()
-    }
-    write!(
-        f,
-        "
-@pass
-    %offset =l loadl %offset_ptr
-"
-    )
-    .unwrap();
-    if capture {
-        write!(
+        .unwrap();
+
+        if capture {
+            writeln!(
+                f,
+                r#"        lexer_state->group_offset = lexer_state->offset;"#
+            )
+            .unwrap();
+        }
+
+        writeln!(
             f,
-            "
-    storel %offset, %group_end_ptr
-"
+            r#"        return true;
+    }}"#
         )
         .unwrap();
     }
-    write!(
+
+    // All options failed
+    writeln!(
         f,
-        "
-    ret 1
-@fail
-    storel %start, %offset_ptr
-    ret 0
+        r#"
+    lexer_state->offset = start;
+    return false;
 }}
-"
+"#,
     )
     .unwrap();
+
     id
 }

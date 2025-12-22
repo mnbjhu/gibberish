@@ -13,3 +13,6 @@ path = "src/lib.rs"
 
 [dependencies]
 gibberish-core = { path = "../gibberish_core/" }
+
+[build-dependencies]
+cc = "1.2"

@@ -26,6 +26,7 @@ impl FoldOnce {
     pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
         self.first.expected(builder)
     }
+
     pub fn build_parse(
         &self,
         id: usize,
@@ -34,58 +35,85 @@ impl FoldOnce {
     ) {
         let first = self.first.build(builder, f);
         let next = self.next.build(builder, f);
-        write!(
+        let group_kind = builder.get_group_id(&self.name);
+
+        // We need a PeakFunc-compatible predicate for the break stack.
+        // peak_{next} currently has signature: bool peak_{next}(ParserState*, size_t, bool)
+        // PeakFunc is: bool (*)(ParserState*)
+        // So we emit a tiny wrapper.
+        writeln!(
             f,
-            "
-# Parse Fold
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    jmp @check_eof
-@check_eof
-    %is_eof =w call $is_eof(l %state_ptr)
-    jnz %is_eof, @eof, @check_ok
-@check_ok
-    %res =l call $peak_{first}(l %state_ptr, l 0, w 0)
-    jnz %res, @check_skip, @parse
-@check_skip
-    %current_kind =l call $current_kind(l %state_ptr)
-    %skip_ptr =l add %state_ptr, 80
-    %is_skipped =l call $contains_long(l %skip_ptr, l %current_kind)
-    jnz %is_skipped, @bump_skipped, @parse
-@bump_skipped
-    call $bump_skipped(l %state_ptr)
-    jmp @check_eof
-@parse
-    %checkpoint =l call $checkpoint(l %state_ptr)
-    %break_index =l call $push_delim(l %state_ptr, l {next})
-    %res =l call $parse_{first}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    call $pop_delim(l %state_ptr)
-    jnz %res, @check_break, @try_parse_next
-@check_break
-    %is_next =l ceql %res, %break_index
-    jnz %is_next, @try_parse_next, @ret_err
-",
+            r#"
+/* Fold break predicate wrapper */
+static bool break_pred_{id}(ParserState *state) {{
+    return peak_{next}(state, 0, false);
+}}
+"#,
         )
         .unwrap();
-        try_parse(next, "next", "@check_next", f);
-        write!(
+
+        writeln!(
             f,
-            "
-@check_next
-    jnz %res, @ret_ok, @create_group
-@create_group
-    call $group_at(l %state_ptr, w {name}, l %checkpoint)
-    ret 0
-@ret_ok
-    ret 0
-@ret_err
-    ret %res
-@eof
-    ret 2
-}}",
-            name = builder.get_group_id(&self.name),
+            r#"
+/* Parse Fold */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
+    for (;;) {{
+        if (state->offset >= state->tokens.len) {{
+            return 2; /* EOF */
+        }}
+
+        if (peak_{first}(state, 0, false)) {{
+            break;
+        }}
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {{
+            bump_skipped(state);
+            continue;
+        }}
+
+        /* Not start token and not skippable: fall through to parse attempt */
+        break;
+    }}
+
+    size_t c = checkpoint(state);
+
+    /* Push break predicate for "next" and get the break code that child parsers will return */
+    size_t break_code = push_break(state, break_pred_{id});
+
+    /* Parse first */
+    size_t res = parse_{first}(state, unmatched_checkpoint);
+
+    /* Pop the break predicate we pushed */
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    /* If parse_{first} failed for a reason other than our break, propagate it */
+    if (res != 0 && res != break_code) {{
+        return res;
+    }}
+
+    /* Try parse next */
+    for(;;){{
+        size_t res_next = parse_{next}(state, unmatched_checkpoint);
+        if (res_next == 1) {{
+            bump_err(state);
+            continue;
+        }}
+        if (res_next != 0) {{
+            return 0;
+        }}
+        (void)group_at(state, c, {group_kind});
+        return 0;
+    }}
+}}
+"#,
+            id = id,
+            first = first,
+            next = next,
+            group_kind = group_kind,
         )
-        .unwrap()
+        .unwrap();
     }
 
     pub fn start_tokens(&self, builder: &ParserBuilder) -> HashSet<String> {
