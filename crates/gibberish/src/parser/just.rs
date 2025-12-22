@@ -21,13 +21,6 @@ impl Just {
 
     pub fn build_parse(&self, id: usize, builder: &ParserBuilder, f: &mut impl std::fmt::Write) {
         let kind = builder.get_token_id(&self.0);
-
-        // C version of "Parse Just"
-        // Return convention preserved from QBE:
-        //   0 => ok (token consumed)
-        //   1 => error
-        //   2 => eof
-        //   >=3 => break code (index + 3)
         write!(
             f,
             r#"
@@ -43,25 +36,17 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         }}
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t){kind}) {{
             bump(state);
             return 0;
         }}
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {{
             bump_skipped(state);
             continue;
         }}
-
-        /* Mismatch */
         break;
     }}
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {{
         index -= 1;

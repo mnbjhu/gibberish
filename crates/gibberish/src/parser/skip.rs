@@ -25,10 +25,6 @@ impl Skip {
     ) {
         let inner = self.inner.build(builder, f);
         let kind = builder.get_token_id(&self.token);
-
-        // C version of "Parse Skip"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Temporarily marks `kind` as skippable, parses inner, then restores previous state.
         write!(
             f,
             r#"

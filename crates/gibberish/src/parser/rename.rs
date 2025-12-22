@@ -23,11 +23,6 @@ impl Rename {
     ) {
         let inner = self.inner.build(builder, f);
         let name = builder.get_group_id(&self.name);
-
-        // C version of "Parse Rename"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // If inner succeeds, wrap/move nodes after checkpoint into a new group (rename) and succeed.
-        // If inner fails, propagate its error code.
         write!(
             f,
             r#"
@@ -38,8 +33,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     if (res != 0) {{
         return res;
     }}
-
-    /* group_at makes a new group from elements after checkpoint; then we tag it with `name`. */
     (void)group_at(state, unmatched_checkpoint, {name});
 
 

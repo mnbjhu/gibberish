@@ -38,13 +38,11 @@ pub fn build_choice_regex(
 ) -> usize {
     let id = state.id();
 
-    // Build sub-regex functions first (same as your old flow)
     let parts = options
         .iter()
         .map(|it| it.build(state, f))
         .collect::<Vec<_>>();
 
-    // Emit C for the choice
     writeln!(
         f,
         r#"
@@ -56,7 +54,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
     )
     .unwrap();
 
-    // Try each part in order; reset offset before each attempt.
     for part in &parts {
         writeln!(
             f,
@@ -70,7 +67,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
         .unwrap();
     }
 
-    // Total failure: restore offset and return false.
     writeln!(
         f,
         r#"    lexer_state->offset = start;
@@ -90,7 +86,6 @@ pub fn build_negated_choice_regex(
 ) -> usize {
     let id = state.id();
 
-    // Build sub-regex functions first
     let parts = options
         .iter()
         .map(|it| it.build(state, f))
@@ -126,10 +121,10 @@ static bool lex_{id}(LexerState *lexer_state) {{
         f,
         r#"
     if (lexer_state->offset == len) {{
-        return true; /* EOF: succeed without consuming */
+        return true;
     }}
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }}
 "#,

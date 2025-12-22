@@ -43,7 +43,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
     )
     .unwrap();
 
-    // Run each part in order; on first failure, restore offset and fail.
     for part in &built_parts {
         writeln!(
             f,

@@ -26,18 +26,13 @@ impl Sep {
     ) {
         let sep = self.sep.build(builder, f);
         let item = self.item.build(builder, f);
-
-        // PeakFunc wrappers because PeakFunc is bool (*)(ParserState*),
-        // while peak_{x} is bool peak_{x}(ParserState*, size_t, bool)
         writeln!(
             f,
             r#"
-/* Sep break predicate wrapper: item */
 static bool break_pred_sep_{id}_item(ParserState *state) {{
     return peak_{item}(state, 0, false);
 }}
 
-/* Sep break predicate wrapper: sep */
 static bool break_pred_sep_{id}_sep(ParserState *state) {{
     return peak_{sep}(state, 0, false);
 }}
@@ -50,22 +45,14 @@ static bool break_pred_sep_{id}_sep(ParserState *state) {{
             r#"
 /* Parse Sep */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
-    /* Push break predicates: item then sep (sep ends up on top, like your old push order). */
     size_t item_brk = push_break(state, break_pred_sep_{id}_item);
     size_t sep_brk  = push_break(state, break_pred_sep_{id}_sep);
-
     size_t res = 0;
-
     res = parse_{item}(state, unmatched_checkpoint);
-
     if (res != 0) {{
-        /* error / eof / break: match old behavior -> propagate */
         goto ret_err;
     }}
-
-    /* ---- loop: (sep item)* ---- */
     for (;;) {{
-        /* Try parse sep */
         for (;;) {{
             res = parse_{sep}(state, unmatched_checkpoint);
             if (res == 1) {{
@@ -76,26 +63,18 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         }}
 
         if (res == 0) {{
-            /* parsed sep, now must parse item */
         }} else {{
-            /* couldn't parse sep */
             if (res == 2) {{
-                /* EOF while expecting sep: success */
                 goto ret_ok;
             }}
 
             if (res == item_brk) {{
-                /* We hit an item delimiter => missing separator */
                 ExpectedVec e = expected_{sep}();
                 missing(state, e);
-                /* then attempt item */
             }} else {{
-                /* some other break or error => stop successfully (old QBE ret_ok) */
                 goto ret_ok;
             }}
         }}
-
-        /* Try parse item */
         for (;;) {{
             res = parse_{item}(state, unmatched_checkpoint);
             if (res == 1) {{
@@ -106,33 +85,25 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         }}
 
         if (res == 0) {{
-            /* got item, continue looping */
             continue;
         }}
 
-        /* item didn't parse */
         {{
-            /* Always emit missing(item) on failure (matches old QBE check_item_eof path) */
             ExpectedVec e = expected_{item}();
             missing(state, e);
 
             if (res == 2) {{
-                /* EOF after missing item: success */
                 goto ret_ok;
             }}
 
             if (res == sep_brk) {{
-                /* We hit a sep delimiter => treat missing item as recovery and continue with sep */
                 continue;
             }}
-
-            /* Otherwise: stop successfully */
             goto ret_ok;
         }}
     }}
 
 ret_ok:
-    /* pop sep break then item break */
     (void)break_stack_pop(&state->breaks, NULL);
     (void)break_stack_pop(&state->breaks, NULL);
     return 0;

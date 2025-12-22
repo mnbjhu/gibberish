@@ -19,10 +19,6 @@ impl Checkpoint {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.0.build(builder, f);
-
-        // C version of "Parse Named"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Return codes preserved: 0 ok, 1 err, 2 eof, >=3 break.
         write!(
             f,
             r#"

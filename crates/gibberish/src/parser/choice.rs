@@ -69,15 +69,11 @@ impl Choice {
             .map(|it| it.build(builder, f))
             .collect::<Vec<_>>();
 
-        // Decide how to perform the "default" action in C
-        // We emit code that runs when all options fail.
         let (has_default, default_group_id) = match &self.default {
             Some(d) if d == "%default_unmatched%" => (true, Some(builder.vars.len() as u32)),
             Some(name) => (true, Some(builder.get_group_id(name))),
             None => (false, None),
         };
-
-        // Function header
         writeln!(
             f,
             r#"
@@ -87,9 +83,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
-        // Try each option: if option returns 0 => success, return 0.
-        // If option returns nonzero => treat as failure for "choice" purposes and try next,
-        // but keep last result in case we need to return it (when no default).
         if options.is_empty() {
             writeln!(f, "    size_t res = 1;").unwrap();
         } else {
@@ -108,9 +101,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             }
         }
 
-        // If we got here, all options "failed" (res != 0).
-        // If there's a default: perform group_at then run after_default chain if any,
-        // returning their first nonzero result, else success.
         if has_default {
             let gid = default_group_id.unwrap();
             writeln!(
@@ -123,12 +113,8 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             .unwrap();
 
             if after_default.is_empty() {
-                // Default only => success (mirrors the QBE jump to @ret or @ret_err->ret)
                 writeln!(f, "    return res;").unwrap();
-                // NOTE: Your QBE returned %res after group_at, but %res at that point is the last failure code.
-                // If you intended default to *turn failure into success*, change to `return 0;`.
             } else {
-                // Run after_default parsers: if any returns nonzero, return that; else return 0.
                 for aft in &after_default {
                     writeln!(
                         f,
@@ -144,7 +130,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
                 writeln!(f, "    return 0;").unwrap();
             }
         } else {
-            // No default: return the last failure code from the last option
             writeln!(f, "    return res;").unwrap();
         }
 

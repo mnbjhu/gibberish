@@ -3,7 +3,6 @@ use std::{
     path::Path,
 };
 
-use gibberish_core::lang::RawLang;
 use gibberish_dyn_lib::bindings::lang::CompiledLang;
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::Builder;

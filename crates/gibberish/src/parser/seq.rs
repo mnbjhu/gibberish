@@ -42,14 +42,10 @@ impl Seq {
 
         let n = part_ids.len();
         assert!(n > 0);
-
-        // PeakFunc wrappers for parts[1..] so we can push them as breaks
-        for i in 1..n {
-            let pid = part_ids[i];
+        for (i, pid) in part_ids[1..].iter().enumerate() {
             writeln!(
                 f,
                 r#"
-/* Seq break predicate wrapper for part {i} */
 static bool break_pred_seq_{id}_{i}(ParserState *state) {{
     return peak_{pid}(state, 0, false);
 }}
@@ -69,11 +65,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
 
         // Push breaks for parts[1..] in reverse order so part 1 is on top.
         if n > 1 {
-            writeln!(
-                f,
-                "    /* Push breaks for upcoming parts (reverse so part 1 is on top) */"
-            )
-            .unwrap();
             for i in (1..n).rev() {
                 writeln!(
                     f,
@@ -108,20 +99,16 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         // - pop break for i as we advance
         // - if res indicates we should skip i, emit missing(expected_i)
         // - else attempt to parse i, retrying on 1
-        for i in 1..n {
-            let pi = part_ids[i];
+        for (i, pi) in part_ids[1..].iter().enumerate() {
             writeln!(
-            f,
-            r#"    /* Part {i}: pop its break as we move past it */
+                f,
+                r#"
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_{i}) {{
         ExpectedVec e = expected_{pi}();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     }} else {{
-        /* res == 0 (ok) OR res == brk_{i} (we broke here): attempt to parse this part */
         for (;;) {{
             res = parse_{pi}(state, unmatched_checkpoint);
             if (res == 1) {{
@@ -137,8 +124,8 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     }}
 
 "#,
-        )
-        .unwrap();
+            )
+            .unwrap();
         }
 
         writeln!(

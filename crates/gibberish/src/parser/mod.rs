@@ -96,14 +96,6 @@ impl Parser {
         id
     }
 
-    pub fn get_id(&self, builder: &mut ParserBuilder) -> usize {
-        builder
-            .built
-            .get(self)
-            .expect("Parser has not been built yet")
-            .0
-    }
-
     pub fn predefine(&self, builder: &mut ParserBuilder, f: &mut impl Write) {
         if builder.built.contains_key(self) {
             return;
@@ -259,13 +251,9 @@ static bool peak_{id}(ParserState *state, size_t offset, bool recover) {{
         }
 
         // Generate a chain of comparisons (keeps output C89/C99-friendly without switch fallthrough tricks)
-        for (i, option) in options.iter().enumerate() {
-            let tok_id = builder.get_token_id(option);
-            if i == 0 {
-                writeln!(f, "    if (current == (uint32_t){tok_id}) return true;").unwrap();
-            } else {
-                writeln!(f, "    if (current == (uint32_t){tok_id}) return true;").unwrap();
-            }
+        for option in options {
+            let tok_id = builder.get_token_id(&option);
+            writeln!(f, "    if (current == (uint32_t){tok_id}) return true;").unwrap();
         }
 
         writeln!(f, "    return false;\n}}\n").unwrap();

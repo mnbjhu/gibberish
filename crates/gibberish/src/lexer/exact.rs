@@ -20,7 +20,6 @@ pub fn parse_exact(regex: &str, offset: &mut usize) -> Option<RegexAst> {
 pub fn build_exact_regex(f: &mut impl Write, state: &mut LexerBuilderState, text: &str) -> usize {
     let id = state.id();
 
-    // Emit function header
     writeln!(
         f,
         r#"
@@ -31,7 +30,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
     )
     .unwrap();
 
-    // Emit per-byte checks
     for &b in text.as_bytes() {
         writeln!(
             f,
@@ -50,7 +48,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
         .unwrap();
     }
 
-    // Success
     writeln!(
         f,
         r#"

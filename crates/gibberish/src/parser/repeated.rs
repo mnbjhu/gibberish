@@ -34,7 +34,6 @@ impl Repeated {
         writeln!(
             f,
             r#"
-/* Rep0 break predicate wrapper */
 static bool break_pred_rep0_{id}(ParserState *state) {{
     return peak_{inner}(state, 0, false);
 }}
@@ -64,18 +63,15 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         size_t res = parse_{inner}(state, unmatched_checkpoint);
 
         if (res == 0) {{
-            /* matched one occurrence */
             continue;
         }}
 
         if (res == 1) {{
-            /* always bump_err and retry */
             bump_err(state);
             continue;
         }}
 
         if (res == brk) {{
-            /* broke on our delimiter => stop */
             continue;
         }}
         return 0;
