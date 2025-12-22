@@ -3,14 +3,17 @@ use std::{collections::HashMap, fmt::Display};
 use expr::ExprAst;
 use gibberish_core::{
     err::ParseError,
-    node::{Group, Lexeme},
+    node::{Group, Lexeme, Span},
 };
 use gibberish_gibberish_parser::Gibberish;
-use tower_lsp::lsp_types::{DiagnosticSeverity, HoverContents, MarkedString};
+use tower_lsp::lsp_types::{
+    CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, MarkedString,
+    request::Completion,
+};
 
 use crate::{
     ast::{builder::ParserBuilder, stmt::StmtAst},
-    lsp::span::Span,
+    lsp::funcs::DEFAULT_FUNCS,
     parser::Parser,
 };
 
@@ -18,21 +21,6 @@ pub mod builder;
 pub mod expr;
 pub mod stmt;
 
-pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Write) {
-    write!(
-        f,
-        "
-@try_parse_{name}
-    %res =l call $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    %is_err =l ceql 1, %res
-    jnz %is_err, @bump_err_{name}, {after}
-@bump_err_{name}
-    call $bump_err(l %state_ptr)
-    jmp @try_parse_{name}
-",
-    )
-    .unwrap();
-}
 #[derive(Clone)]
 pub struct RootAst<'a>(pub &'a Group<Gibberish>);
 
@@ -174,6 +162,21 @@ impl<'a> LspNode<'a> {
                     }
                 })
                 .cloned()
+                .collect(),
+            _ => vec![],
+        }
+    }
+
+    pub fn completions(&self, _: &CheckState) -> Vec<CompletionItem> {
+        dbg!("Getting completions", self.to_string());
+        match self {
+            LspNode::FunctionName(_) => DEFAULT_FUNCS
+                .iter()
+                .map(|f| CompletionItem {
+                    label: f.name.to_string(),
+                    kind: Some(CompletionItemKind::FUNCTION),
+                    ..Default::default()
+                })
                 .collect(),
             _ => vec![],
         }

@@ -1,4 +1,4 @@
-use crate::ast::{CheckState, LspItem as _, RootAst};
+use crate::lsp::definition::goto_definition;
 use crate::lsp::semantic_token::{semantic_tokens_full, semantic_tokens_range, ImCompleteSemanticToken};
 use dashmap::DashMap;
 use gibberish_core::node::Node;
@@ -17,10 +17,11 @@ pub mod funcs;
 pub mod change;
 pub mod completions;
 pub mod semantic_token;
-pub mod span;
 mod hover;
+mod rename;
 mod diagnostics;
 mod capabilities;
+mod definition;
 
 #[derive(Debug)]
 pub struct Backend {
@@ -34,7 +35,7 @@ pub struct Backend {
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
-            server_info: None,
+            server_info: Some(ServerInfo { name: "gibls".to_string(), version: None }),
             offset_encoding: None,
             capabilities: capabilities::capabilities(),
         })
@@ -86,30 +87,7 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let definition = || -> Option<GotoDefinitionResponse> {
-            let uri = params.text_document_position_params.text_document.uri;
-            let rope = self.document_map.get(uri.as_str())?;
-            let position = params.text_document_position_params.position;
-            let offset = position_to_offset(position, &rope)?;
-            let ast = self.ast_map.get(uri.as_str()).unwrap();
-            let root = RootAst(ast.as_group());
-            let mut state = CheckState::default();
-            root.check(&mut state);
-
-            let node = root.at(offset);
-            let node = node?;
-            let range = node.definition(&state);
-
-            range.and_then(|range| {
-                let start_position = offset_to_position(range.start, &rope)?;
-                let end_position = offset_to_position(range.end, &rope)?;
-                Some(GotoDefinitionResponse::Scalar(Location::new(
-                    uri,
-                    Range::new(start_position, end_position),
-                )))
-            })
-        }();
-        Ok(definition)
+        goto_definition(self, params).await
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
