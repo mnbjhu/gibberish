@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::ast::builder::ParserBuilder;
 
@@ -13,7 +13,7 @@ pub struct Skip {
 }
 
 impl Skip {
-    pub fn expected(&self, cache: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, cache: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.inner.expected(cache)
     }
 
@@ -25,10 +25,6 @@ impl Skip {
     ) {
         let inner = self.inner.build(builder, f);
         let kind = builder.get_token_id(&self.token);
-
-        // C version of "Parse Skip"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Temporarily marks `kind` as skippable, parses inner, then restores previous state.
         write!(
             f,
             r#"

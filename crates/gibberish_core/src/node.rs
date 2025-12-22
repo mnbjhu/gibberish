@@ -1,11 +1,11 @@
 use std::{fmt::Debug, ops::Range};
 
-use crate::{err::Expected, expected::ExpectedData, lang::CompiledLang, vec::RawVec};
+use crate::{err::Expected, expected::ExpectedData, lang::RawLang, vec::RawVec};
 
 use super::{err::ParseError, lang::Lang};
 use ansi_term::{
     Color,
-    Colour::{Blue, Green, Red},
+    Colour::{Green, Red},
 };
 
 const GREY: Color = Color::RGB(100, 100, 100);
@@ -27,7 +27,7 @@ pub struct LexemeData {
     pub end: usize,
 }
 
-impl Lexeme<CompiledLang> {
+impl Lexeme<RawLang> {
     pub fn from_data(value: LexemeData, src: &str) -> Self {
         Lexeme {
             span: value.start..value.end,
@@ -491,7 +491,7 @@ pub union NodeDataPayload {
     pub expected_vec: RawVec<ExpectedData>,
 }
 
-impl Node<CompiledLang> {
+impl Node<RawLang> {
     pub fn from_data(value: NodeData, src: &str, offset: &mut usize) -> Self {
         match value.kind {
             0 => {

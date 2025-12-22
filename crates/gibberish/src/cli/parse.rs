@@ -3,9 +3,9 @@ use std::{
     path::Path,
 };
 
-use gibberish_core::lang::CompiledLang;
+use gibberish_dyn_lib::bindings::lang::CompiledLang;
 use gibberish_gibberish_parser::Gibberish;
-use tempfile::{Builder, NamedTempFile};
+use tempfile::Builder;
 
 use crate::{
     cli::build::{build_c_str, build_dynamic_lib},

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{ast::builder::ParserBuilder, parser::Parser};
 
@@ -8,7 +8,7 @@ use crate::{ast::builder::ParserBuilder, parser::Parser};
 pub struct Optional(pub Box<Parser>);
 
 impl Optional {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.0.expected(builder)
     }
 

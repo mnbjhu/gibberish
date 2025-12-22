@@ -64,7 +64,10 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-gibberish-core = "0.1.0"
+gibberish-core = "0.3.0"
+
+[build-dependencies]
+cc = "1.2"
 "#
     );
     if !crate_dir.join("Cargo.toml").exists() {
@@ -125,9 +128,9 @@ use std::{{fmt::Display, mem}};
 use gibberish_core::{{
     lang::Lang,
     node::{{Lexeme, LexemeData, Node, NodeData}},
-    state::{{State, StateData}},
     vec::RawVec,
 }};
+
 
 unsafe extern \"C\" {{
     fn lex(ptr: *const u8, len: usize) -> RawVec<LexemeData>;

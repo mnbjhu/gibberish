@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{ast::builder::ParserBuilder, parser::rename::Rename};
 
@@ -22,7 +22,7 @@ impl Named {
         group_id as u32
     }
 
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         vec![Expected::Group(self.name_id(builder))]
     }
 
@@ -34,10 +34,6 @@ impl Named {
     ) {
         let inner = self.inner.build(builder, f);
         let name = self.name_id(builder);
-
-        // C version of "Parse Named"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Return codes preserved: 0 ok, 1 err, 2 eof, >=3 break.
         write!(
             f,
             r#"

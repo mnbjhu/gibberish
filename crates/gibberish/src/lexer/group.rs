@@ -61,7 +61,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
     )
     .unwrap();
 
-    // Try each option from the same starting offset.
     for part in &parts {
         writeln!(
             f,
@@ -88,7 +87,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
         .unwrap();
     }
 
-    // All options failed
     writeln!(
         f,
         r#"

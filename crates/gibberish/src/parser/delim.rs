@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::ast::{builder::ParserBuilder, try_parse};
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use super::Parser;
 
@@ -13,7 +13,7 @@ pub struct Delim {
 }
 
 impl Delim {
-    pub fn expected(&self, cache: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, cache: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.start.expected(cache)
     }
 

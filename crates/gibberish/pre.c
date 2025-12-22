@@ -90,7 +90,6 @@ void vec_push(TokenVec *v, Token value) {
     size_t new_cap = v->cap ? v->cap * 2 : 4;
     void *new_data = realloc(v->data, new_cap * sizeof *v->data);
     if (!new_data) {
-      /* handle allocation failure however you prefer */
       abort();
     }
     v->data = new_data;
@@ -244,7 +243,6 @@ static inline bool skipped_vec_contains(const SkippedVec *v, uint32_t value) {
 static inline bool skipped_vec_remove(SkippedVec *v, uint32_t value) {
   for (size_t i = 0; i < v->len; i++) {
     if (v->data[i] == value) {
-      /* shift elements left */
       for (size_t j = i + 1; j < v->len; j++) {
         v->data[j - 1] = v->data[j];
       }

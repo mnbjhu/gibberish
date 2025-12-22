@@ -1,9 +1,9 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{
-    ast::{builder::ParserBuilder, try_parse},
+    ast::builder::ParserBuilder,
     parser::{rename::Rename, seq::seq},
 };
 
@@ -23,7 +23,7 @@ impl Display for FoldOnce {
 }
 
 impl FoldOnce {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.first.expected(builder)
     }
 
@@ -36,15 +36,9 @@ impl FoldOnce {
         let first = self.first.build(builder, f);
         let next = self.next.build(builder, f);
         let group_kind = builder.get_group_id(&self.name);
-
-        // We need a PeakFunc-compatible predicate for the break stack.
-        // peak_{next} currently has signature: bool peak_{next}(ParserState*, size_t, bool)
-        // PeakFunc is: bool (*)(ParserState*)
-        // So we emit a tiny wrapper.
         writeln!(
             f,
             r#"
-/* Fold break predicate wrapper */
 static bool break_pred_{id}(ParserState *state) {{
     return peak_{next}(state, 0, false);
 }}
@@ -57,7 +51,6 @@ static bool break_pred_{id}(ParserState *state) {{
             r#"
 /* Parse Fold */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {{
         if (state->offset >= state->tokens.len) {{
             return 2; /* EOF */
@@ -72,28 +65,16 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             bump_skipped(state);
             continue;
         }}
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }}
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_{id});
-
-    /* Parse first */
     size_t res = parse_{first}(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_{first} failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {{
         return res;
     }}
-
-    /* Try parse next */
     for(;;){{
         size_t res_next = parse_{next}(state, unmatched_checkpoint);
         if (res_next == 1) {{

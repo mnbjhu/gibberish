@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
-use crate::ast::{builder::ParserBuilder, try_parse};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
@@ -24,7 +24,7 @@ impl Display for Seq {
 }
 
 impl Seq {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.0.first().unwrap().expected(builder)
     }
 
@@ -42,14 +42,10 @@ impl Seq {
 
         let n = part_ids.len();
         assert!(n > 0);
-
-        // PeakFunc wrappers for parts[1..] so we can push them as breaks
-        for i in 1..n {
-            let pid = part_ids[i];
+        for (i, pid) in part_ids.iter().enumerate().take(n).skip(1) {
             writeln!(
                 f,
                 r#"
-/* Seq break predicate wrapper for part {i} */
 static bool break_pred_seq_{id}_{i}(ParserState *state) {{
     return peak_{pid}(state, 0, false);
 }}
@@ -61,19 +57,13 @@ static bool break_pred_seq_{id}_{i}(ParserState *state) {{
         writeln!(
             f,
             r#"
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
 "#,
         )
         .unwrap();
 
-        // Push breaks for parts[1..] in reverse order so part 1 is on top.
         if n > 1 {
-            writeln!(
-                f,
-                "    /* Push breaks for upcoming parts (reverse so part 1 is on top) */"
-            )
-            .unwrap();
             for i in (1..n).rev() {
                 writeln!(
                     f,
@@ -83,14 +73,11 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             }
             writeln!(f).unwrap();
         }
-
-        // Part 0: parse with bump_err retry on 1.
         let p0 = part_ids[0];
         writeln!(
             f,
             r#"    size_t res;
 
-    /* Part 0 */
     res = parse_{p0}(state, unmatched_checkpoint);
     if (res != 0) {{
         for(int i = 0; i < {delim_count};i++) {{
@@ -104,24 +91,16 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
-        // For parts i>=1:
-        // - pop break for i as we advance
-        // - if res indicates we should skip i, emit missing(expected_i)
-        // - else attempt to parse i, retrying on 1
-        for i in 1..n {
-            let pi = part_ids[i];
+        for (i, pi) in part_ids.iter().enumerate().take(n).skip(1) {
             writeln!(
-            f,
-            r#"    /* Part {i}: pop its break as we move past it */
+                f,
+                r#"
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_{i}) {{
         ExpectedVec e = expected_{pi}();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     }} else {{
-        /* res == 0 (ok) OR res == brk_{i} (we broke here): attempt to parse this part */
         for (;;) {{
             res = parse_{pi}(state, unmatched_checkpoint);
             if (res == 1) {{
@@ -137,8 +116,8 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     }}
 
 "#,
-        )
-        .unwrap();
+            )
+            .unwrap();
         }
 
         writeln!(
@@ -203,11 +182,8 @@ pub fn seq(parts: Vec<Parser>) -> Parser {
 
 #[cfg(test)]
 mod seq_test {
-    use gibberish_core::{
-        lang::{CompiledLang, Lang},
-        node::Node,
-    };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_core::{lang::Lang, node::Node};
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
@@ -248,10 +224,10 @@ parser root = (first + second).skip(whitespace)
 mod sep_seq_test {
     use gibberish_core::{
         err::{Expected, ParseError},
-        lang::{CompiledLang, Lang},
+        lang::Lang,
         node::Node,
     };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};

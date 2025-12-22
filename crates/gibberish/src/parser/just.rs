@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::ast::builder::ParserBuilder;
 
@@ -10,7 +10,7 @@ use super::Parser;
 pub struct Just(pub String);
 
 impl Just {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         let token_id = builder
             .lexer
             .iter()
@@ -21,13 +21,6 @@ impl Just {
 
     pub fn build_parse(&self, id: usize, builder: &ParserBuilder, f: &mut impl std::fmt::Write) {
         let kind = builder.get_token_id(&self.0);
-
-        // C version of "Parse Just"
-        // Return convention preserved from QBE:
-        //   0 => ok (token consumed)
-        //   1 => error
-        //   2 => eof
-        //   >=3 => break code (index + 3)
         write!(
             f,
             r#"
@@ -43,25 +36,17 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         }}
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t){kind}) {{
             bump(state);
             return 0;
         }}
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {{
             bump_skipped(state);
             continue;
         }}
-
-        /* Mismatch */
         break;
     }}
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {{
         index -= 1;
@@ -102,11 +87,8 @@ impl Display for Just {
 
 #[cfg(test)]
 mod tests {
-    use gibberish_core::{
-        lang::{CompiledLang, Lang},
-        node::Node,
-    };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_core::{lang::Lang, node::Node};
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::parser::tests::build_test_parser;

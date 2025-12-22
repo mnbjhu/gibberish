@@ -1,14 +1,13 @@
 use crate::{
-    lang::CompiledLang,
+    lang::RawLang,
     node::{Lexeme, LexemeData, Node, NodeData},
     vec::RawVec,
 };
-use libloading::Symbol;
 
 #[derive(Debug)]
 pub struct State {
-    pub tokens: Vec<Lexeme<CompiledLang>>,
-    pub stack: Vec<Node<CompiledLang>>,
+    pub tokens: Vec<Lexeme<RawLang>>,
+    pub stack: Vec<Node<RawLang>>,
     pub offset: usize,
     pub delim_stack: Vec<usize>,
     pub skip: Vec<usize>,
@@ -42,17 +41,6 @@ impl State {
             offset: value.offset,
             delim_stack,
             skip,
-        }
-    }
-}
-
-impl State {
-    pub fn from(value: &str, lang: CompiledLang) -> Self {
-        unsafe {
-            let default_state: Symbol<unsafe extern "C" fn(*const u8, usize) -> StateData> =
-                lang.0.get(b"default_state").unwrap();
-            let result = default_state(value.as_ptr(), value.len());
-            State::from_data(result, value)
         }
     }
 }

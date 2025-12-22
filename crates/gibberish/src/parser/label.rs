@@ -14,10 +14,6 @@ impl Label {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.inner.build(builder, f);
-
-        // C version of "Parse Label"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Just forwards to the inner parser.
         write!(
             f,
             r#"

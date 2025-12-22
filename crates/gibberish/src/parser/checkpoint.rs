@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{ast::builder::ParserBuilder, parser::Parser};
 
@@ -8,9 +8,10 @@ use crate::{ast::builder::ParserBuilder, parser::Parser};
 pub struct Checkpoint(pub Box<Parser>);
 
 impl Checkpoint {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.0.expected(builder)
     }
+
     pub fn build_parse(
         &self,
         id: usize,
@@ -18,10 +19,6 @@ impl Checkpoint {
         f: &mut impl std::fmt::Write,
     ) {
         let inner = self.0.build(builder, f);
-
-        // C version of "Parse Named"
-        // Signature: parse_{id}(ParserState *state, size_t unmatched_checkpoint)
-        // Return codes preserved: 0 ok, 1 err, 2 eof, >=3 break.
         write!(
             f,
             r#"

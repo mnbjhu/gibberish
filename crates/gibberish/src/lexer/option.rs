@@ -1,13 +1,13 @@
 use std::{
     fmt::{Display, Write},
-    ops::Range,
+    ops::RangeInclusive,
 };
 
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_special};
 
 #[derive(Debug)]
 pub enum OptionAst {
-    Range(Range<u8>),
+    Range(RangeInclusive<u8>),
     Char(u8),
     Regex(RegexAst),
 }
@@ -23,7 +23,7 @@ pub fn parse_option(regex: &str, offset: &mut usize) -> Option<OptionAst> {
                 *offset += 1;
                 let end = regex.chars().nth(*offset)?;
                 *offset += 1;
-                return Some(OptionAst::Range(char as u8..end as u8));
+                Some(OptionAst::Range(char as u8..=end as u8))
             } else {
                 Some(OptionAst::Char(char as u8))
             }
@@ -35,7 +35,9 @@ pub fn parse_option(regex: &str, offset: &mut usize) -> Option<OptionAst> {
 impl Display for OptionAst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OptionAst::Range(range) => write!(f, "{}-{}", range.start as char, range.end as char),
+            OptionAst::Range(range) => {
+                write!(f, "{}-{}", *range.start() as char, *range.end() as char)
+            }
             OptionAst::Char(c) => write!(f, "{}", *c as char),
             OptionAst::Regex(_) => todo!(),
         }
@@ -68,8 +70,8 @@ static bool lex_{id}(LexerState *lexer_state) {{
 }}
 "#,
                     id = id,
-                    start = range.start,
-                    end = range.end
+                    start = range.start(),
+                    end = range.end()
                 )
                 .unwrap();
             }

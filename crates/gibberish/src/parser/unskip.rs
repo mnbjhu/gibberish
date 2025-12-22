@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::ast::builder::ParserBuilder;
 
@@ -13,7 +13,7 @@ pub struct UnSkip {
 }
 
 impl UnSkip {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.inner.expected(builder)
     }
     pub fn build_parse(

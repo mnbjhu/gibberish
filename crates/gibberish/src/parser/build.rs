@@ -8,17 +8,12 @@ use crate::{
 
 pub fn build_parser_c(builder: &mut ParserBuilder, f: &mut impl Write) {
     build_lexer_c(&builder.lexer, f);
-
-    // You said you added default_state; emit it (or keep if emitted elsewhere)
     build_default_state(builder, f);
-
-    // Main parse entrypoint now: Node parse(char*, size_t)
     emit_parse_entry_c(builder, f);
 }
 
 fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
     if let Some(root) = builder.vars.iter().position(|it| it.0 == "root") {
-        // Peel Skip wrappers to produce initial skip setup calls
         let mut inner = builder.vars[root].1.clone();
         let mut skipped_calls = String::new();
         while let Parser::Skip(Skip { token, inner: i }) = inner {
@@ -34,20 +29,15 @@ fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
         let p = builder.vars[root].1.clone();
         p.predefine(builder, f);
         let inner_id = p.build(builder, f);
-
-        // Emit C parse(ptr,len) -> Node
         writeln!(
             f,
             r#"
-/* root group id */
 enum {{ ROOT_GROUP_ID = {root} }};
 
-/* parse entrypoint */
 EXPORT Node parse(char *ptr, size_t len) {{
     ParserState state = default_state(ptr, len);
 
     for (;;) {{
-        /* Apply initial skip rules (from Skip wrappers) */
 {skipped_calls}
         size_t res = parse_{inner_id}(&state, 0);
 
@@ -65,7 +55,6 @@ EXPORT Node parse(char *ptr, size_t len) {{
         break;
     }}
 
-    /* After parse: consume skipped tokens until EOF; otherwise emit error until EOF */
     for (;;) {{
         if (state.offset >= state.tokens.len) {{
             break;
@@ -80,7 +69,6 @@ EXPORT Node parse(char *ptr, size_t len) {{
         bump_err(&state);
     }}
 
-    /* There should be exactly one item left on the stack: the root node */
     if (state.stack.len != 1) {{
         abort();
     }}
@@ -100,7 +88,6 @@ EXPORT Node parse(char *ptr, size_t len) {{
         )
         .unwrap();
     } else {
-        // No root rule: return a root group node containing only errors/tokens, then return it.
         let root_id = builder.vars.len() + 1;
         writeln!(
             f,
@@ -153,7 +140,7 @@ ParserState default_state(char *ptr, size_t len) {{
         .tokens  = tokens,
         .stack   = stack,
         .offset  = 0,
-        .breaks  = break_stack_new(),   /* <-- make sure this matches your actual constructor name */
+        .breaks  = break_stack_new(),
         .skipped = skipped_vec_new(),
     }};
 }}

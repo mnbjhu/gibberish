@@ -55,7 +55,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
             break;
         }}
         if (lexer_state->offset == before) {{
-            /* Prevent infinite loop if inner matches empty */
             break;
         }}
         if (lexer_state->offset >= lexer_state->len) {{
@@ -74,8 +73,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
                 let inner = regex_ast.build(state, f);
                 let id = state.id();
 
-                // Rep1: must match at least once; then behaves like Rep0.
-                // Restores offset if the first match fails.
                 writeln!(
                     f,
                     r#"
@@ -97,7 +94,6 @@ static bool lex_{id}(LexerState *lexer_state) {{
             break;
         }}
         if (lexer_state->offset == before) {{
-            /* Prevent infinite loop if inner matches empty */
             break;
         }}
         if (lexer_state->offset >= lexer_state->len) {{
@@ -169,26 +165,14 @@ static bool lex_{id}(LexerState *lexer_state) {{
     }
 }
 
-/// Generates C code for lexer + token lexers.
-///
-/// Assumes the following exist in the C compilation unit (your snippet provides them):
-/// - Token, TokenVec
-/// - token_vec_new(), token_vec_push()
 pub fn build_lexer_c(lexer: &[(String, RegexAst)], f: &mut impl Write) {
     let mut state = LexerBuilderState::new();
-
-    // Emit token parsers (wrappers) and underlying regex functions they reference
     for (name, regex) in lexer {
         build_token_parser(name, regex, &mut state, f);
     }
-
-    // Emit the main lex() function
     create_lex_function(f, lexer);
 }
 
-/// Generates:
-///   static size_t lex_<token>(LexerState *lexer_state);
-/// which calls the underlying regex bool function and returns consumed length.
 pub fn build_token_parser(
     name: &str,
     regex: &RegexAst,
@@ -200,13 +184,11 @@ pub fn build_token_parser(
     writeln!(
         f,
         r#"
-/* Token wrapper: lex_{name} */
 static size_t lex_{name}(LexerState *lexer_state) {{
     if (!lex_{id}(lexer_state)) {{
         return 0;
     }}
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {{
         return lexer_state->group_offset;
     }}
@@ -218,13 +200,11 @@ static size_t lex_{name}(LexerState *lexer_state) {{
 }
 
 fn create_lex_function(f: &mut impl Write, names: &[(String, RegexAst)]) {
-    // Token kind indexes: 0..names.len()-1, error token is names.len()
     let error_index = names.len();
 
     writeln!(
         f,
         r#"
-/* Main lexer entrypoint */
 EXPORT TokenVec lex(char *ptr, size_t len) {{
     LexerState st;
     st.data = ptr;
@@ -238,7 +218,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {{
     size_t total_offset = 0;
 
     while (len != 0) {{
-        /* Try token lexers in order */
 "#,
     )
     .unwrap();
@@ -249,7 +228,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {{
             r#"        st.group_offset = 0;
         size_t res_{i} = lex_{name}(&st);
         if (res_{i} != 0) {{
-            /* Guard against pathological over-consumption */
             if (res_{i} > len) {{
                 break;
             }}
@@ -265,7 +243,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {{
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_{i};
             len -= res_{i};
 
@@ -282,7 +259,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {{
         .unwrap();
     }
 
-    // Failure path: emit/extend an error token and consume 1 byte
     writeln!(
         f,
         r#"
@@ -323,18 +299,12 @@ EXPORT TokenVec lex(char *ptr, size_t len) {{
 }
 
 pub fn create_name_function(f: &mut impl Write, kind: &str, names: &[impl AsRef<str>]) {
-    // Emit string table
     writeln!(f, "static const char *{kind}_names[] = {{",).unwrap();
-
     for name in names {
         writeln!(f, "    \"{}\",", name.as_ref()).unwrap();
     }
-
-    // error token
     writeln!(f, "    \"error\",").unwrap();
     writeln!(f, "}};\n").unwrap();
-
-    // Emit lookup function
     writeln!(
         f,
         r#"
