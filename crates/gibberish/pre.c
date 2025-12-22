@@ -6,6 +6,12 @@
 #include <string.h>
 #include <sys/types.h>
 
+#ifdef _WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT __attribute__((visibility("default")))
+#endif
+
 typedef struct {
   uint32_t kind;
   uint32_t _padding;

@@ -225,7 +225,7 @@ fn create_lex_function(f: &mut impl Write, names: &[(String, RegexAst)]) {
         f,
         r#"
 /* Main lexer entrypoint */
-TokenVec lex(char *ptr, size_t len) {{
+EXPORT TokenVec lex(char *ptr, size_t len) {{
     LexerState st;
     st.data = ptr;
     st.len = len;
@@ -338,7 +338,7 @@ pub fn create_name_function(f: &mut impl Write, kind: &str, names: &[impl AsRef<
     writeln!(
         f,
         r#"
-const char *{kind}_name(uint32_t kind) {{
+EXPORT const char *{kind}_name(uint32_t kind) {{
     if (kind < (uint32_t)(sizeof({kind}_names) / sizeof({kind}_names[0]))) {{
         return {kind}_names[kind];
     }}

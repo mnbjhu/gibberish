@@ -43,7 +43,7 @@ fn emit_parse_entry_c(builder: &mut ParserBuilder, f: &mut impl Write) {
 enum {{ ROOT_GROUP_ID = {root} }};
 
 /* parse entrypoint */
-Node parse(char *ptr, size_t len) {{
+EXPORT Node parse(char *ptr, size_t len) {{
     ParserState state = default_state(ptr, len);
 
     for (;;) {{
