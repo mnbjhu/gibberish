@@ -5,6 +5,7 @@ token HIGHTLIGHT = "(highlight)[^_a-zA-Z]";
 token FOLD = "(fold)[^_a-zA-Z]";
 
 token whitespace = "[ \t\n]+"; 
+token comment = "#[^\n]*";
 token int = "[0-9]+";
 token colon = ":";
 token comma = ",";
@@ -53,3 +54,4 @@ parser root = _stmt
   .labelled(declaration)
   .sep_by(semi)
   .skip(whitespace)
+  .skip(comment)

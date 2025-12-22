@@ -33,6 +33,7 @@ pub enum GibberishToken {
 	HIGHTLIGHT,
 	FOLD,
 	Whitespace,
+	Comment,
 	Int,
 	Colon,
 	Comma,

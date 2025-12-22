@@ -39,6 +39,7 @@ pub fn semantic_token_from_ast(ast: &RootAst) -> Vec<ImCompleteSemanticToken> {
         let kind = match it.kind {
             T::Int => Some(Sem::NUMBER),
             T::String => Some(Sem::STRING),
+            T::Comment => Some(Sem::COMMENT),
             T::PARSER | T::KEYWORD | T::TOKEN | T::FOLD => Some(Sem::KEYWORD),
             _ => None,
         };
