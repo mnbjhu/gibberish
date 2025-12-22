@@ -445,9 +445,9 @@ mod tests {
             .suffix(shared_lib_suffix())
             .tempfile()
             .unwrap();
-        let lib_path = lib.path();
-        cli::build::build(&src_file_path, lib_path);
-        CompiledLang::load(lib_path)
+        let lib_path = lib.into_temp_path();
+        cli::build::build(&src_file_path, &lib_path);
+        CompiledLang::load(lib_path.to_path_buf())
     }
 
     pub fn shared_lib_suffix() -> &'static str {
