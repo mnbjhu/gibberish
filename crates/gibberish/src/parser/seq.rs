@@ -42,7 +42,8 @@ impl Seq {
 
         let n = part_ids.len();
         assert!(n > 0);
-        for (i, pid) in part_ids[1..].iter().enumerate() {
+        for i in 1..n {
+            let pid = part_ids[i];
             writeln!(
                 f,
                 r#"
@@ -57,13 +58,12 @@ static bool break_pred_seq_{id}_{i}(ParserState *state) {{
         writeln!(
             f,
             r#"
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
 "#,
         )
         .unwrap();
 
-        // Push breaks for parts[1..] in reverse order so part 1 is on top.
         if n > 1 {
             for i in (1..n).rev() {
                 writeln!(
@@ -74,14 +74,11 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             }
             writeln!(f).unwrap();
         }
-
-        // Part 0: parse with bump_err retry on 1.
         let p0 = part_ids[0];
         writeln!(
             f,
             r#"    size_t res;
 
-    /* Part 0 */
     res = parse_{p0}(state, unmatched_checkpoint);
     if (res != 0) {{
         for(int i = 0; i < {delim_count};i++) {{
@@ -95,11 +92,8 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
-        // For parts i>=1:
-        // - pop break for i as we advance
-        // - if res indicates we should skip i, emit missing(expected_i)
-        // - else attempt to parse i, retrying on 1
-        for (i, pi) in part_ids[1..].iter().enumerate() {
+        for i in 1..n {
+            let pi = part_ids[i];
             writeln!(
                 f,
                 r#"

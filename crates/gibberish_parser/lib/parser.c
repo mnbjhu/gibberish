@@ -90,7 +90,6 @@ void vec_push(TokenVec *v, Token value) {
     size_t new_cap = v->cap ? v->cap * 2 : 4;
     void *new_data = realloc(v->data, new_cap * sizeof *v->data);
     if (!new_data) {
-      /* handle allocation failure however you prefer */
       abort();
     }
     v->data = new_data;
@@ -244,7 +243,6 @@ static inline bool skipped_vec_contains(const SkippedVec *v, uint32_t value) {
 static inline bool skipped_vec_remove(SkippedVec *v, uint32_t value) {
   for (size_t i = 0; i < v->len; i++) {
     if (v->data[i] == value) {
-      /* shift elements left */
       for (size_t j = i + 1; j < v->len; j++) {
         v->data[j - 1] = v->data[j];
       }
@@ -695,10 +693,10 @@ static bool lex_4(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -724,13 +722,11 @@ static bool lex_0(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_KEYWORD */
 static size_t lex_KEYWORD(LexerState *lexer_state) {
     if (!lex_0(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -915,10 +911,10 @@ static bool lex_12(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -944,13 +940,11 @@ static bool lex_8(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_PARSER */
 static size_t lex_PARSER(LexerState *lexer_state) {
     if (!lex_8(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1124,10 +1118,10 @@ static bool lex_20(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -1153,13 +1147,11 @@ static bool lex_16(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_TOKEN */
 static size_t lex_TOKEN(LexerState *lexer_state) {
     if (!lex_16(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1377,10 +1369,10 @@ static bool lex_28(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -1406,13 +1398,11 @@ static bool lex_24(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_HIGHTLIGHT */
 static size_t lex_HIGHTLIGHT(LexerState *lexer_state) {
     if (!lex_24(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1575,10 +1565,10 @@ static bool lex_36(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -1604,13 +1594,11 @@ static bool lex_32(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_FOLD */
 static size_t lex_FOLD(LexerState *lexer_state) {
     if (!lex_32(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1709,7 +1697,6 @@ static bool lex_45(LexerState *lexer_state) {
             break;
         }
         if (lexer_state->offset == before) {
-            /* Prevent infinite loop if inner matches empty */
             break;
         }
         if (lexer_state->offset >= lexer_state->len) {
@@ -1736,13 +1723,11 @@ static bool lex_40(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_whitespace */
 static size_t lex_whitespace(LexerState *lexer_state) {
     if (!lex_40(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1800,7 +1785,6 @@ static bool lex_49(LexerState *lexer_state) {
             break;
         }
         if (lexer_state->offset == before) {
-            /* Prevent infinite loop if inner matches empty */
             break;
         }
         if (lexer_state->offset >= lexer_state->len) {
@@ -1827,13 +1811,11 @@ static bool lex_46(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_int */
 static size_t lex_int(LexerState *lexer_state) {
     if (!lex_46(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1876,13 +1858,11 @@ static bool lex_50(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_colon */
 static size_t lex_colon(LexerState *lexer_state) {
     if (!lex_50(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1925,13 +1905,11 @@ static bool lex_52(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_comma */
 static size_t lex_comma(LexerState *lexer_state) {
     if (!lex_52(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -1974,13 +1952,11 @@ static bool lex_54(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_bar */
 static size_t lex_bar(LexerState *lexer_state) {
     if (!lex_54(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2023,13 +1999,11 @@ static bool lex_56(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_dot */
 static size_t lex_dot(LexerState *lexer_state) {
     if (!lex_56(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2072,13 +2046,11 @@ static bool lex_58(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_l_bracket */
 static size_t lex_l_bracket(LexerState *lexer_state) {
     if (!lex_58(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2121,13 +2093,11 @@ static bool lex_60(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_r_bracket */
 static size_t lex_r_bracket(LexerState *lexer_state) {
     if (!lex_60(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2170,13 +2140,11 @@ static bool lex_62(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_l_paren */
 static size_t lex_l_paren(LexerState *lexer_state) {
     if (!lex_62(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2219,13 +2187,11 @@ static bool lex_64(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_r_paren */
 static size_t lex_r_paren(LexerState *lexer_state) {
     if (!lex_64(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2268,13 +2234,11 @@ static bool lex_66(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_l_brace */
 static size_t lex_l_brace(LexerState *lexer_state) {
     if (!lex_66(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2317,13 +2281,11 @@ static bool lex_68(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_r_brace */
 static size_t lex_r_brace(LexerState *lexer_state) {
     if (!lex_68(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2366,13 +2328,11 @@ static bool lex_70(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_plus */
 static size_t lex_plus(LexerState *lexer_state) {
     if (!lex_70(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2415,13 +2375,11 @@ static bool lex_72(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_eq */
 static size_t lex_eq(LexerState *lexer_state) {
     if (!lex_72(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2609,7 +2567,6 @@ static bool lex_84(LexerState *lexer_state) {
             break;
         }
         if (lexer_state->offset == before) {
-            /* Prevent infinite loop if inner matches empty */
             break;
         }
         if (lexer_state->offset >= lexer_state->len) {
@@ -2641,13 +2598,11 @@ static bool lex_74(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_ident */
 static size_t lex_ident(LexerState *lexer_state) {
     if (!lex_74(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2690,13 +2645,11 @@ static bool lex_85(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_semi */
 static size_t lex_semi(LexerState *lexer_state) {
     if (!lex_85(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2834,10 +2787,10 @@ static bool lex_94(LexerState *lexer_state) {
 
 
     if (lexer_state->offset == len) {
-        return true; /* EOF: succeed without consuming */
+        return true;
     }
 
-    lexer_state->offset += 1; /* consume one byte/char */
+    lexer_state->offset += 1;
     return true;
 }
 
@@ -2887,7 +2840,6 @@ static bool lex_98(LexerState *lexer_state) {
             break;
         }
         if (lexer_state->offset == before) {
-            /* Prevent infinite loop if inner matches empty */
             break;
         }
         if (lexer_state->offset >= lexer_state->len) {
@@ -2945,13 +2897,11 @@ static bool lex_87(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_string */
 static size_t lex_string(LexerState *lexer_state) {
     if (!lex_87(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -2994,13 +2944,11 @@ static bool lex_100(LexerState *lexer_state) {
 }
 
 
-/* Token wrapper: lex_at */
 static size_t lex_at(LexerState *lexer_state) {
     if (!lex_100(lexer_state)) {
         return 0;
     }
 
-    /* If group_offset was set by a capturing group, prefer it; else use offset. */
     if (lexer_state->group_offset != 0) {
         return lexer_state->group_offset;
     }
@@ -3008,7 +2956,6 @@ static size_t lex_at(LexerState *lexer_state) {
 }
 
 
-/* Main lexer entrypoint */
 EXPORT TokenVec lex(char *ptr, size_t len) {
     LexerState st;
     st.data = ptr;
@@ -3022,12 +2969,10 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
     size_t total_offset = 0;
 
     while (len != 0) {
-        /* Try token lexers in order */
 
         st.group_offset = 0;
         size_t res_0 = lex_KEYWORD(&st);
         if (res_0 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_0 > len) {
                 break;
             }
@@ -3043,7 +2988,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_0;
             len -= res_0;
 
@@ -3059,7 +3003,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_1 = lex_PARSER(&st);
         if (res_1 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_1 > len) {
                 break;
             }
@@ -3075,7 +3018,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_1;
             len -= res_1;
 
@@ -3091,7 +3033,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_2 = lex_TOKEN(&st);
         if (res_2 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_2 > len) {
                 break;
             }
@@ -3107,7 +3048,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_2;
             len -= res_2;
 
@@ -3123,7 +3063,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_3 = lex_HIGHTLIGHT(&st);
         if (res_3 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_3 > len) {
                 break;
             }
@@ -3139,7 +3078,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_3;
             len -= res_3;
 
@@ -3155,7 +3093,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_4 = lex_FOLD(&st);
         if (res_4 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_4 > len) {
                 break;
             }
@@ -3171,7 +3108,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_4;
             len -= res_4;
 
@@ -3187,7 +3123,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_5 = lex_whitespace(&st);
         if (res_5 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_5 > len) {
                 break;
             }
@@ -3203,7 +3138,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_5;
             len -= res_5;
 
@@ -3219,7 +3153,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_6 = lex_int(&st);
         if (res_6 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_6 > len) {
                 break;
             }
@@ -3235,7 +3168,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_6;
             len -= res_6;
 
@@ -3251,7 +3183,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_7 = lex_colon(&st);
         if (res_7 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_7 > len) {
                 break;
             }
@@ -3267,7 +3198,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_7;
             len -= res_7;
 
@@ -3283,7 +3213,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_8 = lex_comma(&st);
         if (res_8 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_8 > len) {
                 break;
             }
@@ -3299,7 +3228,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_8;
             len -= res_8;
 
@@ -3315,7 +3243,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_9 = lex_bar(&st);
         if (res_9 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_9 > len) {
                 break;
             }
@@ -3331,7 +3258,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_9;
             len -= res_9;
 
@@ -3347,7 +3273,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_10 = lex_dot(&st);
         if (res_10 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_10 > len) {
                 break;
             }
@@ -3363,7 +3288,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_10;
             len -= res_10;
 
@@ -3379,7 +3303,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_11 = lex_l_bracket(&st);
         if (res_11 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_11 > len) {
                 break;
             }
@@ -3395,7 +3318,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_11;
             len -= res_11;
 
@@ -3411,7 +3333,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_12 = lex_r_bracket(&st);
         if (res_12 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_12 > len) {
                 break;
             }
@@ -3427,7 +3348,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_12;
             len -= res_12;
 
@@ -3443,7 +3363,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_13 = lex_l_paren(&st);
         if (res_13 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_13 > len) {
                 break;
             }
@@ -3459,7 +3378,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_13;
             len -= res_13;
 
@@ -3475,7 +3393,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_14 = lex_r_paren(&st);
         if (res_14 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_14 > len) {
                 break;
             }
@@ -3491,7 +3408,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_14;
             len -= res_14;
 
@@ -3507,7 +3423,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_15 = lex_l_brace(&st);
         if (res_15 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_15 > len) {
                 break;
             }
@@ -3523,7 +3438,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_15;
             len -= res_15;
 
@@ -3539,7 +3453,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_16 = lex_r_brace(&st);
         if (res_16 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_16 > len) {
                 break;
             }
@@ -3555,7 +3468,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_16;
             len -= res_16;
 
@@ -3571,7 +3483,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_17 = lex_plus(&st);
         if (res_17 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_17 > len) {
                 break;
             }
@@ -3587,7 +3498,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_17;
             len -= res_17;
 
@@ -3603,7 +3513,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_18 = lex_eq(&st);
         if (res_18 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_18 > len) {
                 break;
             }
@@ -3619,7 +3528,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_18;
             len -= res_18;
 
@@ -3635,7 +3543,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_19 = lex_ident(&st);
         if (res_19 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_19 > len) {
                 break;
             }
@@ -3651,7 +3558,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_19;
             len -= res_19;
 
@@ -3667,7 +3573,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_20 = lex_semi(&st);
         if (res_20 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_20 > len) {
                 break;
             }
@@ -3683,7 +3588,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_20;
             len -= res_20;
 
@@ -3699,7 +3603,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_21 = lex_string(&st);
         if (res_21 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_21 > len) {
                 break;
             }
@@ -3715,7 +3618,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_21;
             len -= res_21;
 
@@ -3731,7 +3633,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
         st.group_offset = 0;
         size_t res_22 = lex_at(&st);
         if (res_22 != 0) {
-            /* Guard against pathological over-consumption */
             if (res_22 > len) {
                 break;
             }
@@ -3747,7 +3648,6 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
             total_offset = end;
 
-            /* Advance the input window by res bytes */
             ptr += res_22;
             len -= res_22;
 
@@ -3806,7 +3706,7 @@ ParserState default_state(char *ptr, size_t len) {
         .tokens  = tokens,
         .stack   = stack,
         .offset  = 0,
-        .breaks  = break_stack_new(),   /* <-- make sure this matches your actual constructor name */
+        .breaks  = break_stack_new(),
         .skipped = skipped_vec_new(),
     };
 }
@@ -4085,25 +3985,17 @@ static size_t parse_86(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)20) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4163,25 +4055,17 @@ static size_t parse_8(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)0) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4241,25 +4125,17 @@ static size_t parse_10(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)19) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4495,25 +4371,17 @@ static size_t parse_14(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)2) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4573,25 +4441,17 @@ static size_t parse_15(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)18) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4651,25 +4511,17 @@ static size_t parse_17(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)21) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -4969,25 +4821,17 @@ static size_t parse_21(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)1) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -5088,25 +4932,17 @@ static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)13) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -5166,25 +5002,17 @@ static size_t parse_40(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)14) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -5510,25 +5338,17 @@ static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)10) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -5634,25 +5454,17 @@ static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)8) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -5700,12 +5512,10 @@ static inline ExpectedVec expected_55(void) {
 }
 
 
-/* Sep break predicate wrapper: item */
 static bool break_pred_sep_54_item(ParserState *state) {
     return peak_25(state, 0, false);
 }
 
-/* Sep break predicate wrapper: sep */
 static bool break_pred_sep_54_sep(ParserState *state) {
     return peak_55(state, 0, false);
 }
@@ -5713,22 +5523,14 @@ static bool break_pred_sep_54_sep(ParserState *state) {
 
 /* Parse Sep */
 static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
-    /* Push break predicates: item then sep (sep ends up on top, like your old push order). */
     size_t item_brk = push_break(state, break_pred_sep_54_item);
     size_t sep_brk  = push_break(state, break_pred_sep_54_sep);
-
     size_t res = 0;
-
     res = parse_25(state, unmatched_checkpoint);
-
     if (res != 0) {
-        /* error / eof / break: match old behavior -> propagate */
         goto ret_err;
     }
-
-    /* ---- loop: (sep item)* ---- */
     for (;;) {
-        /* Try parse sep */
         for (;;) {
             res = parse_55(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5739,26 +5541,18 @@ static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* parsed sep, now must parse item */
         } else {
-            /* couldn't parse sep */
             if (res == 2) {
-                /* EOF while expecting sep: success */
                 goto ret_ok;
             }
 
             if (res == item_brk) {
-                /* We hit an item delimiter => missing separator */
                 ExpectedVec e = expected_55();
                 missing(state, e);
-                /* then attempt item */
             } else {
-                /* some other break or error => stop successfully (old QBE ret_ok) */
                 goto ret_ok;
             }
         }
-
-        /* Try parse item */
         for (;;) {
             res = parse_25(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5769,33 +5563,25 @@ static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* got item, continue looping */
             continue;
         }
 
-        /* item didn't parse */
         {
-            /* Always emit missing(item) on failure (matches old QBE check_item_eof path) */
             ExpectedVec e = expected_25();
             missing(state, e);
 
             if (res == 2) {
-                /* EOF after missing item: success */
                 goto ret_ok;
             }
 
             if (res == sep_brk) {
-                /* We hit a sep delimiter => treat missing item as recovery and continue with sep */
                 continue;
             }
-
-            /* Otherwise: stop successfully */
             goto ret_ok;
         }
     }
 
 ret_ok:
-    /* pop sep break then item break */
     (void)break_stack_pop(&state->breaks, NULL);
     (void)break_stack_pop(&state->breaks, NULL);
     return 0;
@@ -5856,8 +5642,8 @@ static bool peak_53(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -6202,7 +5988,6 @@ static inline ExpectedVec expected_44(void) {
 }
 
 
-/* Rep0 break predicate wrapper */
 static bool break_pred_rep0_43(ParserState *state) {
     return peak_44(state, 0, false);
 }
@@ -6220,18 +6005,15 @@ static size_t parse_43(ParserState *state, size_t unmatched_checkpoint) {
         size_t res = parse_44(state, unmatched_checkpoint);
 
         if (res == 0) {
-            /* matched one occurrence */
             continue;
         }
 
         if (res == 1) {
-            /* always bump_err and retry */
             bump_err(state);
             continue;
         }
 
         if (res == brk) {
-            /* broke on our delimiter => stop */
             continue;
         }
         return 0;
@@ -6259,7 +6041,6 @@ static inline ExpectedVec expected_43(void) {
 }
 
 
-/* Fold break predicate wrapper */
 static bool break_pred_33(ParserState *state) {
     return peak_43(state, 0, false);
 }
@@ -6267,7 +6048,6 @@ static bool break_pred_33(ParserState *state) {
 
 /* Parse Fold */
 static size_t parse_33(ParserState *state, size_t unmatched_checkpoint) {
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
@@ -6282,28 +6062,16 @@ static size_t parse_33(ParserState *state, size_t unmatched_checkpoint) {
             bump_skipped(state);
             continue;
         }
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_33);
-
-    /* Parse first */
     size_t res = parse_35(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_35 failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {
         return res;
     }
-
-    /* Try parse next */
     for(;;){
         size_t res_next = parse_43(state, unmatched_checkpoint);
         if (res_next == 1) {
@@ -6409,25 +6177,17 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)17) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -6564,7 +6324,6 @@ static inline ExpectedVec expected_57(void) {
 }
 
 
-/* Rep0 break predicate wrapper */
 static bool break_pred_rep0_56(ParserState *state) {
     return peak_57(state, 0, false);
 }
@@ -6582,18 +6341,15 @@ static size_t parse_56(ParserState *state, size_t unmatched_checkpoint) {
         size_t res = parse_57(state, unmatched_checkpoint);
 
         if (res == 0) {
-            /* matched one occurrence */
             continue;
         }
 
         if (res == 1) {
-            /* always bump_err and retry */
             bump_err(state);
             continue;
         }
 
         if (res == brk) {
-            /* broke on our delimiter => stop */
             continue;
         }
         return 0;
@@ -6621,7 +6377,6 @@ static inline ExpectedVec expected_56(void) {
 }
 
 
-/* Fold break predicate wrapper */
 static bool break_pred_30(ParserState *state) {
     return peak_56(state, 0, false);
 }
@@ -6629,7 +6384,6 @@ static bool break_pred_30(ParserState *state) {
 
 /* Parse Fold */
 static size_t parse_30(ParserState *state, size_t unmatched_checkpoint) {
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
@@ -6644,28 +6398,16 @@ static size_t parse_30(ParserState *state, size_t unmatched_checkpoint) {
             bump_skipped(state);
             continue;
         }
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_30);
-
-    /* Parse first */
     size_t res = parse_32(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_32 failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {
         return res;
     }
-
-    /* Try parse next */
     for(;;){
         size_t res_next = parse_56(state, unmatched_checkpoint);
         if (res_next == 1) {
@@ -6771,25 +6513,17 @@ static size_t parse_61(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)9) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -6926,7 +6660,6 @@ static inline ExpectedVec expected_60(void) {
 }
 
 
-/* Rep0 break predicate wrapper */
 static bool break_pred_rep0_59(ParserState *state) {
     return peak_60(state, 0, false);
 }
@@ -6944,18 +6677,15 @@ static size_t parse_59(ParserState *state, size_t unmatched_checkpoint) {
         size_t res = parse_60(state, unmatched_checkpoint);
 
         if (res == 0) {
-            /* matched one occurrence */
             continue;
         }
 
         if (res == 1) {
-            /* always bump_err and retry */
             bump_err(state);
             continue;
         }
 
         if (res == brk) {
-            /* broke on our delimiter => stop */
             continue;
         }
         return 0;
@@ -6983,7 +6713,6 @@ static inline ExpectedVec expected_59(void) {
 }
 
 
-/* Fold break predicate wrapper */
 static bool break_pred_27(ParserState *state) {
     return peak_59(state, 0, false);
 }
@@ -6991,7 +6720,6 @@ static bool break_pred_27(ParserState *state) {
 
 /* Parse Fold */
 static size_t parse_27(ParserState *state, size_t unmatched_checkpoint) {
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
@@ -7006,28 +6734,16 @@ static size_t parse_27(ParserState *state, size_t unmatched_checkpoint) {
             bump_skipped(state);
             continue;
         }
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_27);
-
-    /* Parse first */
     size_t res = parse_29(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_29 failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {
         return res;
     }
-
-    /* Try parse next */
     for(;;){
         size_t res_next = parse_59(state, unmatched_checkpoint);
         if (res_next == 1) {
@@ -7050,8 +6766,8 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -7133,25 +6849,17 @@ static size_t parse_63(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)4) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -7288,7 +6996,6 @@ static inline ExpectedVec expected_62(void) {
 }
 
 
-/* Fold break predicate wrapper */
 static bool break_pred_23(ParserState *state) {
     return peak_62(state, 0, false);
 }
@@ -7296,7 +7003,6 @@ static bool break_pred_23(ParserState *state) {
 
 /* Parse Fold */
 static size_t parse_23(ParserState *state, size_t unmatched_checkpoint) {
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
@@ -7311,28 +7017,16 @@ static size_t parse_23(ParserState *state, size_t unmatched_checkpoint) {
             bump_skipped(state);
             continue;
         }
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_23);
-
-    /* Parse first */
     size_t res = parse_25(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_25 failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {
         return res;
     }
-
-    /* Try parse next */
     for(;;){
         size_t res_next = parse_62(state, unmatched_checkpoint);
         if (res_next == 1) {
@@ -7595,25 +7289,17 @@ static size_t parse_67(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)3) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -7673,25 +7359,17 @@ static size_t parse_76(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)7) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -7739,12 +7417,10 @@ static inline ExpectedVec expected_76(void) {
 }
 
 
-/* Sep break predicate wrapper: item */
 static bool break_pred_sep_81_item(ParserState *state) {
     return peak_68(state, 0, false);
 }
 
-/* Sep break predicate wrapper: sep */
 static bool break_pred_sep_81_sep(ParserState *state) {
     return peak_55(state, 0, false);
 }
@@ -7752,22 +7428,14 @@ static bool break_pred_sep_81_sep(ParserState *state) {
 
 /* Parse Sep */
 static size_t parse_81(ParserState *state, size_t unmatched_checkpoint) {
-    /* Push break predicates: item then sep (sep ends up on top, like your old push order). */
     size_t item_brk = push_break(state, break_pred_sep_81_item);
     size_t sep_brk  = push_break(state, break_pred_sep_81_sep);
-
     size_t res = 0;
-
     res = parse_68(state, unmatched_checkpoint);
-
     if (res != 0) {
-        /* error / eof / break: match old behavior -> propagate */
         goto ret_err;
     }
-
-    /* ---- loop: (sep item)* ---- */
     for (;;) {
-        /* Try parse sep */
         for (;;) {
             res = parse_55(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7778,26 +7446,18 @@ static size_t parse_81(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* parsed sep, now must parse item */
         } else {
-            /* couldn't parse sep */
             if (res == 2) {
-                /* EOF while expecting sep: success */
                 goto ret_ok;
             }
 
             if (res == item_brk) {
-                /* We hit an item delimiter => missing separator */
                 ExpectedVec e = expected_55();
                 missing(state, e);
-                /* then attempt item */
             } else {
-                /* some other break or error => stop successfully (old QBE ret_ok) */
                 goto ret_ok;
             }
         }
-
-        /* Try parse item */
         for (;;) {
             res = parse_68(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7808,33 +7468,25 @@ static size_t parse_81(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* got item, continue looping */
             continue;
         }
 
-        /* item didn't parse */
         {
-            /* Always emit missing(item) on failure (matches old QBE check_item_eof path) */
             ExpectedVec e = expected_68();
             missing(state, e);
 
             if (res == 2) {
-                /* EOF after missing item: success */
                 goto ret_ok;
             }
 
             if (res == sep_brk) {
-                /* We hit a sep delimiter => treat missing item as recovery and continue with sep */
                 continue;
             }
-
-            /* Otherwise: stop successfully */
             goto ret_ok;
         }
     }
 
 ret_ok:
-    /* pop sep break then item break */
     (void)break_stack_pop(&state->breaks, NULL);
     (void)break_stack_pop(&state->breaks, NULL);
     return 0;
@@ -8332,25 +7984,17 @@ static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
-
-        /* Match expected token */
         if (current == (uint32_t)22) {
             bump(state);
             return 0;
         }
-
-        /* Skip token if configured */
         if (skipped_vec_contains(&state->skipped, current)) {
             bump_skipped(state);
             continue;
         }
-
-        /* Mismatch */
         break;
     }
 
-    /* Recovery: walk break stack from top to bottom.
-       If any PeakFunc matches, return (index + 3) like QBE. */
     size_t index = state->breaks.len;
     while (index != 0) {
         index -= 1;
@@ -8533,7 +8177,6 @@ static inline ExpectedVec expected_82(void) {
 }
 
 
-/* Fold break predicate wrapper */
 static bool break_pred_68(ParserState *state) {
     return peak_82(state, 0, false);
 }
@@ -8541,7 +8184,6 @@ static bool break_pred_68(ParserState *state) {
 
 /* Parse Fold */
 static size_t parse_68(ParserState *state, size_t unmatched_checkpoint) {
-    /* Skip leading skipped tokens until either EOF or peak(first) says we can start. */
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
@@ -8556,28 +8198,16 @@ static size_t parse_68(ParserState *state, size_t unmatched_checkpoint) {
             bump_skipped(state);
             continue;
         }
-
-        /* Not start token and not skippable: fall through to parse attempt */
         break;
     }
 
     size_t c = checkpoint(state);
-
-    /* Push break predicate for "next" and get the break code that child parsers will return */
     size_t break_code = push_break(state, break_pred_68);
-
-    /* Parse first */
     size_t res = parse_71(state, unmatched_checkpoint);
-
-    /* Pop the break predicate we pushed */
     (void)break_stack_pop(&state->breaks, NULL);
-
-    /* If parse_71 failed for a reason other than our break, propagate it */
     if (res != 0 && res != break_code) {
         return res;
     }
-
-    /* Try parse next */
     for(;;){
         size_t res_next = parse_82(state, unmatched_checkpoint);
         if (res_next == 1) {
@@ -8802,10 +8432,10 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
     return false;
 }
 
@@ -8849,10 +8479,10 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8880,12 +8510,10 @@ static inline ExpectedVec expected_2(void) {
 }
 
 
-/* Sep break predicate wrapper: item */
 static bool break_pred_sep_1_item(ParserState *state) {
     return peak_2(state, 0, false);
 }
 
-/* Sep break predicate wrapper: sep */
 static bool break_pred_sep_1_sep(ParserState *state) {
     return peak_86(state, 0, false);
 }
@@ -8893,22 +8521,14 @@ static bool break_pred_sep_1_sep(ParserState *state) {
 
 /* Parse Sep */
 static size_t parse_1(ParserState *state, size_t unmatched_checkpoint) {
-    /* Push break predicates: item then sep (sep ends up on top, like your old push order). */
     size_t item_brk = push_break(state, break_pred_sep_1_item);
     size_t sep_brk  = push_break(state, break_pred_sep_1_sep);
-
     size_t res = 0;
-
     res = parse_2(state, unmatched_checkpoint);
-
     if (res != 0) {
-        /* error / eof / break: match old behavior -> propagate */
         goto ret_err;
     }
-
-    /* ---- loop: (sep item)* ---- */
     for (;;) {
-        /* Try parse sep */
         for (;;) {
             res = parse_86(state, unmatched_checkpoint);
             if (res == 1) {
@@ -8919,26 +8539,18 @@ static size_t parse_1(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* parsed sep, now must parse item */
         } else {
-            /* couldn't parse sep */
             if (res == 2) {
-                /* EOF while expecting sep: success */
                 goto ret_ok;
             }
 
             if (res == item_brk) {
-                /* We hit an item delimiter => missing separator */
                 ExpectedVec e = expected_86();
                 missing(state, e);
-                /* then attempt item */
             } else {
-                /* some other break or error => stop successfully (old QBE ret_ok) */
                 goto ret_ok;
             }
         }
-
-        /* Try parse item */
         for (;;) {
             res = parse_2(state, unmatched_checkpoint);
             if (res == 1) {
@@ -8949,33 +8561,25 @@ static size_t parse_1(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         if (res == 0) {
-            /* got item, continue looping */
             continue;
         }
 
-        /* item didn't parse */
         {
-            /* Always emit missing(item) on failure (matches old QBE check_item_eof path) */
             ExpectedVec e = expected_2();
             missing(state, e);
 
             if (res == 2) {
-                /* EOF after missing item: success */
                 goto ret_ok;
             }
 
             if (res == sep_brk) {
-                /* We hit a sep delimiter => treat missing item as recovery and continue with sep */
                 continue;
             }
-
-            /* Otherwise: stop successfully */
             goto ret_ok;
         }
     }
 
 ret_ok:
-    /* pop sep break then item break */
     (void)break_stack_pop(&state->breaks, NULL);
     (void)break_stack_pop(&state->breaks, NULL);
     return 0;
@@ -8994,10 +8598,10 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     return false;
 }
 
@@ -9043,9 +8647,9 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
     return false;
 }
@@ -9074,15 +8678,12 @@ static inline ExpectedVec expected_0(void) {
 }
 
 
-/* root group id */
 enum { ROOT_GROUP_ID = 20 };
 
-/* parse entrypoint */
 EXPORT Node parse(char *ptr, size_t len) {
     ParserState state = default_state(ptr, len);
 
     for (;;) {
-        /* Apply initial skip rules (from Skip wrappers) */
         skip(&state, (uint32_t)5);
 
         size_t res = parse_0(&state, 0);
@@ -9101,7 +8702,6 @@ EXPORT Node parse(char *ptr, size_t len) {
         break;
     }
 
-    /* After parse: consume skipped tokens until EOF; otherwise emit error until EOF */
     for (;;) {
         if (state.offset >= state.tokens.len) {
             break;
@@ -9116,7 +8716,6 @@ EXPORT Node parse(char *ptr, size_t len) {
         bump_err(&state);
     }
 
-    /* There should be exactly one item left on the stack: the root node */
     if (state.stack.len != 1) {
         abort();
     }

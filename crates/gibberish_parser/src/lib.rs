@@ -1,3 +1,4 @@
+
 use std::{fmt::Display, mem};
 
 use gibberish_core::{
@@ -5,6 +6,7 @@ use gibberish_core::{
     node::{Lexeme, LexemeData, Node, NodeData},
     vec::RawVec,
 };
+
 
 unsafe extern "C" {
     fn lex(ptr: *const u8, len: usize) -> RawVec<LexemeData>;
@@ -25,63 +27,66 @@ pub struct Gibberish;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishToken {
-    KEYWORD,
-    PARSER,
-    TOKEN,
-    HIGHTLIGHT,
-    FOLD,
-    Whitespace,
-    Int,
-    Colon,
-    Comma,
-    Bar,
-    Dot,
-    LBracket,
-    RBracket,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    Plus,
-    Eq,
-    Ident,
-    Semi,
-    String,
-    At,
-    Err,
+    	KEYWORD,
+	PARSER,
+	TOKEN,
+	HIGHTLIGHT,
+	FOLD,
+	Whitespace,
+	Int,
+	Colon,
+	Comma,
+	Bar,
+	Dot,
+	LBracket,
+	RBracket,
+	LParen,
+	RParen,
+	LBrace,
+	RBrace,
+	Plus,
+	Eq,
+	Ident,
+	Semi,
+	String,
+	At,
+	Err,
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishSyntax {
-    Named = 0,
-    CallName = 2,
-    Args = 3,
-    Call = 4,
-    MemberCall = 5,
-    Seq = 6,
-    Choice = 7,
-    KwDef = 9,
-    TokenDef = 10,
-    FoldStmt = 11,
-    ParserDef = 12,
-    ChildQuery = 13,
-    GroupQuery = 14,
-    Label = 15,
-    LabelledQuery = 16,
-    HighlightDef = 18,
-    Root = 20,
-    Unmatched = 21,
+    	Named = 0,
+	CallName = 2,
+	Args = 3,
+	Call = 4,
+	MemberCall = 5,
+	Seq = 6,
+	Choice = 7,
+	KwDef = 9,
+	TokenDef = 10,
+	FoldStmt = 11,
+	ParserDef = 12,
+	ChildQuery = 13,
+	GroupQuery = 14,
+	Label = 15,
+	LabelledQuery = 16,
+	HighlightDef = 18,
+	Root = 20,
+	Unmatched = 21,
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum GibberishLabel {
-    Expression,
-    TokenName,
-    Regex,
-    ParserName,
-    Declaration,
+    	Expression,
+	TokenName,
+	Regex,
+	ParserName,
+	Declaration,
+
 }
 
 impl Display for GibberishToken {
