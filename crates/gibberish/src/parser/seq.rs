@@ -42,8 +42,7 @@ impl Seq {
 
         let n = part_ids.len();
         assert!(n > 0);
-        for i in 1..n {
-            let pid = part_ids[i];
+        for (i, pid) in part_ids.iter().enumerate().take(n).skip(1) {
             writeln!(
                 f,
                 r#"
@@ -92,8 +91,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
-        for i in 1..n {
-            let pi = part_ids[i];
+        for (i, pi) in part_ids.iter().enumerate().take(n).skip(1) {
             writeln!(
                 f,
                 r#"

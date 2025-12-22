@@ -4224,21 +4224,18 @@ static inline ExpectedVec expected_9(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_7_1(ParserState *state) {
     return peak_9(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_7(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_7_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_8(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -4248,16 +4245,13 @@ static size_t parse_7(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_9();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_9(state, unmatched_checkpoint);
             if (res == 1) {
@@ -4610,35 +4604,30 @@ static inline ExpectedVec expected_16(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_13_1(ParserState *state) {
     return peak_9(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_13_2(ParserState *state) {
     return peak_15(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 3 */
 static bool break_pred_seq_13_3(ParserState *state) {
     return peak_16(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_13(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_3 = push_break(state, break_pred_seq_13_3);
     size_t brk_2 = push_break(state, break_pred_seq_13_2);
     size_t brk_1 = push_break(state, break_pred_seq_13_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_14(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 3;i++) {
@@ -4648,16 +4637,13 @@ static size_t parse_13(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_9();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_9(state, unmatched_checkpoint);
             if (res == 1) {
@@ -4673,16 +4659,13 @@ static size_t parse_13(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_15();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_15(state, unmatched_checkpoint);
             if (res == 1) {
@@ -4698,16 +4681,13 @@ static size_t parse_13(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 3: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_3) {
         ExpectedVec e = expected_16();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_3 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_16(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5060,28 +5040,24 @@ static inline ExpectedVec expected_40(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_38_1(ParserState *state) {
     return peak_25(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_38_2(ParserState *state) {
     return peak_40(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_38(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_2 = push_break(state, break_pred_seq_38_2);
     size_t brk_1 = push_break(state, break_pred_seq_38_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_39(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 2;i++) {
@@ -5091,16 +5067,13 @@ static size_t parse_38(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_25();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_25(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5116,16 +5089,13 @@ static size_t parse_38(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_40();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_40(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5600,8 +5570,8 @@ static bool peak_54(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -5642,8 +5612,8 @@ static bool peak_53(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -5654,28 +5624,24 @@ static inline ExpectedVec expected_53(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_52_1(ParserState *state) {
     return peak_53(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_52_2(ParserState *state) {
     return peak_40(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_52(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_2 = push_break(state, break_pred_seq_52_2);
     size_t brk_1 = push_break(state, break_pred_seq_52_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_39(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 2;i++) {
@@ -5685,16 +5651,13 @@ static size_t parse_52(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_53();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_53(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5710,16 +5673,13 @@ static size_t parse_52(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_40();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_40(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5821,28 +5781,24 @@ static inline ExpectedVec expected_50(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_46_1(ParserState *state) {
     return peak_48(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_46_2(ParserState *state) {
     return peak_50(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_46(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_2 = push_break(state, break_pred_seq_46_2);
     size_t brk_1 = push_break(state, break_pred_seq_46_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_47(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 2;i++) {
@@ -5852,16 +5808,13 @@ static size_t parse_46(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_48();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_48(state, unmatched_checkpoint);
             if (res == 1) {
@@ -5877,16 +5830,13 @@ static size_t parse_46(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_50();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_50(state, unmatched_checkpoint);
             if (res == 1) {
@@ -6235,21 +6185,18 @@ static inline ExpectedVec expected_58(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_57_1(ParserState *state) {
     return peak_32(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_57_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_58(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -6259,16 +6206,13 @@ static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_32();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_32(state, unmatched_checkpoint);
             if (res == 1) {
@@ -6430,8 +6374,8 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6571,21 +6515,18 @@ static inline ExpectedVec expected_61(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_60_1(ParserState *state) {
     return peak_29(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_60(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_60_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_61(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -6595,16 +6536,13 @@ static size_t parse_60(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_29();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_29(state, unmatched_checkpoint);
             if (res == 1) {
@@ -6766,8 +6704,8 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -6808,8 +6746,8 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6907,21 +6845,18 @@ static inline ExpectedVec expected_63(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_62_1(ParserState *state) {
     return peak_25(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_62(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_62_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_63(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -6931,16 +6866,13 @@ static size_t parse_62(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_25();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_25(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7049,8 +6981,8 @@ static bool peak_23(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -7078,35 +7010,30 @@ static inline ExpectedVec expected_23(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_20_1(ParserState *state) {
     return peak_22(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_20_2(ParserState *state) {
     return peak_15(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 3 */
 static bool break_pred_seq_20_3(ParserState *state) {
     return peak_23(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_20(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_3 = push_break(state, break_pred_seq_20_3);
     size_t brk_2 = push_break(state, break_pred_seq_20_2);
     size_t brk_1 = push_break(state, break_pred_seq_20_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_21(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 3;i++) {
@@ -7116,16 +7043,13 @@ static size_t parse_20(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_22();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_22(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7141,16 +7065,13 @@ static size_t parse_20(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_15();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_15(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7166,16 +7087,13 @@ static size_t parse_20(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 3: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_3) {
         ExpectedVec e = expected_23();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_3 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_23(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7557,28 +7475,24 @@ static inline ExpectedVec expected_80(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_79_1(ParserState *state) {
     return peak_80(state, 0, false);
 }
 
 
-/* Seq break predicate wrapper for part 2 */
 static bool break_pred_seq_79_2(ParserState *state) {
     return peak_40(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_79(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_2 = push_break(state, break_pred_seq_79_2);
     size_t brk_1 = push_break(state, break_pred_seq_79_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_39(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 2;i++) {
@@ -7588,16 +7502,13 @@ static size_t parse_79(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_80();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_80(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7613,16 +7524,13 @@ static size_t parse_79(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 2: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_40();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_2 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_40(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7724,21 +7632,18 @@ static inline ExpectedVec expected_77(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_75_1(ParserState *state) {
     return peak_77(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_75(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_75_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_76(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -7748,16 +7653,13 @@ static size_t parse_75(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_77();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_77(state, unmatched_checkpoint);
             if (res == 1) {
@@ -7837,21 +7739,18 @@ static inline ExpectedVec expected_74(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_73_1(ParserState *state) {
     return peak_74(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_73(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_73_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_41(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -7861,16 +7760,13 @@ static size_t parse_73(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_74();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_74(state, unmatched_checkpoint);
             if (res == 1) {
@@ -8042,21 +7938,18 @@ static inline ExpectedVec expected_85(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_84_1(ParserState *state) {
     return peak_17(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_84(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_84_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_85(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -8066,16 +7959,13 @@ static size_t parse_84(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_17();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_17(state, unmatched_checkpoint);
             if (res == 1) {
@@ -8258,21 +8148,18 @@ static inline ExpectedVec expected_68(void) {
 }
 
 
-/* Seq break predicate wrapper for part 1 */
 static bool break_pred_seq_66_1(ParserState *state) {
     return peak_68(state, 0, false);
 }
 
 
-/* Parse Seq (inline, new break model, emits missing for skipped parts) */
+/* Parse Seq */
 static size_t parse_66(ParserState *state, size_t unmatched_checkpoint) {
 
-    /* Push breaks for upcoming parts (reverse so part 1 is on top) */
     size_t brk_1 = push_break(state, break_pred_seq_66_1);
 
     size_t res;
 
-    /* Part 0 */
     res = parse_67(state, unmatched_checkpoint);
     if (res != 0) {
         for(int i = 0; i < 1;i++) {
@@ -8282,16 +8169,13 @@ static size_t parse_66(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    /* Part 1: pop its break as we move past it */
+
     (void)break_stack_pop(&state->breaks, NULL);
 
-    /* If res is EOF (2) or a break for a later part (>=2 but not this part), this part is missing. */
     if (res >= 2 && res != brk_1) {
         ExpectedVec e = expected_68();
         missing(state, e);
-        /* keep res as-is so later parts are also treated as missing/skipped */
     } else {
-        /* res == 0 (ok) OR res == brk_1 (we broke here): attempt to parse this part */
         for (;;) {
             res = parse_68(state, unmatched_checkpoint);
             if (res == 1) {
@@ -8434,8 +8318,8 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 
@@ -8479,10 +8363,10 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)0) return true;
     return false;
 }
 
@@ -8598,10 +8482,10 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 
@@ -8647,10 +8531,10 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 
