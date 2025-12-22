@@ -35,10 +35,32 @@ impl<'a> ExprAst<'a> {
             ExprAst::Call(member_ast) => member_ast.build(builder),
         }
     }
+
+    pub fn pretty<'b, D, A>(&'b self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        match self {
+            ExprAst::Ident(lexeme) => allocator.text(&lexeme.text),
+            ExprAst::Seq(seq) => {
+                // allocator.intersperse(
+                //             seq.iter().map(ExprAst::pretty),
+                //             allocator.text(" |").append(allocator.line()),
+                //         )
+                todo!()
+            }
+            ExprAst::Choice(choice) => todo!(),
+            ExprAst::Call(call) => todo!(),
+        }
+    }
 }
 
 use gibberish_gibberish_parser::GibberishSyntax as S;
 use gibberish_gibberish_parser::GibberishToken as T;
+use pretty::DocAllocator;
+use pretty::DocBuilder;
 
 impl<'a> From<&'a Group<Gibberish>> for ExprAst<'a> {
     fn from(value: &'a Group<Gibberish>) -> Self {

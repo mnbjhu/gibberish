@@ -6,6 +6,7 @@ use gibberish_core::{
     node::{Group, Lexeme, Span},
 };
 use gibberish_gibberish_parser::Gibberish;
+use pretty::{DocAllocator, DocBuilder};
 use tower_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, MarkedString,
     request::Completion,
@@ -83,6 +84,16 @@ impl<'a> RootAst<'a> {
             let res = builder.vars[i].1.clone().remove_conflicts(builder, 0);
             builder.vars[i].1 = res;
         }
+    }
+
+    pub fn pretty<'b, D, A>(&'b self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        // allocator.intersperse(docs, separator)
+        todo!()
     }
 }
 
