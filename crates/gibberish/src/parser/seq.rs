@@ -63,6 +63,22 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
+        let delim_count = part_ids.len() - 1;
+        let catch_delim = if delim_count != 0 {
+            format!(
+                "
+        for(int i = 0; i < {delim_count};i++) {{
+            (void)break_stack_pop(&state->breaks, NULL);
+        }}
+        if (res >= brk_{delim_count}) {{
+            return 1;
+        }}
+
+            "
+            )
+        } else {
+            "".to_string()
+        };
         if n > 1 {
             for i in (1..n).rev() {
                 writeln!(
@@ -80,17 +96,11 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
 
     res = parse_{p0}(state, unmatched_checkpoint);
     if (res != 0) {{
-        for(int i = 0; i < {delim_count};i++) {{
-            (void)break_stack_pop(&state->breaks, NULL);
-        }}
-        if (res >= brk_{delim_count}) {{
-            return 1;
-        }}
+        {catch_delim}
         return res;
     }}
 
 "#,
-            delim_count = part_ids.len() - 1
         )
         .unwrap();
 
