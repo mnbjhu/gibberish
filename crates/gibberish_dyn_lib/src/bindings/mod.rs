@@ -1,10 +1,14 @@
+use std::mem;
+
 use gibberish_core::{
-    lang::CompiledLang,
     node::{LexemeData, Node, NodeData},
-    state::{State, StateData},
     vec::RawVec,
 };
 use libloading::Symbol;
+
+use crate::bindings::lang::CompiledLang;
+
+pub mod lang;
 
 //
 pub fn lex(lang: &CompiledLang, text: &str) -> Vec<LexemeData> {
@@ -23,6 +27,6 @@ pub fn parse(lang: &CompiledLang, text: &str) -> Node<CompiledLang> {
         let p: Symbol<unsafe extern "C" fn(*const u8, usize) -> NodeData> =
             lang.0.get(b"parse").unwrap();
 
-        Node::from_data(p(text.as_ptr(), text.len()), text, &mut 0)
+        mem::transmute(Node::from_data(p(text.as_ptr(), text.len()), text, &mut 0))
     }
 }

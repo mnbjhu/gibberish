@@ -1,9 +1,9 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{
-    ast::{builder::ParserBuilder, try_parse},
+    ast::builder::ParserBuilder,
     parser::{rename::Rename, seq::seq},
 };
 
@@ -23,7 +23,7 @@ impl Display for FoldOnce {
 }
 
 impl FoldOnce {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.first.expected(builder)
     }
 

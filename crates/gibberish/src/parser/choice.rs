@@ -3,7 +3,7 @@ use std::{
     fmt::Display,
 };
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{
     ast::builder::ParserBuilder,
@@ -44,7 +44,7 @@ impl Display for Choice {
 }
 
 impl Choice {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.options
             .iter()
             .flat_map(|it| it.expected(builder))
@@ -73,7 +73,7 @@ impl Choice {
         // We emit code that runs when all options fail.
         let (has_default, default_group_id) = match &self.default {
             Some(d) if d == "%default_unmatched%" => (true, Some(builder.vars.len() as u32)),
-            Some(name) => (true, Some(builder.get_group_id(name) as u32)),
+            Some(name) => (true, Some(builder.get_group_id(name))),
             None => (false, None),
         };
 
@@ -299,11 +299,8 @@ pub fn choice(options: Vec<Parser>) -> Parser {
 #[cfg(test)]
 mod conflict_tests {
 
-    use gibberish_core::{
-        lang::{CompiledLang, Lang},
-        node::Node,
-    };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_core::{lang::Lang, node::Node};
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
@@ -418,11 +415,8 @@ mod conflict_tests {
 #[cfg(test)]
 mod param_conflicts_test {
 
-    use gibberish_core::{
-        lang::{CompiledLang, Lang},
-        node::Node,
-    };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_core::{lang::Lang, node::Node};
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};

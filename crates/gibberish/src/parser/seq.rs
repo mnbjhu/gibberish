@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
-use crate::ast::{builder::ParserBuilder, try_parse};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
@@ -24,7 +24,7 @@ impl Display for Seq {
 }
 
 impl Seq {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.0.first().unwrap().expected(builder)
     }
 
@@ -203,11 +203,8 @@ pub fn seq(parts: Vec<Parser>) -> Parser {
 
 #[cfg(test)]
 mod seq_test {
-    use gibberish_core::{
-        lang::{CompiledLang, Lang},
-        node::Node,
-    };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_core::{lang::Lang, node::Node};
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
@@ -248,10 +245,10 @@ parser root = (first + second).skip(whitespace)
 mod sep_seq_test {
     use gibberish_core::{
         err::{Expected, ParseError},
-        lang::{CompiledLang, Lang},
+        lang::Lang,
         node::Node,
     };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};

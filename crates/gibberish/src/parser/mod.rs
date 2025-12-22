@@ -5,7 +5,7 @@ use std::{
 
 use choice::Choice;
 use delim::Delim;
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 use just::Just;
 use named::Named;
 use optional::Optional;
@@ -162,7 +162,7 @@ impl Parser {
         }
     }
 
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         debug!("Getting expected for {}", self.name());
         match self {
             Parser::Just(just) => just.expected(builder),
@@ -432,7 +432,7 @@ static inline ExpectedVec expected_{id}(void) {{
 mod tests {
     use std::io::Write as _;
 
-    use gibberish_core::lang::CompiledLang;
+    use gibberish_dyn_lib::bindings::lang::CompiledLang;
     use tempfile::Builder;
 
     use crate::cli::{self};

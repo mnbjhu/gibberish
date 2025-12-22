@@ -1,4 +1,4 @@
-use crate::{err::Expected, lang::CompiledLang};
+use crate::{err::Expected, lang::RawLang};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -7,7 +7,7 @@ pub struct ExpectedData {
     id: u32,
 }
 
-impl From<ExpectedData> for Expected<CompiledLang> {
+impl From<ExpectedData> for Expected<RawLang> {
     fn from(value: ExpectedData) -> Self {
         match value.kind {
             0 => Expected::Token(value.id),

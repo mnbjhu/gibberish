@@ -2,13 +2,11 @@ use std::collections::HashSet;
 use std::fmt::Display;
 
 use gibberish_core::err::Expected;
-use gibberish_core::lang::CompiledLang;
+use gibberish_core::lang::RawLang;
 
 use crate::ast::builder::ParserBuilder;
 use crate::parser::Parser;
 use crate::parser::seq::seq;
-
-use crate::ast::try_parse;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Repeated(pub Box<Parser>);
@@ -20,7 +18,7 @@ impl Display for Repeated {
 }
 
 impl Repeated {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.0.expected(builder)
     }
 

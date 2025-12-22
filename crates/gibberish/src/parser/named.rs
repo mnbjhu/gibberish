@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
 use crate::{ast::builder::ParserBuilder, parser::rename::Rename};
 
@@ -22,7 +22,7 @@ impl Named {
         group_id as u32
     }
 
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         vec![Expected::Group(self.name_id(builder))]
     }
 

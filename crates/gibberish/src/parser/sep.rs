@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fmt::Display};
 
-use gibberish_core::{err::Expected, lang::CompiledLang};
+use gibberish_core::{err::Expected, lang::RawLang};
 
-use crate::ast::{builder::ParserBuilder, try_parse};
+use crate::ast::builder::ParserBuilder;
 
 use super::Parser;
 
@@ -14,7 +14,7 @@ pub struct Sep {
 }
 
 impl Sep {
-    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<CompiledLang>> {
+    pub fn expected(&self, builder: &ParserBuilder) -> Vec<Expected<RawLang>> {
         self.item.expected(builder)
     }
 
@@ -184,10 +184,10 @@ impl Parser {
 mod tests {
     use gibberish_core::{
         err::{Expected, ParseError},
-        lang::{CompiledLang, Lang},
+        lang::Lang,
         node::Node,
     };
-    use gibberish_dyn_lib::bindings::parse;
+    use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
     use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
