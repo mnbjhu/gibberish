@@ -22,8 +22,8 @@ pub async fn goto_definition(
         let (node, state) = node_at_pos(&rope, &ast, position)?;
         let range = node.definition(&state)?;
 
-        let start_position = offset_to_position(range.start, &rope)?;
-        let end_position = offset_to_position(range.end, &rope)?;
+        let start_position = offset_to_position(*range.start(), &rope)?;
+        let end_position = offset_to_position(*range.end(), &rope)?;
         Some(GotoDefinitionResponse::Scalar(Location::new(
             uri,
             Range::new(start_position, end_position),

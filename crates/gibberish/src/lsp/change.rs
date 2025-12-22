@@ -25,20 +25,20 @@ impl Backend {
                             .map(|it| it.debug_name(&Gibberish))
                             .collect::<Vec<_>>()
                             .join(",");
-                        let span = *start..*start;
+                        let span = *start..=*start;
                         (format!("Missing {expected_txt}"), span)
                     }
                     ParseError::Unexpected { start, actual } => {
                         if let (Some(first), Some(last)) = (actual.first(), actual.last()) {
-                            let span = first.span.start..last.span.end;
+                            let span = *first.span.start()..=*last.span.end();
                             ("This is unexpected".to_string(), span)
                         } else {
-                            ("This is unexpected".to_string(), *start..*start)
+                            ("This is unexpected".to_string(), *start..=*start)
                         }
                     }
                 };
-                let start_position = offset_to_position(err.span().start, &rope)?;
-                let end_position = offset_to_position(err.span().end, &rope)?;
+                let start_position = offset_to_position(*err.span().start(), &rope)?;
+                let end_position = offset_to_position(*err.span().end(), &rope)?;
                 Some(Diagnostic::new_simple(
                     Range::new(start_position, end_position),
                     message,
@@ -62,16 +62,16 @@ impl Backend {
                     span,
                     severity,
                 } => {
-                    let start_position = offset_to_position(span.start, &rope).unwrap();
-                    let end_position = offset_to_position(span.end, &rope).unwrap();
+                    let start_position = offset_to_position(*span.start(), &rope).unwrap();
+                    let end_position = offset_to_position(*span.end(), &rope).unwrap();
                     let range = Range::new(start_position, end_position);
                     let mut diag = Diagnostic::new_simple(range, message);
                     diag.severity = Some(severity);
                     diagnostics.push(diag);
                 }
                 CheckError::Unused(span) => {
-                    let start_position = offset_to_position(span.start, &rope).unwrap();
-                    let end_position = offset_to_position(span.end, &rope).unwrap();
+                    let start_position = offset_to_position(*span.start(), &rope).unwrap();
+                    let end_position = offset_to_position(*span.end(), &rope).unwrap();
                     let range = Range::new(start_position, end_position);
                     let mut diag =
                         Diagnostic::new_simple(range, "This variable is never used".to_string());
@@ -84,12 +84,12 @@ impl Backend {
                     this,
                     name,
                 } => {
-                    let start_position = offset_to_position(this.start, &rope).unwrap();
-                    let end_position = offset_to_position(this.end, &rope).unwrap();
+                    let start_position = offset_to_position(*this.start(), &rope).unwrap();
+                    let end_position = offset_to_position(*this.end(), &rope).unwrap();
                     let this_range = Range::new(start_position, end_position);
 
-                    let start_position = offset_to_position(previous.start, &rope).unwrap();
-                    let end_position = offset_to_position(previous.end, &rope).unwrap();
+                    let start_position = offset_to_position(*previous.start(), &rope).unwrap();
+                    let end_position = offset_to_position(*previous.end(), &rope).unwrap();
                     let prev_range = Range::new(start_position, end_position);
 
                     let mut diag = Diagnostic::new_simple(

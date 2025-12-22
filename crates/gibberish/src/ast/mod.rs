@@ -52,7 +52,7 @@ impl<'a> RootAst<'a> {
             }
         }
         if !found_root {
-            state.info("Parser is missing a 'root'".to_string(), 0..0);
+            state.info("Parser is missing a 'root'".to_string(), 0..=0);
         }
         for span in missing {
             state.error("Parser or token not found".to_string(), span);

@@ -19,8 +19,8 @@ pub async fn references(
         let ret = reference_span_list
             .into_iter()
             .filter_map(|range| {
-                let start_position = offset_to_position(range.start, &rope)?;
-                let end_position = offset_to_position(range.end, &rope)?;
+                let start_position = offset_to_position(*range.start(), &rope)?;
+                let end_position = offset_to_position(*range.end(), &rope)?;
 
                 let range = Range::new(start_position, end_position);
 

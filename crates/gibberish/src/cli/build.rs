@@ -111,16 +111,16 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
             CheckError::Simple {
                 span: other_span, ..
             },
-        ) => span.start.cmp(&other_span.start),
+        ) => span.start().cmp(&other_span.start()),
         (CheckError::Unused(span), CheckError::Unused(other_span)) => {
-            span.start.cmp(&other_span.start)
+            span.start().cmp(&other_span.start())
         }
         (
             CheckError::Redeclaration { this: span, .. },
             CheckError::Redeclaration {
                 this: other_span, ..
             },
-        ) => span.start.cmp(&other_span.start),
+        ) => span.start().cmp(&other_span.start()),
         (CheckError::ParseError(_), _) => Ordering::Greater,
         (_, CheckError::ParseError(_)) => Ordering::Less,
         (CheckError::Simple { .. }, _) => Ordering::Greater,

@@ -44,8 +44,8 @@ pub fn semantic_token_from_ast(ast: &RootAst) -> Vec<ImCompleteSemanticToken> {
         };
         if let Some(kind) = kind {
             semantic_tokens.push(ImCompleteSemanticToken {
-                start: it.span.start,
-                length: it.span.len(),
+                start: *it.span.start(),
+                length: it.span.end() - it.span.start(),
                 token_type: LEGEND_TYPE.iter().position(|item| item == &kind).unwrap(),
             });
         }
@@ -114,8 +114,8 @@ pub async fn semantic_tokens_full(
                 .position(|item| *item == SemanticTokenType::FUNCTION)
                 .unwrap();
             im_complete_tokens.push(ImCompleteSemanticToken {
-                start: call.start,
-                length: call.len(),
+                start: *call.start(),
+                length: call.end() - call.start(),
                 token_type,
             });
         }
