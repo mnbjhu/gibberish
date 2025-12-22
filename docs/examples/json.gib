@@ -1,5 +1,6 @@
 keyword true;
 keyword false;
+
 token whitespace = "[ \t\n\f]+"; 
 token str = "\"[^\"]*\"";
 token int = "[0-9]+";
