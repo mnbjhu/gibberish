@@ -1,5 +1,6 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishToken};
+use pretty::{DocAllocator, DocBuilder};
 
 use crate::ast::{
     CheckState, LspItem, LspNode, builder::ParserBuilder, expr::ExprAst, stmt::StmtAst,
@@ -33,6 +34,21 @@ impl<'a> ParserDefAst<'a> {
             let index = builder.vars.iter().position(|(it, _)| it == name).unwrap();
             builder.vars[index] = (name.to_string(), p.clone());
         }
+    }
+
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        allocator
+            .text("parser ")
+            .append(&self.name().unwrap().text)
+            .append(" = ")
+            .append(self.expr().unwrap().pretty(allocator))
+            .group()
     }
 }
 

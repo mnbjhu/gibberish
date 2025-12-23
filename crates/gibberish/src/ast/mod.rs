@@ -3,13 +3,12 @@ use std::{collections::HashMap, fmt::Display};
 use expr::ExprAst;
 use gibberish_core::{
     err::ParseError,
-    node::{Group, Lexeme, Span},
+    node::{Group, Lexeme, Node, Span},
 };
-use gibberish_gibberish_parser::Gibberish;
+use gibberish_gibberish_parser::{Gibberish, GibberishToken};
 use pretty::{DocAllocator, DocBuilder};
 use tower_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, MarkedString,
-    request::Completion,
 };
 
 use crate::{
@@ -92,8 +91,29 @@ impl<'a> RootAst<'a> {
         D::Doc: Clone,
         A: Clone,
     {
-        // allocator.intersperse(docs, separator)
-        todo!()
+        let mut doc = allocator.nil();
+        for item in &self.0.children {
+            match item {
+                Node::Group(group) => doc = doc.append(StmtAst::from(group).pretty(allocator)),
+                Node::Lexeme(l) => doc = doc.append(&l.text).append(allocator.hardline()),
+                Node::Skipped(lexeme) => match lexeme.kind {
+                    GibberishToken::Whitespace => {
+                        let lines = lexeme.text.chars().filter(|it| *it == '\n').count();
+                        let new = match lines {
+                            0 | 1 => allocator.nil(),
+                            _ => allocator.hardline(),
+                        };
+                        doc = doc.append(new);
+                    }
+                    GibberishToken::Comment => {
+                        doc = doc.append(&lexeme.text);
+                    }
+                    _ => panic!("Unexpected"),
+                },
+                Node::Err(_) => panic!("Unexpected"),
+            };
+        }
+        doc
     }
 }
 
@@ -110,6 +130,18 @@ pub enum CheckError {
         name: String,
     },
     ParseError(ParseError<Gibberish>),
+}
+
+impl CheckError {
+    pub fn severity(&self) -> DiagnosticSeverity {
+        match self {
+            CheckError::Simple { severity, .. } => *severity,
+            CheckError::Unused(_) => DiagnosticSeverity::WARNING,
+            CheckError::Redeclaration { .. } | CheckError::ParseError(_) => {
+                DiagnosticSeverity::ERROR
+            }
+        }
+    }
 }
 
 #[derive(Default)]

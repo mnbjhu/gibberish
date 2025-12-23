@@ -1,11 +1,14 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
+use pretty::DocAllocator;
+use pretty::DocBuilder;
 
 use crate::ast::CheckState;
 use crate::ast::LspItem;
 use crate::ast::LspNode;
 use crate::ast::builder::ParserBuilder;
 use crate::ast::expr::ExprAst;
+use crate::ast::expr::choice::INDENT;
 use crate::ast::stmt::StmtAst;
 
 use gibberish_gibberish_parser::GibberishSyntax as S;
@@ -50,6 +53,28 @@ impl<'a> FoldDefAst<'a> {
         let p = first.fold_once(name.to_string(), next);
         let index = builder.vars.iter().position(|(it, _)| it == name).unwrap();
         builder.vars[index] = (name.to_string(), p.clone());
+    }
+
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        allocator
+            .text("parser ")
+            .append(&self.name().unwrap().text)
+            .append(" = ")
+            .append(self.first().pretty(allocator))
+            .append(" fold")
+            .append(
+                allocator
+                    .line()
+                    .append(self.next().unwrap().pretty(allocator))
+                    .nest(INDENT),
+            )
+            .group()
     }
 }
 

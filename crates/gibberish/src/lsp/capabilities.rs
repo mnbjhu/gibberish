@@ -1,10 +1,11 @@
 use tower_lsp::lsp_types::{
-    CompletionOptions, DocumentFilter, ExecuteCommandOptions, HoverProviderCapability, OneOf,
-    SaveOptions, SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions,
-    SemanticTokensRegistrationOptions, SemanticTokensServerCapabilities, ServerCapabilities,
-    StaticRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions,
-    WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities, WorkspaceServerCapabilities,
+    CompletionOptions, DocumentFilter, DocumentFormattingOptions, ExecuteCommandOptions,
+    HoverProviderCapability, OneOf, SaveOptions, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensOptions, SemanticTokensRegistrationOptions, SemanticTokensServerCapabilities,
+    ServerCapabilities, StaticRegistrationOptions, TextDocumentRegistrationOptions,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    TextDocumentSyncSaveOptions, WorkDoneProgressOptions, WorkspaceFoldersServerCapabilities,
+    WorkspaceServerCapabilities,
 };
 
 use crate::lsp::semantic_token::LEGEND_TYPE;
@@ -71,6 +72,7 @@ pub fn capabilities() -> ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
         references_provider: Some(OneOf::Left(true)),
         rename_provider: Some(OneOf::Left(true)),
+        document_formatting_provider: Some(OneOf::Left(true)),
         ..ServerCapabilities::default()
     }
 }

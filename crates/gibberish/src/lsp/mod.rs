@@ -1,4 +1,5 @@
 use crate::lsp::definition::goto_definition;
+use crate::lsp::fmt::formatting;
 use crate::lsp::semantic_token::{semantic_tokens_full, semantic_tokens_range, ImCompleteSemanticToken};
 use dashmap::DashMap;
 use gibberish_core::node::Node;
@@ -12,6 +13,7 @@ use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
+pub mod fmt;
 pub mod references;
 pub mod funcs;
 pub mod change;
@@ -108,6 +110,10 @@ impl LanguageServer for Backend {
         semantic_tokens_range(self, params).await
     }
 
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        formatting(self, params).await
+    }
+
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         hover::hover(self, params).await
     }
@@ -150,6 +156,7 @@ impl LanguageServer for Backend {
 
         Ok(None)
     }
+
 }
 
 #[derive(Debug, Deserialize, Serialize)]

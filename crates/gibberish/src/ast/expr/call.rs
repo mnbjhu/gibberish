@@ -1,5 +1,6 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishSyntax as S, GibberishToken as T};
+use pretty::{DocAllocator, DocBuilder};
 
 use crate::{
     ast::{CheckState, LspItem, LspNode, builder::ParserBuilder, expr::ExprAst},
@@ -146,6 +147,21 @@ impl<'a> CallAst<'a> {
         }
         expr
     }
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        self.target()
+            .pretty(allocator)
+            .append(allocator.line_())
+            .append(allocator.intersperse(
+                self.arms().map(|it| it.pretty(allocator)),
+                allocator.line_(),
+            ))
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -207,6 +223,27 @@ impl<'a> CallArmAst<'a> {
             }
         }
         self.args().for_each(|it| it.check(state));
+    }
+
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        allocator
+            .text(".")
+            .append(&self.name().unwrap().text)
+            .append("(")
+            .append(allocator.softline_())
+            .append(allocator.intersperse(
+                self.args().map(|it| it.pretty(allocator)),
+                allocator.text(",").append(allocator.softline()),
+            ))
+            .append(allocator.softline_())
+            .append(")")
+            .group()
     }
 }
 

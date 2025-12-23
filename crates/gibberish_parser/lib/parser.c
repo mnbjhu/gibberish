@@ -420,6 +420,7 @@ static inline size_t push_break(ParserState *state, PeakFunc f) {
 }
 static const char *group_names[] = {
     "named",
+    "bracketed",
     "_atom",
     "call_name",
     "args",
@@ -3833,7 +3834,7 @@ EXPORT TokenVec lex(char *ptr, size_t len) {
 
 
 ParserState default_state(char *ptr, size_t len) {
-    Node root = new_group_node(20);
+    Node root = new_group_node(21);
 
     NodeVec stack = node_vec_new();
     node_vec_push(&stack, root);
@@ -4113,10 +4114,16 @@ static inline ExpectedVec expected_86(void);
 static bool peak_87(ParserState *state, size_t offset, bool recover);
 static size_t parse_87(ParserState *state, size_t unmatched_checkpoint);
 static inline ExpectedVec expected_87(void);
+static bool peak_88(ParserState *state, size_t offset, bool recover);
+static size_t parse_88(ParserState *state, size_t unmatched_checkpoint);
+static inline ExpectedVec expected_88(void);
+static bool peak_89(ParserState *state, size_t offset, bool recover);
+static size_t parse_89(ParserState *state, size_t unmatched_checkpoint);
+static inline ExpectedVec expected_89(void);
 
 
 /* Parse Just */
-static size_t parse_87(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_89(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -4149,8 +4156,8 @@ static size_t parse_87(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_87 */
-static bool peak_87(ParserState *state, size_t offset, bool recover) {
+/* peak_89 */
+static bool peak_89(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -4161,20 +4168,20 @@ static bool peak_87(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_87 data */
-static const Expected expected_87_data[] = {
+/* expected_89 data */
+static const Expected expected_89_data[] = {
     { .kind = 0u, .id = 21u },
 };
 
 
-/* expected_87: owning ExpectedVec copy */
-static inline ExpectedVec expected_87(void) {
-    size_t count = sizeof(expected_87_data) / sizeof(expected_87_data[0]);
+/* expected_89: owning ExpectedVec copy */
+static inline ExpectedVec expected_89(void) {
+    size_t count = sizeof(expected_89_data) / sizeof(expected_89_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_87_data, count * sizeof *data);
+    memcpy(data, expected_89_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -4379,12 +4386,15 @@ static size_t parse_8(ParserState *state, size_t unmatched_checkpoint) {
 
     res = parse_9(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -4457,7 +4467,7 @@ static size_t parse_6(ParserState *state, size_t unmatched_checkpoint) {
     size_t c = checkpoint(state);
     size_t res = parse_8(state, unmatched_checkpoint);
     if (res == 0) {
-        group_at(state, c, 9);
+        group_at(state, c, 10);
     }
     return res;
 }
@@ -4476,7 +4486,7 @@ static bool peak_6(ParserState *state, size_t offset, bool recover) {
 
 /* expected_6 data */
 static const Expected expected_6_data[] = {
-    { .kind = 1u, .id = 9u },
+    { .kind = 1u, .id = 10u },
 };
 
 
@@ -4774,12 +4784,15 @@ static size_t parse_14(ParserState *state, size_t unmatched_checkpoint) {
 
     res = parse_15(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 3;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
-        if (res >= brk_1) {
+        if (res >= brk_3) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -4896,7 +4909,7 @@ static size_t parse_12(ParserState *state, size_t unmatched_checkpoint) {
     size_t c = checkpoint(state);
     size_t res = parse_14(state, unmatched_checkpoint);
     if (res == 0) {
-        group_at(state, c, 10);
+        group_at(state, c, 11);
     }
     return res;
 }
@@ -4915,7 +4928,7 @@ static bool peak_12(ParserState *state, size_t offset, bool recover) {
 
 /* expected_12 data */
 static const Expected expected_12_data[] = {
-    { .kind = 1u, .id = 10u },
+    { .kind = 1u, .id = 11u },
 };
 
 
@@ -5049,7 +5062,7 @@ static inline ExpectedVec expected_23(void) {
 
 
 /* Parse Just */
-static size_t parse_40(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_42(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -5082,8 +5095,8 @@ static size_t parse_40(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_40 */
-static bool peak_40(ParserState *state, size_t offset, bool recover) {
+/* peak_42 */
+static bool peak_42(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5094,20 +5107,20 @@ static bool peak_40(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_40 data */
-static const Expected expected_40_data[] = {
+/* expected_42 data */
+static const Expected expected_42_data[] = {
     { .kind = 0u, .id = 14u },
 };
 
 
-/* expected_40: owning ExpectedVec copy */
-static inline ExpectedVec expected_40(void) {
-    size_t count = sizeof(expected_40_data) / sizeof(expected_40_data[0]);
+/* expected_42: owning ExpectedVec copy */
+static inline ExpectedVec expected_42(void) {
+    size_t count = sizeof(expected_42_data) / sizeof(expected_42_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_40_data, count * sizeof *data);
+    memcpy(data, expected_42_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5119,7 +5132,7 @@ static inline ExpectedVec expected_40(void) {
 
 
 /* Parse Just */
-static size_t parse_41(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_43(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -5152,8 +5165,8 @@ static size_t parse_41(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_41 */
-static bool peak_41(ParserState *state, size_t offset, bool recover) {
+/* peak_43 */
+static bool peak_43(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5164,20 +5177,20 @@ static bool peak_41(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_41 data */
-static const Expected expected_41_data[] = {
+/* expected_43 data */
+static const Expected expected_43_data[] = {
     { .kind = 0u, .id = 15u },
 };
 
 
-/* expected_41: owning ExpectedVec copy */
-static inline ExpectedVec expected_41(void) {
-    size_t count = sizeof(expected_41_data) / sizeof(expected_41_data[0]);
+/* expected_43: owning ExpectedVec copy */
+static inline ExpectedVec expected_43(void) {
+    size_t count = sizeof(expected_43_data) / sizeof(expected_43_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_41_data, count * sizeof *data);
+    memcpy(data, expected_43_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5187,32 +5200,35 @@ static inline ExpectedVec expected_41(void) {
 }
 
 
-static bool break_pred_seq_39_1(ParserState *state) {
+static bool break_pred_seq_41_1(ParserState *state) {
     return peak_26(state, 0, false);
 }
 
 
-static bool break_pred_seq_39_2(ParserState *state) {
-    return peak_41(state, 0, false);
+static bool break_pred_seq_41_2(ParserState *state) {
+    return peak_43(state, 0, false);
 }
 
 
 /* Parse Seq */
-static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_41(ParserState *state, size_t unmatched_checkpoint) {
 
-    size_t brk_2 = push_break(state, break_pred_seq_39_2);
-    size_t brk_1 = push_break(state, break_pred_seq_39_1);
+    size_t brk_2 = push_break(state, break_pred_seq_41_2);
+    size_t brk_1 = push_break(state, break_pred_seq_41_1);
 
     size_t res;
 
-    res = parse_40(state, unmatched_checkpoint);
+    res = parse_42(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 2;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
-        if (res >= brk_1) {
+        if (res >= brk_2) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -5243,11 +5259,11 @@ static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
     (void)break_stack_pop(&state->breaks, NULL);
 
     if (res >= 2 && res != brk_2) {
-        ExpectedVec e = expected_41();
+        ExpectedVec e = expected_43();
         missing(state, e);
     } else {
         for (;;) {
-            res = parse_41(state, unmatched_checkpoint);
+            res = parse_43(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -5255,7 +5271,7 @@ static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
             break;
         }
         if (res >= 2 && res != brk_2) {
-            ExpectedVec e = expected_41();
+            ExpectedVec e = expected_43();
             missing(state, e);
         }
     }
@@ -5265,6 +5281,52 @@ static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
     return 0;
 }
 
+
+/* peak_41 */
+static bool peak_41(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)14) return true;
+    return false;
+}
+
+
+/* expected_41 data */
+static const Expected expected_41_data[] = {
+    { .kind = 0u, .id = 14u },
+};
+
+
+/* expected_41: owning ExpectedVec copy */
+static inline ExpectedVec expected_41(void) {
+    size_t count = sizeof(expected_41_data) / sizeof(expected_41_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_41_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Named */
+static size_t parse_39(ParserState *state, size_t unmatched_checkpoint) {
+    size_t c = checkpoint(state);
+    size_t res = parse_41(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 1);
+    }
+    return res;
+}
 
 /* peak_39 */
 static bool peak_39(ParserState *state, size_t offset, bool recover) {
@@ -5280,7 +5342,7 @@ static bool peak_39(ParserState *state, size_t offset, bool recover) {
 
 /* expected_39 data */
 static const Expected expected_39_data[] = {
-    { .kind = 0u, .id = 14u },
+    { .kind = 1u, .id = 1u },
 };
 
 
@@ -5303,7 +5365,7 @@ static inline ExpectedVec expected_39(void) {
 
 
 /* Parse Named */
-static size_t parse_42(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_44(ParserState *state, size_t unmatched_checkpoint) {
     size_t c = checkpoint(state);
     size_t res = parse_11(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5312,8 +5374,8 @@ static size_t parse_42(ParserState *state, size_t unmatched_checkpoint) {
     return res;
 }
 
-/* peak_42 */
-static bool peak_42(ParserState *state, size_t offset, bool recover) {
+/* peak_44 */
+static bool peak_44(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5324,20 +5386,20 @@ static bool peak_42(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_42 data */
-static const Expected expected_42_data[] = {
+/* expected_44 data */
+static const Expected expected_44_data[] = {
     { .kind = 1u, .id = 0u },
 };
 
 
-/* expected_42: owning ExpectedVec copy */
-static inline ExpectedVec expected_42(void) {
-    size_t count = sizeof(expected_42_data) / sizeof(expected_42_data[0]);
+/* expected_44: owning ExpectedVec copy */
+static inline ExpectedVec expected_44(void) {
+    size_t count = sizeof(expected_44_data) / sizeof(expected_44_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_42_data, count * sizeof *data);
+    memcpy(data, expected_44_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5358,7 +5420,7 @@ static size_t parse_38(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    res = parse_42(state, unmatched_checkpoint);
+    res = parse_44(state, unmatched_checkpoint);
     if (res == 0) {
         return 0;
     }
@@ -5382,7 +5444,7 @@ static bool peak_38(ParserState *state, size_t offset, bool recover) {
 
 /* expected_38 data */
 static const Expected expected_38_data[] = {
-    { .kind = 0u, .id = 14u },
+    { .kind = 1u, .id = 1u },
     { .kind = 1u, .id = 0u },
 };
 
@@ -5448,7 +5510,7 @@ static inline ExpectedVec expected_36(void) {
 
 
 /* Parse Just */
-static size_t parse_48(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_50(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -5481,8 +5543,8 @@ static size_t parse_48(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_48 */
-static bool peak_48(ParserState *state, size_t offset, bool recover) {
+/* peak_50 */
+static bool peak_50(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5493,20 +5555,20 @@ static bool peak_48(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_48 data */
-static const Expected expected_48_data[] = {
+/* expected_50 data */
+static const Expected expected_50_data[] = {
     { .kind = 0u, .id = 11u },
 };
 
 
-/* expected_48: owning ExpectedVec copy */
-static inline ExpectedVec expected_48(void) {
-    size_t count = sizeof(expected_48_data) / sizeof(expected_48_data[0]);
+/* expected_50: owning ExpectedVec copy */
+static inline ExpectedVec expected_50(void) {
+    size_t count = sizeof(expected_50_data) / sizeof(expected_50_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_48_data, count * sizeof *data);
+    memcpy(data, expected_50_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5518,17 +5580,17 @@ static inline ExpectedVec expected_48(void) {
 
 
 /* Parse Named */
-static size_t parse_49(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_51(ParserState *state, size_t unmatched_checkpoint) {
     size_t c = checkpoint(state);
     size_t res = parse_11(state, unmatched_checkpoint);
     if (res == 0) {
-        group_at(state, c, 2);
+        group_at(state, c, 3);
     }
     return res;
 }
 
-/* peak_49 */
-static bool peak_49(ParserState *state, size_t offset, bool recover) {
+/* peak_51 */
+static bool peak_51(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5539,20 +5601,20 @@ static bool peak_49(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_49 data */
-static const Expected expected_49_data[] = {
-    { .kind = 1u, .id = 2u },
+/* expected_51 data */
+static const Expected expected_51_data[] = {
+    { .kind = 1u, .id = 3u },
 };
 
 
-/* expected_49: owning ExpectedVec copy */
-static inline ExpectedVec expected_49(void) {
-    size_t count = sizeof(expected_49_data) / sizeof(expected_49_data[0]);
+/* expected_51: owning ExpectedVec copy */
+static inline ExpectedVec expected_51(void) {
+    size_t count = sizeof(expected_51_data) / sizeof(expected_51_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_49_data, count * sizeof *data);
+    memcpy(data, expected_51_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5564,7 +5626,7 @@ static inline ExpectedVec expected_49(void) {
 
 
 /* Parse Just */
-static size_t parse_56(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -5597,8 +5659,8 @@ static size_t parse_56(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_56 */
-static bool peak_56(ParserState *state, size_t offset, bool recover) {
+/* peak_58 */
+static bool peak_58(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -5609,20 +5671,20 @@ static bool peak_56(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_56 data */
-static const Expected expected_56_data[] = {
+/* expected_58 data */
+static const Expected expected_58_data[] = {
     { .kind = 0u, .id = 9u },
 };
 
 
-/* expected_56: owning ExpectedVec copy */
-static inline ExpectedVec expected_56(void) {
-    size_t count = sizeof(expected_56_data) / sizeof(expected_56_data[0]);
+/* expected_58: owning ExpectedVec copy */
+static inline ExpectedVec expected_58(void) {
+    size_t count = sizeof(expected_58_data) / sizeof(expected_58_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_56_data, count * sizeof *data);
+    memcpy(data, expected_58_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -5632,19 +5694,19 @@ static inline ExpectedVec expected_56(void) {
 }
 
 
-static bool break_pred_sep_55_item(ParserState *state) {
+static bool break_pred_sep_57_item(ParserState *state) {
     return peak_26(state, 0, false);
 }
 
-static bool break_pred_sep_55_sep(ParserState *state) {
-    return peak_56(state, 0, false);
+static bool break_pred_sep_57_sep(ParserState *state) {
+    return peak_58(state, 0, false);
 }
 
 
 /* Parse Sep */
-static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
-    size_t item_brk = push_break(state, break_pred_sep_55_item);
-    size_t sep_brk  = push_break(state, break_pred_sep_55_sep);
+static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
+    size_t item_brk = push_break(state, break_pred_sep_57_item);
+    size_t sep_brk  = push_break(state, break_pred_sep_57_sep);
     size_t res = 0;
     res = parse_26(state, unmatched_checkpoint);
     if (res != 0) {
@@ -5652,7 +5714,7 @@ static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
     }
     for (;;) {
         for (;;) {
-            res = parse_56(state, unmatched_checkpoint);
+            res = parse_58(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -5667,7 +5729,7 @@ static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
             }
 
             if (res == item_brk) {
-                ExpectedVec e = expected_56();
+                ExpectedVec e = expected_58();
                 missing(state, e);
             } else {
                 goto ret_ok;
@@ -5713,6 +5775,149 @@ ret_err:
 }
 
 
+/* peak_57 */
+static bool peak_57(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
+    return false;
+}
+
+
+/* expected_57 data */
+static const Expected expected_57_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_57: owning ExpectedVec copy */
+static inline ExpectedVec expected_57(void) {
+    size_t count = sizeof(expected_57_data) / sizeof(expected_57_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_57_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Optional */
+static size_t parse_56(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_57(state, unmatched_checkpoint);
+}
+
+/* peak_56 */
+static bool peak_56(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
+    return false;
+}
+
+
+/* expected_56: optional => empty */
+static inline ExpectedVec expected_56(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
+static bool break_pred_seq_55_1(ParserState *state) {
+    return peak_56(state, 0, false);
+}
+
+
+static bool break_pred_seq_55_2(ParserState *state) {
+    return peak_43(state, 0, false);
+}
+
+
+/* Parse Seq */
+static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_2 = push_break(state, break_pred_seq_55_2);
+    size_t brk_1 = push_break(state, break_pred_seq_55_1);
+
+    size_t res;
+
+    res = parse_42(state, unmatched_checkpoint);
+    if (res != 0) {
+        
+        for(int i = 0; i < 2;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        if (res >= brk_2) {
+            return 1;
+        }
+
+            
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_56();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_56(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_56();
+            missing(state, e);
+        }
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_2) {
+        ExpectedVec e = expected_43();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_43(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_2) {
+            ExpectedVec e = expected_43();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
+
 /* peak_55 */
 static bool peak_55(ParserState *state, size_t offset, bool recover) {
     (void)offset;
@@ -5721,14 +5926,13 @@ static bool peak_55(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)14) return true;
-    if (current == (uint32_t)20) return true;
     return false;
 }
 
 
 /* expected_55 data */
 static const Expected expected_55_data[] = {
-    { .kind = 2u, .id = 0u },
+    { .kind = 0u, .id = 14u },
 };
 
 
@@ -5750,108 +5954,15 @@ static inline ExpectedVec expected_55(void) {
 
 
 
-/* Parse Optional */
-static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
-    return parse_55(state, unmatched_checkpoint);
-}
-
-/* peak_54 */
-static bool peak_54(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)20) return true;
-    if (current == (uint32_t)14) return true;
-    return false;
-}
-
-
-/* expected_54: optional => empty */
-static inline ExpectedVec expected_54(void) {
-    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
-}
-
-
-static bool break_pred_seq_53_1(ParserState *state) {
-    return peak_54(state, 0, false);
-}
-
-
-static bool break_pred_seq_53_2(ParserState *state) {
-    return peak_41(state, 0, false);
-}
-
-
-/* Parse Seq */
+/* Parse Named */
 static size_t parse_53(ParserState *state, size_t unmatched_checkpoint) {
-
-    size_t brk_2 = push_break(state, break_pred_seq_53_2);
-    size_t brk_1 = push_break(state, break_pred_seq_53_1);
-
-    size_t res;
-
-    res = parse_40(state, unmatched_checkpoint);
-    if (res != 0) {
-        for(int i = 0; i < 2;i++) {
-            (void)break_stack_pop(&state->breaks, NULL);
-        }
-        if (res >= brk_1) {
-            return 1;
-        }
-        return res;
+    size_t c = checkpoint(state);
+    size_t res = parse_55(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 4);
     }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_54();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_54(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_54();
-            missing(state, e);
-        }
-    }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_2) {
-        ExpectedVec e = expected_41();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_41(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_2) {
-            ExpectedVec e = expected_41();
-            missing(state, e);
-        }
-    }
-
-
-
-    return 0;
+    return res;
 }
-
 
 /* peak_53 */
 static bool peak_53(ParserState *state, size_t offset, bool recover) {
@@ -5867,7 +5978,7 @@ static bool peak_53(ParserState *state, size_t offset, bool recover) {
 
 /* expected_53 data */
 static const Expected expected_53_data[] = {
-    { .kind = 0u, .id = 14u },
+    { .kind = 1u, .id = 4u },
 };
 
 
@@ -5888,78 +5999,35 @@ static inline ExpectedVec expected_53(void) {
 }
 
 
-
-/* Parse Named */
-static size_t parse_51(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_53(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 3);
-    }
-    return res;
-}
-
-/* peak_51 */
-static bool peak_51(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)14) return true;
-    return false;
-}
-
-
-/* expected_51 data */
-static const Expected expected_51_data[] = {
-    { .kind = 1u, .id = 3u },
-};
-
-
-/* expected_51: owning ExpectedVec copy */
-static inline ExpectedVec expected_51(void) {
-    size_t count = sizeof(expected_51_data) / sizeof(expected_51_data[0]);
-
-    Expected *data = (Expected *)malloc(count * sizeof *data);
-    if (!data) abort();
-
-    memcpy(data, expected_51_data, count * sizeof *data);
-
-    return (ExpectedVec){
-        .data = data,
-        .len  = count,
-        .cap  = count,
-    };
-}
-
-
-static bool break_pred_seq_47_1(ParserState *state) {
-    return peak_49(state, 0, false);
-}
-
-
-static bool break_pred_seq_47_2(ParserState *state) {
+static bool break_pred_seq_49_1(ParserState *state) {
     return peak_51(state, 0, false);
 }
 
 
-/* Parse Seq */
-static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
+static bool break_pred_seq_49_2(ParserState *state) {
+    return peak_53(state, 0, false);
+}
 
-    size_t brk_2 = push_break(state, break_pred_seq_47_2);
-    size_t brk_1 = push_break(state, break_pred_seq_47_1);
+
+/* Parse Seq */
+static size_t parse_49(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_2 = push_break(state, break_pred_seq_49_2);
+    size_t brk_1 = push_break(state, break_pred_seq_49_1);
 
     size_t res;
 
-    res = parse_48(state, unmatched_checkpoint);
+    res = parse_50(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 2;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
-        if (res >= brk_1) {
+        if (res >= brk_2) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -5968,28 +6036,6 @@ static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
     (void)break_stack_pop(&state->breaks, NULL);
 
     if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_49();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_49(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_49();
-            missing(state, e);
-        }
-    }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_2) {
         ExpectedVec e = expected_51();
         missing(state, e);
     } else {
@@ -6001,8 +6047,30 @@ static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
             }
             break;
         }
-        if (res >= 2 && res != brk_2) {
+        if (res >= 2 && res != brk_1) {
             ExpectedVec e = expected_51();
+            missing(state, e);
+        }
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_2) {
+        ExpectedVec e = expected_53();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_53(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_2) {
+            ExpectedVec e = expected_53();
             missing(state, e);
         }
     }
@@ -6012,6 +6080,52 @@ static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
     return 0;
 }
 
+
+/* peak_49 */
+static bool peak_49(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)11) return true;
+    return false;
+}
+
+
+/* expected_49 data */
+static const Expected expected_49_data[] = {
+    { .kind = 0u, .id = 11u },
+};
+
+
+/* expected_49: owning ExpectedVec copy */
+static inline ExpectedVec expected_49(void) {
+    size_t count = sizeof(expected_49_data) / sizeof(expected_49_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_49_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Named */
+static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
+    size_t c = checkpoint(state);
+    size_t res = parse_49(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 5);
+    }
+    return res;
+}
 
 /* peak_47 */
 static bool peak_47(ParserState *state, size_t offset, bool recover) {
@@ -6027,7 +6141,7 @@ static bool peak_47(ParserState *state, size_t offset, bool recover) {
 
 /* expected_47 data */
 static const Expected expected_47_data[] = {
-    { .kind = 0u, .id = 11u },
+    { .kind = 1u, .id = 5u },
 };
 
 
@@ -6048,67 +6162,21 @@ static inline ExpectedVec expected_47(void) {
 }
 
 
-
-/* Parse Named */
-static size_t parse_45(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_47(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 4);
-    }
-    return res;
-}
-
-/* peak_45 */
-static bool peak_45(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)11) return true;
-    return false;
-}
-
-
-/* expected_45 data */
-static const Expected expected_45_data[] = {
-    { .kind = 1u, .id = 4u },
-};
-
-
-/* expected_45: owning ExpectedVec copy */
-static inline ExpectedVec expected_45(void) {
-    size_t count = sizeof(expected_45_data) / sizeof(expected_45_data[0]);
-
-    Expected *data = (Expected *)malloc(count * sizeof *data);
-    if (!data) abort();
-
-    memcpy(data, expected_45_data, count * sizeof *data);
-
-    return (ExpectedVec){
-        .data = data,
-        .len  = count,
-        .cap  = count,
-    };
-}
-
-
-static bool break_pred_rep0_44(ParserState *state) {
-    return peak_45(state, 0, false);
+static bool break_pred_rep0_46(ParserState *state) {
+    return peak_47(state, 0, false);
 }
 
 
 /* Parse Rep0 */
-static size_t parse_44(ParserState *state, size_t unmatched_checkpoint) {
-    size_t brk = push_break(state, break_pred_rep0_44);
-    size_t res = parse_45(state, unmatched_checkpoint);
+static size_t parse_46(ParserState *state, size_t unmatched_checkpoint) {
+    size_t brk = push_break(state, break_pred_rep0_46);
+    size_t res = parse_47(state, unmatched_checkpoint);
     if(res != 0) {
         (void)break_stack_pop(&state->breaks, NULL);
         return res;
     }
     for (;;) {
-        size_t res = parse_45(state, unmatched_checkpoint);
+        size_t res = parse_47(state, unmatched_checkpoint);
 
         if (res == 0) {
             continue;
@@ -6129,8 +6197,8 @@ static size_t parse_44(ParserState *state, size_t unmatched_checkpoint) {
     return 0;
 }
 
-/* peak_44 */
-static bool peak_44(ParserState *state, size_t offset, bool recover) {
+/* peak_46 */
+static bool peak_46(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6141,14 +6209,14 @@ static bool peak_44(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_44: optional => empty */
-static inline ExpectedVec expected_44(void) {
+/* expected_46: optional => empty */
+static inline ExpectedVec expected_46(void) {
     return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
 }
 
 
 static bool break_pred_34(ParserState *state) {
-    return peak_44(state, 0, false);
+    return peak_46(state, 0, false);
 }
 
 
@@ -6179,7 +6247,7 @@ static size_t parse_34(ParserState *state, size_t unmatched_checkpoint) {
         return res;
     }
     for(;;){
-        size_t res_next = parse_44(state, unmatched_checkpoint);
+        size_t res_next = parse_46(state, unmatched_checkpoint);
         if (res_next == 1) {
             bump_err(state);
             continue;
@@ -6187,7 +6255,7 @@ static size_t parse_34(ParserState *state, size_t unmatched_checkpoint) {
         if (res_next != 0) {
             return 0;
         }
-        (void)group_at(state, c, 5);
+        (void)group_at(state, c, 6);
         return 0;
     }
 }
@@ -6200,8 +6268,8 @@ static bool peak_34(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -6273,7 +6341,7 @@ static inline ExpectedVec expected_33(void) {
 
 
 /* Parse Just */
-static size_t parse_59(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_61(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -6306,8 +6374,8 @@ static size_t parse_59(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_59 */
-static bool peak_59(ParserState *state, size_t offset, bool recover) {
+/* peak_61 */
+static bool peak_61(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6318,20 +6386,20 @@ static bool peak_59(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_59 data */
-static const Expected expected_59_data[] = {
+/* expected_61 data */
+static const Expected expected_61_data[] = {
     { .kind = 0u, .id = 18u },
 };
 
 
-/* expected_59: owning ExpectedVec copy */
-static inline ExpectedVec expected_59(void) {
-    size_t count = sizeof(expected_59_data) / sizeof(expected_59_data[0]);
+/* expected_61: owning ExpectedVec copy */
+static inline ExpectedVec expected_61(void) {
+    size_t count = sizeof(expected_61_data) / sizeof(expected_61_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_59_data, count * sizeof *data);
+    memcpy(data, expected_61_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -6341,26 +6409,29 @@ static inline ExpectedVec expected_59(void) {
 }
 
 
-static bool break_pred_seq_58_1(ParserState *state) {
+static bool break_pred_seq_60_1(ParserState *state) {
     return peak_33(state, 0, false);
 }
 
 
 /* Parse Seq */
-static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_60(ParserState *state, size_t unmatched_checkpoint) {
 
-    size_t brk_1 = push_break(state, break_pred_seq_58_1);
+    size_t brk_1 = push_break(state, break_pred_seq_60_1);
 
     size_t res;
 
-    res = parse_59(state, unmatched_checkpoint);
+    res = parse_61(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -6392,8 +6463,8 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
 }
 
 
-/* peak_58 */
-static bool peak_58(ParserState *state, size_t offset, bool recover) {
+/* peak_60 */
+static bool peak_60(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6404,20 +6475,20 @@ static bool peak_58(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_58 data */
-static const Expected expected_58_data[] = {
+/* expected_60 data */
+static const Expected expected_60_data[] = {
     { .kind = 0u, .id = 18u },
 };
 
 
-/* expected_58: owning ExpectedVec copy */
-static inline ExpectedVec expected_58(void) {
-    size_t count = sizeof(expected_58_data) / sizeof(expected_58_data[0]);
+/* expected_60: owning ExpectedVec copy */
+static inline ExpectedVec expected_60(void) {
+    size_t count = sizeof(expected_60_data) / sizeof(expected_60_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_58_data, count * sizeof *data);
+    memcpy(data, expected_60_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -6427,21 +6498,21 @@ static inline ExpectedVec expected_58(void) {
 }
 
 
-static bool break_pred_rep0_57(ParserState *state) {
-    return peak_58(state, 0, false);
+static bool break_pred_rep0_59(ParserState *state) {
+    return peak_60(state, 0, false);
 }
 
 
 /* Parse Rep0 */
-static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
-    size_t brk = push_break(state, break_pred_rep0_57);
-    size_t res = parse_58(state, unmatched_checkpoint);
+static size_t parse_59(ParserState *state, size_t unmatched_checkpoint) {
+    size_t brk = push_break(state, break_pred_rep0_59);
+    size_t res = parse_60(state, unmatched_checkpoint);
     if(res != 0) {
         (void)break_stack_pop(&state->breaks, NULL);
         return res;
     }
     for (;;) {
-        size_t res = parse_58(state, unmatched_checkpoint);
+        size_t res = parse_60(state, unmatched_checkpoint);
 
         if (res == 0) {
             continue;
@@ -6462,8 +6533,8 @@ static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
     return 0;
 }
 
-/* peak_57 */
-static bool peak_57(ParserState *state, size_t offset, bool recover) {
+/* peak_59 */
+static bool peak_59(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6474,14 +6545,14 @@ static bool peak_57(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_57: optional => empty */
-static inline ExpectedVec expected_57(void) {
+/* expected_59: optional => empty */
+static inline ExpectedVec expected_59(void) {
     return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
 }
 
 
 static bool break_pred_31(ParserState *state) {
-    return peak_57(state, 0, false);
+    return peak_59(state, 0, false);
 }
 
 
@@ -6512,7 +6583,7 @@ static size_t parse_31(ParserState *state, size_t unmatched_checkpoint) {
         return res;
     }
     for(;;){
-        size_t res_next = parse_57(state, unmatched_checkpoint);
+        size_t res_next = parse_59(state, unmatched_checkpoint);
         if (res_next == 1) {
             bump_err(state);
             continue;
@@ -6520,7 +6591,7 @@ static size_t parse_31(ParserState *state, size_t unmatched_checkpoint) {
         if (res_next != 0) {
             return 0;
         }
-        (void)group_at(state, c, 6);
+        (void)group_at(state, c, 7);
         return 0;
     }
 }
@@ -6575,8 +6646,8 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -6606,7 +6677,7 @@ static inline ExpectedVec expected_30(void) {
 
 
 /* Parse Just */
-static size_t parse_62(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_64(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -6639,8 +6710,8 @@ static size_t parse_62(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_62 */
-static bool peak_62(ParserState *state, size_t offset, bool recover) {
+/* peak_64 */
+static bool peak_64(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6651,20 +6722,20 @@ static bool peak_62(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_62 data */
-static const Expected expected_62_data[] = {
+/* expected_64 data */
+static const Expected expected_64_data[] = {
     { .kind = 0u, .id = 10u },
 };
 
 
-/* expected_62: owning ExpectedVec copy */
-static inline ExpectedVec expected_62(void) {
-    size_t count = sizeof(expected_62_data) / sizeof(expected_62_data[0]);
+/* expected_64: owning ExpectedVec copy */
+static inline ExpectedVec expected_64(void) {
+    size_t count = sizeof(expected_64_data) / sizeof(expected_64_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_62_data, count * sizeof *data);
+    memcpy(data, expected_64_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -6674,26 +6745,29 @@ static inline ExpectedVec expected_62(void) {
 }
 
 
-static bool break_pred_seq_61_1(ParserState *state) {
+static bool break_pred_seq_63_1(ParserState *state) {
     return peak_30(state, 0, false);
 }
 
 
 /* Parse Seq */
-static size_t parse_61(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_63(ParserState *state, size_t unmatched_checkpoint) {
 
-    size_t brk_1 = push_break(state, break_pred_seq_61_1);
+    size_t brk_1 = push_break(state, break_pred_seq_63_1);
 
     size_t res;
 
-    res = parse_62(state, unmatched_checkpoint);
+    res = parse_64(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -6725,8 +6799,8 @@ static size_t parse_61(ParserState *state, size_t unmatched_checkpoint) {
 }
 
 
-/* peak_61 */
-static bool peak_61(ParserState *state, size_t offset, bool recover) {
+/* peak_63 */
+static bool peak_63(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6737,20 +6811,20 @@ static bool peak_61(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_61 data */
-static const Expected expected_61_data[] = {
+/* expected_63 data */
+static const Expected expected_63_data[] = {
     { .kind = 0u, .id = 10u },
 };
 
 
-/* expected_61: owning ExpectedVec copy */
-static inline ExpectedVec expected_61(void) {
-    size_t count = sizeof(expected_61_data) / sizeof(expected_61_data[0]);
+/* expected_63: owning ExpectedVec copy */
+static inline ExpectedVec expected_63(void) {
+    size_t count = sizeof(expected_63_data) / sizeof(expected_63_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_61_data, count * sizeof *data);
+    memcpy(data, expected_63_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -6760,21 +6834,21 @@ static inline ExpectedVec expected_61(void) {
 }
 
 
-static bool break_pred_rep0_60(ParserState *state) {
-    return peak_61(state, 0, false);
+static bool break_pred_rep0_62(ParserState *state) {
+    return peak_63(state, 0, false);
 }
 
 
 /* Parse Rep0 */
-static size_t parse_60(ParserState *state, size_t unmatched_checkpoint) {
-    size_t brk = push_break(state, break_pred_rep0_60);
-    size_t res = parse_61(state, unmatched_checkpoint);
+static size_t parse_62(ParserState *state, size_t unmatched_checkpoint) {
+    size_t brk = push_break(state, break_pred_rep0_62);
+    size_t res = parse_63(state, unmatched_checkpoint);
     if(res != 0) {
         (void)break_stack_pop(&state->breaks, NULL);
         return res;
     }
     for (;;) {
-        size_t res = parse_61(state, unmatched_checkpoint);
+        size_t res = parse_63(state, unmatched_checkpoint);
 
         if (res == 0) {
             continue;
@@ -6795,8 +6869,8 @@ static size_t parse_60(ParserState *state, size_t unmatched_checkpoint) {
     return 0;
 }
 
-/* peak_60 */
-static bool peak_60(ParserState *state, size_t offset, bool recover) {
+/* peak_62 */
+static bool peak_62(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6807,14 +6881,14 @@ static bool peak_60(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_60: optional => empty */
-static inline ExpectedVec expected_60(void) {
+/* expected_62: optional => empty */
+static inline ExpectedVec expected_62(void) {
     return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
 }
 
 
 static bool break_pred_28(ParserState *state) {
-    return peak_60(state, 0, false);
+    return peak_62(state, 0, false);
 }
 
 
@@ -6845,7 +6919,7 @@ static size_t parse_28(ParserState *state, size_t unmatched_checkpoint) {
         return res;
     }
     for(;;){
-        size_t res_next = parse_60(state, unmatched_checkpoint);
+        size_t res_next = parse_62(state, unmatched_checkpoint);
         if (res_next == 1) {
             bump_err(state);
             continue;
@@ -6853,7 +6927,7 @@ static size_t parse_28(ParserState *state, size_t unmatched_checkpoint) {
         if (res_next != 0) {
             return 0;
         }
-        (void)group_at(state, c, 7);
+        (void)group_at(state, c, 8);
         return 0;
     }
 }
@@ -6939,7 +7013,7 @@ static inline ExpectedVec expected_26(void) {
 
 
 /* Parse Just */
-static size_t parse_64(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_66(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -6972,8 +7046,8 @@ static size_t parse_64(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_64 */
-static bool peak_64(ParserState *state, size_t offset, bool recover) {
+/* peak_66 */
+static bool peak_66(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -6984,20 +7058,20 @@ static bool peak_64(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_64 data */
-static const Expected expected_64_data[] = {
+/* expected_66 data */
+static const Expected expected_66_data[] = {
     { .kind = 0u, .id = 4u },
 };
 
 
-/* expected_64: owning ExpectedVec copy */
-static inline ExpectedVec expected_64(void) {
-    size_t count = sizeof(expected_64_data) / sizeof(expected_64_data[0]);
+/* expected_66: owning ExpectedVec copy */
+static inline ExpectedVec expected_66(void) {
+    size_t count = sizeof(expected_66_data) / sizeof(expected_66_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_64_data, count * sizeof *data);
+    memcpy(data, expected_66_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -7007,26 +7081,29 @@ static inline ExpectedVec expected_64(void) {
 }
 
 
-static bool break_pred_seq_63_1(ParserState *state) {
+static bool break_pred_seq_65_1(ParserState *state) {
     return peak_26(state, 0, false);
 }
 
 
 /* Parse Seq */
-static size_t parse_63(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_65(ParserState *state, size_t unmatched_checkpoint) {
 
-    size_t brk_1 = push_break(state, break_pred_seq_63_1);
+    size_t brk_1 = push_break(state, break_pred_seq_65_1);
 
     size_t res;
 
-    res = parse_64(state, unmatched_checkpoint);
+    res = parse_66(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -7058,8 +7135,8 @@ static size_t parse_63(ParserState *state, size_t unmatched_checkpoint) {
 }
 
 
-/* peak_63 */
-static bool peak_63(ParserState *state, size_t offset, bool recover) {
+/* peak_65 */
+static bool peak_65(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -7070,20 +7147,20 @@ static bool peak_63(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_63 data */
-static const Expected expected_63_data[] = {
+/* expected_65 data */
+static const Expected expected_65_data[] = {
     { .kind = 0u, .id = 4u },
 };
 
 
-/* expected_63: owning ExpectedVec copy */
-static inline ExpectedVec expected_63(void) {
-    size_t count = sizeof(expected_63_data) / sizeof(expected_63_data[0]);
+/* expected_65: owning ExpectedVec copy */
+static inline ExpectedVec expected_65(void) {
+    size_t count = sizeof(expected_65_data) / sizeof(expected_65_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_63_data, count * sizeof *data);
+    memcpy(data, expected_65_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -7094,7 +7171,7 @@ static inline ExpectedVec expected_63(void) {
 
 
 static bool break_pred_24(ParserState *state) {
-    return peak_63(state, 0, false);
+    return peak_65(state, 0, false);
 }
 
 
@@ -7125,7 +7202,7 @@ static size_t parse_24(ParserState *state, size_t unmatched_checkpoint) {
         return res;
     }
     for(;;){
-        size_t res_next = parse_63(state, unmatched_checkpoint);
+        size_t res_next = parse_65(state, unmatched_checkpoint);
         if (res_next == 1) {
             bump_err(state);
             continue;
@@ -7133,7 +7210,7 @@ static size_t parse_24(ParserState *state, size_t unmatched_checkpoint) {
         if (res_next != 0) {
             return 0;
         }
-        (void)group_at(state, c, 11);
+        (void)group_at(state, c, 12);
         return 0;
     }
 }
@@ -7146,8 +7223,8 @@ static bool peak_24(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -7201,12 +7278,15 @@ static size_t parse_21(ParserState *state, size_t unmatched_checkpoint) {
 
     res = parse_22(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 3;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
-        if (res >= brk_1) {
+        if (res >= brk_3) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -7323,7 +7403,7 @@ static size_t parse_19(ParserState *state, size_t unmatched_checkpoint) {
     size_t c = checkpoint(state);
     size_t res = parse_21(state, unmatched_checkpoint);
     if (res == 0) {
-        group_at(state, c, 12);
+        group_at(state, c, 13);
     }
     return res;
 }
@@ -7342,7 +7422,7 @@ static bool peak_19(ParserState *state, size_t offset, bool recover) {
 
 /* expected_19 data */
 static const Expected expected_19_data[] = {
-    { .kind = 1u, .id = 12u },
+    { .kind = 1u, .id = 13u },
 };
 
 
@@ -7365,7 +7445,7 @@ static inline ExpectedVec expected_19(void) {
 
 
 /* Parse Just */
-static size_t parse_68(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_70(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -7398,8 +7478,8 @@ static size_t parse_68(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_68 */
-static bool peak_68(ParserState *state, size_t offset, bool recover) {
+/* peak_70 */
+static bool peak_70(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -7410,20 +7490,20 @@ static bool peak_68(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_68 data */
-static const Expected expected_68_data[] = {
+/* expected_70 data */
+static const Expected expected_70_data[] = {
     { .kind = 0u, .id = 3u },
 };
 
 
-/* expected_68: owning ExpectedVec copy */
-static inline ExpectedVec expected_68(void) {
-    size_t count = sizeof(expected_68_data) / sizeof(expected_68_data[0]);
+/* expected_70: owning ExpectedVec copy */
+static inline ExpectedVec expected_70(void) {
+    size_t count = sizeof(expected_70_data) / sizeof(expected_70_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_68_data, count * sizeof *data);
+    memcpy(data, expected_70_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -7435,7 +7515,7 @@ static inline ExpectedVec expected_68(void) {
 
 
 /* Parse Just */
-static size_t parse_77(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_79(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -7468,8 +7548,8 @@ static size_t parse_77(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_77 */
-static bool peak_77(ParserState *state, size_t offset, bool recover) {
+/* peak_79 */
+static bool peak_79(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -7480,20 +7560,20 @@ static bool peak_77(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_77 data */
-static const Expected expected_77_data[] = {
+/* expected_79 data */
+static const Expected expected_79_data[] = {
     { .kind = 0u, .id = 8u },
 };
 
 
-/* expected_77: owning ExpectedVec copy */
-static inline ExpectedVec expected_77(void) {
-    size_t count = sizeof(expected_77_data) / sizeof(expected_77_data[0]);
+/* expected_79: owning ExpectedVec copy */
+static inline ExpectedVec expected_79(void) {
+    size_t count = sizeof(expected_79_data) / sizeof(expected_79_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_77_data, count * sizeof *data);
+    memcpy(data, expected_79_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -7503,27 +7583,27 @@ static inline ExpectedVec expected_77(void) {
 }
 
 
-static bool break_pred_sep_82_item(ParserState *state) {
-    return peak_69(state, 0, false);
+static bool break_pred_sep_84_item(ParserState *state) {
+    return peak_71(state, 0, false);
 }
 
-static bool break_pred_sep_82_sep(ParserState *state) {
-    return peak_56(state, 0, false);
+static bool break_pred_sep_84_sep(ParserState *state) {
+    return peak_58(state, 0, false);
 }
 
 
 /* Parse Sep */
-static size_t parse_82(ParserState *state, size_t unmatched_checkpoint) {
-    size_t item_brk = push_break(state, break_pred_sep_82_item);
-    size_t sep_brk  = push_break(state, break_pred_sep_82_sep);
+static size_t parse_84(ParserState *state, size_t unmatched_checkpoint) {
+    size_t item_brk = push_break(state, break_pred_sep_84_item);
+    size_t sep_brk  = push_break(state, break_pred_sep_84_sep);
     size_t res = 0;
-    res = parse_69(state, unmatched_checkpoint);
+    res = parse_71(state, unmatched_checkpoint);
     if (res != 0) {
         goto ret_err;
     }
     for (;;) {
         for (;;) {
-            res = parse_56(state, unmatched_checkpoint);
+            res = parse_58(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -7538,14 +7618,14 @@ static size_t parse_82(ParserState *state, size_t unmatched_checkpoint) {
             }
 
             if (res == item_brk) {
-                ExpectedVec e = expected_56();
+                ExpectedVec e = expected_58();
                 missing(state, e);
             } else {
                 goto ret_ok;
             }
         }
         for (;;) {
-            res = parse_69(state, unmatched_checkpoint);
+            res = parse_71(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -7558,7 +7638,7 @@ static size_t parse_82(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         {
-            ExpectedVec e = expected_69();
+            ExpectedVec e = expected_71();
             missing(state, e);
 
             if (res == 2) {
@@ -7584,8 +7664,8 @@ ret_err:
 }
 
 
-/* peak_82 */
-static bool peak_82(ParserState *state, size_t offset, bool recover) {
+/* peak_84 */
+static bool peak_84(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -7596,9 +7676,150 @@ static bool peak_82(ParserState *state, size_t offset, bool recover) {
 }
 
 
+/* expected_84 data */
+static const Expected expected_84_data[] = {
+    { .kind = 1u, .id = 15u },
+};
+
+
+/* expected_84: owning ExpectedVec copy */
+static inline ExpectedVec expected_84(void) {
+    size_t count = sizeof(expected_84_data) / sizeof(expected_84_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_84_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Optional */
+static size_t parse_83(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_84(state, unmatched_checkpoint);
+}
+
+/* peak_83 */
+static bool peak_83(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)20) return true;
+    return false;
+}
+
+
+/* expected_83: optional => empty */
+static inline ExpectedVec expected_83(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
+static bool break_pred_seq_82_1(ParserState *state) {
+    return peak_83(state, 0, false);
+}
+
+
+static bool break_pred_seq_82_2(ParserState *state) {
+    return peak_43(state, 0, false);
+}
+
+
+/* Parse Seq */
+static size_t parse_82(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_2 = push_break(state, break_pred_seq_82_2);
+    size_t brk_1 = push_break(state, break_pred_seq_82_1);
+
+    size_t res;
+
+    res = parse_42(state, unmatched_checkpoint);
+    if (res != 0) {
+        
+        for(int i = 0; i < 2;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        if (res >= brk_2) {
+            return 1;
+        }
+
+            
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_83();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_83(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_83();
+            missing(state, e);
+        }
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_2) {
+        ExpectedVec e = expected_43();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_43(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_2) {
+            ExpectedVec e = expected_43();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
+
+/* peak_82 */
+static bool peak_82(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)14) return true;
+    return false;
+}
+
+
 /* expected_82 data */
 static const Expected expected_82_data[] = {
-    { .kind = 1u, .id = 14u },
+    { .kind = 0u, .id = 14u },
 };
 
 
@@ -7620,107 +7841,15 @@ static inline ExpectedVec expected_82(void) {
 
 
 
-/* Parse Optional */
-static size_t parse_81(ParserState *state, size_t unmatched_checkpoint) {
-    return parse_82(state, unmatched_checkpoint);
-}
-
-/* peak_81 */
-static bool peak_81(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)20) return true;
-    return false;
-}
-
-
-/* expected_81: optional => empty */
-static inline ExpectedVec expected_81(void) {
-    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
-}
-
-
-static bool break_pred_seq_80_1(ParserState *state) {
-    return peak_81(state, 0, false);
-}
-
-
-static bool break_pred_seq_80_2(ParserState *state) {
-    return peak_41(state, 0, false);
-}
-
-
-/* Parse Seq */
+/* Parse Named */
 static size_t parse_80(ParserState *state, size_t unmatched_checkpoint) {
-
-    size_t brk_2 = push_break(state, break_pred_seq_80_2);
-    size_t brk_1 = push_break(state, break_pred_seq_80_1);
-
-    size_t res;
-
-    res = parse_40(state, unmatched_checkpoint);
-    if (res != 0) {
-        for(int i = 0; i < 2;i++) {
-            (void)break_stack_pop(&state->breaks, NULL);
-        }
-        if (res >= brk_1) {
-            return 1;
-        }
-        return res;
+    size_t c = checkpoint(state);
+    size_t res = parse_82(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 14);
     }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_81();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_81(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_81();
-            missing(state, e);
-        }
-    }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_2) {
-        ExpectedVec e = expected_41();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_41(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_2) {
-            ExpectedVec e = expected_41();
-            missing(state, e);
-        }
-    }
-
-
-
-    return 0;
+    return res;
 }
-
 
 /* peak_80 */
 static bool peak_80(ParserState *state, size_t offset, bool recover) {
@@ -7736,7 +7865,7 @@ static bool peak_80(ParserState *state, size_t offset, bool recover) {
 
 /* expected_80 data */
 static const Expected expected_80_data[] = {
-    { .kind = 0u, .id = 14u },
+    { .kind = 1u, .id = 14u },
 };
 
 
@@ -7757,16 +7886,59 @@ static inline ExpectedVec expected_80(void) {
 }
 
 
-
-/* Parse Named */
-static size_t parse_78(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_80(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 13);
-    }
-    return res;
+static bool break_pred_seq_78_1(ParserState *state) {
+    return peak_80(state, 0, false);
 }
+
+
+/* Parse Seq */
+static size_t parse_78(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_1 = push_break(state, break_pred_seq_78_1);
+
+    size_t res;
+
+    res = parse_79(state, unmatched_checkpoint);
+    if (res != 0) {
+        
+        for(int i = 0; i < 1;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        if (res >= brk_1) {
+            return 1;
+        }
+
+            
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_80();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_80(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_80();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
 
 /* peak_78 */
 static bool peak_78(ParserState *state, size_t offset, bool recover) {
@@ -7775,14 +7947,14 @@ static bool peak_78(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)8) return true;
     return false;
 }
 
 
 /* expected_78 data */
 static const Expected expected_78_data[] = {
-    { .kind = 1u, .id = 13u },
+    { .kind = 0u, .id = 8u },
 };
 
 
@@ -7803,8 +7975,32 @@ static inline ExpectedVec expected_78(void) {
 }
 
 
+
+/* Parse Optional */
+static size_t parse_77(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_78(state, unmatched_checkpoint);
+}
+
+/* peak_77 */
+static bool peak_77(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)8) return true;
+    return false;
+}
+
+
+/* expected_77: optional => empty */
+static inline ExpectedVec expected_77(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
 static bool break_pred_seq_76_1(ParserState *state) {
-    return peak_78(state, 0, false);
+    return peak_77(state, 0, false);
 }
 
 
@@ -7815,14 +8011,17 @@ static size_t parse_76(ParserState *state, size_t unmatched_checkpoint) {
 
     size_t res;
 
-    res = parse_77(state, unmatched_checkpoint);
+    res = parse_44(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -7831,11 +8030,11 @@ static size_t parse_76(ParserState *state, size_t unmatched_checkpoint) {
     (void)break_stack_pop(&state->breaks, NULL);
 
     if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_78();
+        ExpectedVec e = expected_77();
         missing(state, e);
     } else {
         for (;;) {
-            res = parse_78(state, unmatched_checkpoint);
+            res = parse_77(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -7843,7 +8042,7 @@ static size_t parse_76(ParserState *state, size_t unmatched_checkpoint) {
             break;
         }
         if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_78();
+            ExpectedVec e = expected_77();
             missing(state, e);
         }
     }
@@ -7861,14 +8060,14 @@ static bool peak_76(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)8) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
 
 /* expected_76 data */
 static const Expected expected_76_data[] = {
-    { .kind = 0u, .id = 8u },
+    { .kind = 1u, .id = 0u },
 };
 
 
@@ -7890,79 +8089,15 @@ static inline ExpectedVec expected_76(void) {
 
 
 
-/* Parse Optional */
-static size_t parse_75(ParserState *state, size_t unmatched_checkpoint) {
-    return parse_76(state, unmatched_checkpoint);
-}
-
-/* peak_75 */
-static bool peak_75(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)8) return true;
-    return false;
-}
-
-
-/* expected_75: optional => empty */
-static inline ExpectedVec expected_75(void) {
-    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
-}
-
-
-static bool break_pred_seq_74_1(ParserState *state) {
-    return peak_75(state, 0, false);
-}
-
-
-/* Parse Seq */
+/* Parse Named */
 static size_t parse_74(ParserState *state, size_t unmatched_checkpoint) {
-
-    size_t brk_1 = push_break(state, break_pred_seq_74_1);
-
-    size_t res;
-
-    res = parse_42(state, unmatched_checkpoint);
-    if (res != 0) {
-        for(int i = 0; i < 1;i++) {
-            (void)break_stack_pop(&state->breaks, NULL);
-        }
-        if (res >= brk_1) {
-            return 1;
-        }
-        return res;
+    size_t c = checkpoint(state);
+    size_t res = parse_76(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 15);
     }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_75();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_75(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_75();
-            missing(state, e);
-        }
-    }
-
-
-
-    return 0;
+    return res;
 }
-
 
 /* peak_74 */
 static bool peak_74(ParserState *state, size_t offset, bool recover) {
@@ -7978,7 +8113,7 @@ static bool peak_74(ParserState *state, size_t offset, bool recover) {
 
 /* expected_74 data */
 static const Expected expected_74_data[] = {
-    { .kind = 1u, .id = 0u },
+    { .kind = 1u, .id = 15u },
 };
 
 
@@ -8000,54 +8135,8 @@ static inline ExpectedVec expected_74(void) {
 
 
 
-/* Parse Named */
-static size_t parse_72(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_74(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 14);
-    }
-    return res;
-}
-
-/* peak_72 */
-static bool peak_72(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)20) return true;
-    return false;
-}
-
-
-/* expected_72 data */
-static const Expected expected_72_data[] = {
-    { .kind = 1u, .id = 14u },
-};
-
-
-/* expected_72: owning ExpectedVec copy */
-static inline ExpectedVec expected_72(void) {
-    size_t count = sizeof(expected_72_data) / sizeof(expected_72_data[0]);
-
-    Expected *data = (Expected *)malloc(count * sizeof *data);
-    if (!data) abort();
-
-    memcpy(data, expected_72_data, count * sizeof *data);
-
-    return (ExpectedVec){
-        .data = data,
-        .len  = count,
-        .cap  = count,
-    };
-}
-
-
-
 /* Parse Just */
-static size_t parse_86(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_88(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
     for (;;) {
@@ -8080,8 +8169,8 @@ static size_t parse_86(ParserState *state, size_t unmatched_checkpoint) {
     return 1;
 }
 
-/* peak_86 */
-static bool peak_86(ParserState *state, size_t offset, bool recover) {
+/* peak_88 */
+static bool peak_88(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -8092,20 +8181,20 @@ static bool peak_86(ParserState *state, size_t offset, bool recover) {
 }
 
 
-/* expected_86 data */
-static const Expected expected_86_data[] = {
+/* expected_88 data */
+static const Expected expected_88_data[] = {
     { .kind = 0u, .id = 23u },
 };
 
 
-/* expected_86: owning ExpectedVec copy */
-static inline ExpectedVec expected_86(void) {
-    size_t count = sizeof(expected_86_data) / sizeof(expected_86_data[0]);
+/* expected_88: owning ExpectedVec copy */
+static inline ExpectedVec expected_88(void) {
+    size_t count = sizeof(expected_88_data) / sizeof(expected_88_data[0]);
 
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
-    memcpy(data, expected_86_data, count * sizeof *data);
+    memcpy(data, expected_88_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -8115,26 +8204,29 @@ static inline ExpectedVec expected_86(void) {
 }
 
 
-static bool break_pred_seq_85_1(ParserState *state) {
+static bool break_pred_seq_87_1(ParserState *state) {
     return peak_18(state, 0, false);
 }
 
 
 /* Parse Seq */
-static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_87(ParserState *state, size_t unmatched_checkpoint) {
 
-    size_t brk_1 = push_break(state, break_pred_seq_85_1);
+    size_t brk_1 = push_break(state, break_pred_seq_87_1);
 
     size_t res;
 
-    res = parse_86(state, unmatched_checkpoint);
+    res = parse_88(state, unmatched_checkpoint);
     if (res != 0) {
+        
         for(int i = 0; i < 1;i++) {
             (void)break_stack_pop(&state->breaks, NULL);
         }
         if (res >= brk_1) {
             return 1;
         }
+
+            
         return res;
     }
 
@@ -8166,6 +8258,52 @@ static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
 }
 
 
+/* peak_87 */
+static bool peak_87(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)23) return true;
+    return false;
+}
+
+
+/* expected_87 data */
+static const Expected expected_87_data[] = {
+    { .kind = 0u, .id = 23u },
+};
+
+
+/* expected_87: owning ExpectedVec copy */
+static inline ExpectedVec expected_87(void) {
+    size_t count = sizeof(expected_87_data) / sizeof(expected_87_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_87_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Named */
+static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
+    size_t c = checkpoint(state);
+    size_t res = parse_87(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 16);
+    }
+    return res;
+}
+
 /* peak_85 */
 static bool peak_85(ParserState *state, size_t offset, bool recover) {
     (void)offset;
@@ -8180,7 +8318,7 @@ static bool peak_85(ParserState *state, size_t offset, bool recover) {
 
 /* expected_85 data */
 static const Expected expected_85_data[] = {
-    { .kind = 0u, .id = 23u },
+    { .kind = 1u, .id = 16u },
 };
 
 
@@ -8201,65 +8339,19 @@ static inline ExpectedVec expected_85(void) {
 }
 
 
-
-/* Parse Named */
-static size_t parse_83(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_85(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 15);
-    }
-    return res;
-}
-
-/* peak_83 */
-static bool peak_83(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)23) return true;
-    return false;
-}
-
-
-/* expected_83 data */
-static const Expected expected_83_data[] = {
-    { .kind = 1u, .id = 15u },
-};
-
-
-/* expected_83: owning ExpectedVec copy */
-static inline ExpectedVec expected_83(void) {
-    size_t count = sizeof(expected_83_data) / sizeof(expected_83_data[0]);
-
-    Expected *data = (Expected *)malloc(count * sizeof *data);
-    if (!data) abort();
-
-    memcpy(data, expected_83_data, count * sizeof *data);
-
-    return (ExpectedVec){
-        .data = data,
-        .len  = count,
-        .cap  = count,
-    };
-}
-
-
-static bool break_pred_69(ParserState *state) {
-    return peak_83(state, 0, false);
+static bool break_pred_71(ParserState *state) {
+    return peak_85(state, 0, false);
 }
 
 
 /* Parse Fold */
-static size_t parse_69(ParserState *state, size_t unmatched_checkpoint) {
+static size_t parse_71(ParserState *state, size_t unmatched_checkpoint) {
     for (;;) {
         if (state->offset >= state->tokens.len) {
             return 2; /* EOF */
         }
 
-        if (peak_72(state, 0, false)) {
+        if (peak_74(state, 0, false)) {
             break;
         }
 
@@ -8272,14 +8364,14 @@ static size_t parse_69(ParserState *state, size_t unmatched_checkpoint) {
     }
 
     size_t c = checkpoint(state);
-    size_t break_code = push_break(state, break_pred_69);
-    size_t res = parse_72(state, unmatched_checkpoint);
+    size_t break_code = push_break(state, break_pred_71);
+    size_t res = parse_74(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
     if (res != 0 && res != break_code) {
         return res;
     }
     for(;;){
-        size_t res_next = parse_83(state, unmatched_checkpoint);
+        size_t res_next = parse_85(state, unmatched_checkpoint);
         if (res_next == 1) {
             bump_err(state);
             continue;
@@ -8287,14 +8379,14 @@ static size_t parse_69(ParserState *state, size_t unmatched_checkpoint) {
         if (res_next != 0) {
             return 0;
         }
-        (void)group_at(state, c, 16);
+        (void)group_at(state, c, 17);
         return 0;
     }
 }
 
 
-/* peak_69 */
-static bool peak_69(ParserState *state, size_t offset, bool recover) {
+/* peak_71 */
+static bool peak_71(ParserState *state, size_t offset, bool recover) {
     (void)offset;
     (void)recover;
 
@@ -8305,9 +8397,98 @@ static bool peak_69(ParserState *state, size_t offset, bool recover) {
 }
 
 
+/* expected_71 data */
+static const Expected expected_71_data[] = {
+    { .kind = 1u, .id = 15u },
+};
+
+
+/* expected_71: owning ExpectedVec copy */
+static inline ExpectedVec expected_71(void) {
+    size_t count = sizeof(expected_71_data) / sizeof(expected_71_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_71_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+static bool break_pred_seq_69_1(ParserState *state) {
+    return peak_71(state, 0, false);
+}
+
+
+/* Parse Seq */
+static size_t parse_69(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_1 = push_break(state, break_pred_seq_69_1);
+
+    size_t res;
+
+    res = parse_70(state, unmatched_checkpoint);
+    if (res != 0) {
+        
+        for(int i = 0; i < 1;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        if (res >= brk_1) {
+            return 1;
+        }
+
+            
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_71();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_71(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_71();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
+
+/* peak_69 */
+static bool peak_69(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)3) return true;
+    return false;
+}
+
+
 /* expected_69 data */
 static const Expected expected_69_data[] = {
-    { .kind = 1u, .id = 14u },
+    { .kind = 0u, .id = 3u },
 };
 
 
@@ -8328,56 +8509,16 @@ static inline ExpectedVec expected_69(void) {
 }
 
 
-static bool break_pred_seq_67_1(ParserState *state) {
-    return peak_69(state, 0, false);
-}
 
-
-/* Parse Seq */
+/* Parse Named */
 static size_t parse_67(ParserState *state, size_t unmatched_checkpoint) {
-
-    size_t brk_1 = push_break(state, break_pred_seq_67_1);
-
-    size_t res;
-
-    res = parse_68(state, unmatched_checkpoint);
-    if (res != 0) {
-        for(int i = 0; i < 1;i++) {
-            (void)break_stack_pop(&state->breaks, NULL);
-        }
-        if (res >= brk_1) {
-            return 1;
-        }
-        return res;
+    size_t c = checkpoint(state);
+    size_t res = parse_69(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 19);
     }
-
-
-
-    (void)break_stack_pop(&state->breaks, NULL);
-
-    if (res >= 2 && res != brk_1) {
-        ExpectedVec e = expected_69();
-        missing(state, e);
-    } else {
-        for (;;) {
-            res = parse_69(state, unmatched_checkpoint);
-            if (res == 1) {
-                bump_err(state);
-                continue;
-            }
-            break;
-        }
-        if (res >= 2 && res != brk_1) {
-            ExpectedVec e = expected_69();
-            missing(state, e);
-        }
-    }
-
-
-
-    return 0;
+    return res;
 }
-
 
 /* peak_67 */
 static bool peak_67(ParserState *state, size_t offset, bool recover) {
@@ -8393,7 +8534,7 @@ static bool peak_67(ParserState *state, size_t offset, bool recover) {
 
 /* expected_67 data */
 static const Expected expected_67_data[] = {
-    { .kind = 0u, .id = 3u },
+    { .kind = 1u, .id = 19u },
 };
 
 
@@ -8405,52 +8546,6 @@ static inline ExpectedVec expected_67(void) {
     if (!data) abort();
 
     memcpy(data, expected_67_data, count * sizeof *data);
-
-    return (ExpectedVec){
-        .data = data,
-        .len  = count,
-        .cap  = count,
-    };
-}
-
-
-
-/* Parse Named */
-static size_t parse_65(ParserState *state, size_t unmatched_checkpoint) {
-    size_t c = checkpoint(state);
-    size_t res = parse_67(state, unmatched_checkpoint);
-    if (res == 0) {
-        group_at(state, c, 18);
-    }
-    return res;
-}
-
-/* peak_65 */
-static bool peak_65(ParserState *state, size_t offset, bool recover) {
-    (void)offset;
-    (void)recover;
-
-    uint32_t current = current_kind(state);
-
-    if (current == (uint32_t)3) return true;
-    return false;
-}
-
-
-/* expected_65 data */
-static const Expected expected_65_data[] = {
-    { .kind = 1u, .id = 18u },
-};
-
-
-/* expected_65: owning ExpectedVec copy */
-static inline ExpectedVec expected_65(void) {
-    size_t count = sizeof(expected_65_data) / sizeof(expected_65_data[0]);
-
-    Expected *data = (Expected *)malloc(count * sizeof *data);
-    if (!data) abort();
-
-    memcpy(data, expected_65_data, count * sizeof *data);
 
     return (ExpectedVec){
         .data = data,
@@ -8483,7 +8578,7 @@ static size_t parse_4(ParserState *state, size_t unmatched_checkpoint) {
     }
 
 
-    res = parse_65(state, unmatched_checkpoint);
+    res = parse_67(state, unmatched_checkpoint);
     if (res == 0) {
         return 0;
     }
@@ -8499,20 +8594,20 @@ static bool peak_4(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
 
 /* expected_4 data */
 static const Expected expected_4_data[] = {
-    { .kind = 1u, .id = 9u },
     { .kind = 1u, .id = 10u },
-    { .kind = 1u, .id = 12u },
-    { .kind = 1u, .id = 18u },
+    { .kind = 1u, .id = 11u },
+    { .kind = 1u, .id = 13u },
+    { .kind = 1u, .id = 19u },
 };
 
 
@@ -8546,10 +8641,10 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8582,7 +8677,7 @@ static bool break_pred_sep_2_item(ParserState *state) {
 }
 
 static bool break_pred_sep_2_sep(ParserState *state) {
-    return peak_87(state, 0, false);
+    return peak_89(state, 0, false);
 }
 
 
@@ -8597,7 +8692,7 @@ static size_t parse_2(ParserState *state, size_t unmatched_checkpoint) {
     }
     for (;;) {
         for (;;) {
-            res = parse_87(state, unmatched_checkpoint);
+            res = parse_89(state, unmatched_checkpoint);
             if (res == 1) {
                 bump_err(state);
                 continue;
@@ -8612,7 +8707,7 @@ static size_t parse_2(ParserState *state, size_t unmatched_checkpoint) {
             }
 
             if (res == item_brk) {
-                ExpectedVec e = expected_87();
+                ExpectedVec e = expected_89();
                 missing(state, e);
             } else {
                 goto ret_ok;
@@ -8665,9 +8760,9 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
     return false;
 }
@@ -8714,10 +8809,10 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)0) return true;
     return false;
 }
 
@@ -8764,8 +8859,8 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
     return false;
 }
@@ -8794,7 +8889,7 @@ static inline ExpectedVec expected_0(void) {
 }
 
 
-enum { ROOT_GROUP_ID = 20 };
+enum { ROOT_GROUP_ID = 21 };
 
 EXPORT Node parse(char *ptr, size_t len) {
     ParserState state = default_state(ptr, len);
