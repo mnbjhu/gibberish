@@ -23,17 +23,10 @@ pub async fn formatting(
         .ast_map
         .get(uri.as_str())
         .ok_or(jsonrpc::Error::new(jsonrpc::ErrorCode::InternalError))?;
-
-    let root = RootAst(ast.as_group());
-    let mut state = CheckState::default();
-    root.check(&mut state);
-    if state
-        .errors
-        .iter()
-        .any(|it| it.severity() == DiagnosticSeverity::ERROR)
-    {
+    if ast.has_errors() {
         return Ok(None);
     }
+    let root = RootAst(ast.as_group());
     let arena = pretty::Arena::<()>::new();
     let new_text = root.pretty::<_, ()>(&arena).pretty(80).to_string();
     let range = Range {

@@ -203,6 +203,15 @@ impl<L: Lang> Node<L> {
         }
     }
 
+    pub fn has_errors(&self) -> bool {
+        match self {
+            Node::Group(group) => group.has_errors(),
+            Node::Lexeme(_) => false,
+            Node::Skipped(_) => false,
+            Node::Err(_) => true,
+        }
+    }
+
     pub fn start_offset(&self) -> usize {
         match self {
             Node::Group(group) => group.start_offset(),
@@ -260,6 +269,10 @@ impl<L: Lang> Group<L> {
             stack.push(child);
         }
         LeadingErrorIter { stack, offset: 0 }
+    }
+
+    pub fn has_errors(&self) -> bool {
+        self.children.iter().any(|it| it.has_errors())
     }
 
     pub fn all_tokens(&self) -> impl Iterator<Item = &Lexeme<L>> {
@@ -347,7 +360,7 @@ impl<L: Lang> Group<L> {
         let mut index = None;
         let mut res = vec![];
         for (i, child) in self.children.iter().enumerate() {
-            if child.span().contains(&offset) {
+            if child.span().contains(&(offset - 1)) {
                 if let Node::Group(group) = child {
                     return group.completions_at(offset);
                 }
