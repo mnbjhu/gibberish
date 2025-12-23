@@ -106,7 +106,7 @@ impl<'a> RootAst<'a> {
                         doc = doc.append(new);
                     }
                     GibberishToken::Comment => {
-                        doc = doc.append(&lexeme.text);
+                        doc = doc.append(&lexeme.text).append(allocator.hardline());
                     }
                     _ => panic!("Unexpected"),
                 },
