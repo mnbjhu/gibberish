@@ -53,10 +53,9 @@ parser labelled_query = group_query fold label;
 parser _query = labelled_query;
 
 parser highlight_def = HIGHTLIGHT + _query;
-
-parser _stmt = kw_def | token_def | parser_def | highlight_def;
+parser _stmt = (kw_def | token_def | parser_def | highlight_def) + semi;
 parser root = _stmt
     .labelled(declaration)
-    .sep_by(semi)
+    .repeated()
     .skip(whitespace)
-    .skip(comment)
+    .skip(comment);

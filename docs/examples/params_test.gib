@@ -15,4 +15,4 @@ parser _expr = sum;
 parser param = ident + eq + _expr;
 parser items = (param | sum).sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser root = _brackets.skip(whitespace)
+parser root = _brackets.skip(whitespace);
