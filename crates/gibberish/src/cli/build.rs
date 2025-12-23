@@ -164,7 +164,7 @@ fn obj_suffix() -> &'static str {
 
 pub fn build_static_lib(c_text: &str, out: &Path) {
     let c_file = Builder::new().suffix(".c").tempfile().unwrap();
-    let c_path = c_file.path().to_path_buf();
+    let c_path = c_file.into_temp_path().to_path_buf();
 
     let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
     let obj_path = obj_file.path().to_path_buf();
@@ -190,6 +190,7 @@ fn compile_c_to_object(c_path: &Path, obj_path: &Path, pic: bool) {
             .arg("/c")
             .arg("/Zi")
             .arg("/Od")
+            .arg("/std:c11")
             .arg("/Fo:".to_string() + obj_path.to_string_lossy().as_ref())
             .arg(c_path);
 
@@ -264,6 +265,7 @@ fn link_shared(obj_path: &Path, out: &Path) {
         let status = Command::new("link.exe")
             .arg("/nologo")
             .arg("/DLL")
+            .arg("/MACHINE:X64")
             .arg(format!("/OUT:{}", out.to_string_lossy()))
             .arg(obj_path)
             .status()
@@ -276,6 +278,7 @@ fn link_shared(obj_path: &Path, out: &Path) {
         let status = Command::new("cc")
             .arg("-shared")
             .arg("-o")
+            .arg("/MACHINE:X64")
             .arg(out)
             .arg(obj_path)
             .status()

@@ -51,7 +51,7 @@ pub fn load_parser(parser: &Path) -> CompiledLang {
         .suffix(&format!(".{DYN_LIB_EXT}"))
         .tempfile()
         .unwrap();
-    let lib_path = lib.path().to_path_buf();
+    let lib_path = lib.into_temp_path().to_path_buf();
     let parser = match parser.extension().unwrap().to_str().unwrap() {
         DYN_LIB_EXT => parser.canonicalize().unwrap(),
         C_EXT => {
@@ -62,8 +62,7 @@ pub fn load_parser(parser: &Path) -> CompiledLang {
             let c_str = build_c_str(parser);
             let c = Builder::new().suffix(".c").tempfile().unwrap();
             fs::write(&c, c_str).unwrap();
-            let lib_path = lib.path().to_path_buf();
-            build_dynamic_lib(c.path(), &lib_path);
+            build_dynamic_lib(&c.into_temp_path().to_path_buf(), &lib_path);
             lib_path
         }
         _ => {
