@@ -205,7 +205,7 @@ mod seq_test {
         let parser = r#"keyword first;
 keyword second;
 token whitespace = "\s+";
-parser root = (first + second).skip(whitespace)
+parser root = (first + second).skip(whitespace);
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
@@ -253,7 +253,7 @@ token l_bracket = "\[";
 token r_bracket = "\]";
 parser items = num.sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser root = _brackets"#;
+parser root = _brackets;"#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)

@@ -298,7 +298,7 @@ mod conflict_tests {
         parser def_table = define + table;
         parser def_field = define + field;
         parser _def = (def_table | def_field).skip(whitespace);
-        parser root = _def
+        parser root = _def;
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
@@ -424,7 +424,7 @@ parser _expr = sum;
 parser param = ident + eq + _expr;
 parser items = (param | sum).sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser root = _brackets.skip(whitespace)"#;
+parser root = _brackets.skip(whitespace);"#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)
