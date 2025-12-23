@@ -1650,6 +1650,20 @@ static bool lex_44(LexerState *lexer_state) {
     return false;
 }
 
+/* RegexChar */
+static bool lex_temp(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)13) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
 
 /* RegexChoice */
 static bool lex_41(LexerState *lexer_state) {
@@ -1670,6 +1684,11 @@ static bool lex_41(LexerState *lexer_state) {
 
     lexer_state->offset = start;
     if (lex_44(lexer_state)) {
+        return true;
+    }
+
+    lexer_state->offset = start;
+    if (lex_temp(lexer_state)) {
         return true;
     }
 
