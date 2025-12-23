@@ -6,6 +6,7 @@ use std::{
 use gibberish_dyn_lib::bindings::lang::CompiledLang;
 use gibberish_gibberish_parser::Gibberish;
 use tempfile::Builder;
+use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::{
     cli::build::{build_c_str, build_dynamic_lib},
@@ -39,14 +40,20 @@ pub fn parse(path: &Path, errors: bool, tokens: bool) {
     res.debug_print(errors, tokens, &Gibberish);
 }
 
-pub fn parse_custom(path: &Path, errors: bool, tokens: bool, parser: &Path) {
-    let lang = load_parser(parser);
+pub fn parse_custom(
+    path: &Path,
+    errors: bool,
+    tokens: bool,
+    parser: &Path,
+    min_severity: DiagnosticSeverity,
+) {
+    let lang = load_parser(parser, min_severity);
     let text = fs::read_to_string(path).unwrap();
     let res = gibberish_dyn_lib::bindings::parse(&lang, &text);
     res.debug_print(errors, tokens, &lang);
 }
 
-pub fn load_parser(parser: &Path) -> CompiledLang {
+pub fn load_parser(parser: &Path, min_severity: DiagnosticSeverity) -> CompiledLang {
     let lib = Builder::new()
         .suffix(&format!(".{DYN_LIB_EXT}"))
         .tempfile()
@@ -59,10 +66,10 @@ pub fn load_parser(parser: &Path) -> CompiledLang {
             lib_path
         }
         GIBBERISH_EXT => {
-            let c_str = build_c_str(parser);
+            let c_str = build_c_str(parser, min_severity);
             let c = Builder::new().suffix(".c").tempfile().unwrap();
             fs::write(&c, c_str).unwrap();
-            build_dynamic_lib(&c.into_temp_path().to_path_buf(), &lib_path);
+            build_dynamic_lib(&c.into_temp_path(), &lib_path);
             lib_path
         }
         _ => {

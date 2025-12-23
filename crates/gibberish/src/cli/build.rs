@@ -52,8 +52,8 @@ impl BuildKind {
     }
 }
 
-pub fn build(parser_file: &Path, output: &Path) {
-    let res = build_c_str(parser_file);
+pub fn build(parser_file: &Path, output: &Path, min_severity: DiagnosticSeverity) {
+    let res = build_c_str(parser_file, min_severity);
     match BuildKind::from_path(output) {
         BuildKind::C => fs::write(output, res).unwrap(),
         BuildKind::Static => {
@@ -69,8 +69,8 @@ pub fn build(parser_file: &Path, output: &Path) {
     println!("{}", Color::Green.paint("[Build successful]"));
 }
 
-pub fn build_c_str(parser_file: &Path) -> String {
-    let mut builder = build_parser_from_src(parser_file);
+pub fn build_c_str(parser_file: &Path, min_severity: DiagnosticSeverity) -> String {
+    let mut builder = build_parser_from_src(parser_file, min_severity);
     builder.build_c()
 }
 
@@ -96,7 +96,10 @@ impl ParserBuilder {
     }
 }
 
-pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
+pub fn build_parser_from_src(
+    parser_file: &Path,
+    min_severity: DiagnosticSeverity,
+) -> ParserBuilder {
     let parser_text = fs::read_to_string(parser_file).unwrap();
     let res = Gibberish::parse(&parser_text);
     let parser_filename = parser_file.to_str().unwrap();
@@ -111,16 +114,16 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
             CheckError::Simple {
                 span: other_span, ..
             },
-        ) => span.start().cmp(&other_span.start()),
+        ) => span.start().cmp(other_span.start()),
         (CheckError::Unused(span), CheckError::Unused(other_span)) => {
-            span.start().cmp(&other_span.start())
+            span.start().cmp(other_span.start())
         }
         (
             CheckError::Redeclaration { this: span, .. },
             CheckError::Redeclaration {
                 this: other_span, ..
             },
-        ) => span.start().cmp(&other_span.start()),
+        ) => span.start().cmp(other_span.start()),
         (CheckError::ParseError(_), _) => Ordering::Greater,
         (_, CheckError::ParseError(_)) => Ordering::Less,
         (CheckError::Simple { .. }, _) => Ordering::Greater,
@@ -129,7 +132,9 @@ pub fn build_parser_from_src(parser_file: &Path) -> ParserBuilder {
         (_, CheckError::Redeclaration { .. }) => Ordering::Less,
     });
     for err in &state.errors {
-        err.report(&parser_text, parser_filename);
+        if err.severity() <= min_severity {
+            err.report(&parser_text, parser_filename);
+        }
     }
     let has_err = state.errors.iter().any(|it| match it {
         CheckError::Simple { severity, .. } => *severity == DiagnosticSeverity::ERROR,

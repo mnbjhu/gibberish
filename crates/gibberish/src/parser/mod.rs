@@ -410,6 +410,7 @@ mod tests {
 
     use gibberish_dyn_lib::bindings::lang::CompiledLang;
     use tempfile::Builder;
+    use tower_lsp::lsp_types::DiagnosticSeverity;
 
     use crate::cli::{self};
 
@@ -422,7 +423,7 @@ mod tests {
             .tempfile()
             .unwrap();
         let lib_path = lib.into_temp_path().to_path_buf();
-        cli::build::build(&src_file_path, &lib_path);
+        cli::build::build(&src_file_path, &lib_path, DiagnosticSeverity::ERROR);
         CompiledLang::load(&lib_path)
     }
 

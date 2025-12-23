@@ -7,13 +7,14 @@ use std::{
 };
 
 use ansi_term::Color;
+use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
 use crate::cli::build::build_parser_from_src;
 
 pub fn generate(src: &Path) {
     let name = src.file_stem().unwrap().to_str().unwrap();
-    let mut builder = build_parser_from_src(src);
+    let mut builder = build_parser_from_src(src, DiagnosticSeverity::WARNING);
     let qbe_str = builder.build_c();
     let _ = remove_dir_all("lib");
     let _ = create_dir("lib");
