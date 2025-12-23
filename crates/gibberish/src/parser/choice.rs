@@ -286,7 +286,6 @@ mod conflict_tests {
 
     use gibberish_core::{lang::Lang, node::Node};
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -305,7 +304,6 @@ mod conflict_tests {
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_def_table() {
         let (lang, node) = parse_test("define table");
@@ -335,7 +333,6 @@ mod conflict_tests {
         assert_token_kind!(lang, &children[2], table);
     }
 
-    #[serial]
     #[test]
     fn test_def_field() {
         let (lang, node) = parse_test("define field");
@@ -402,7 +399,6 @@ mod param_conflicts_test {
 
     use gibberish_core::{lang::Lang, node::Node};
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -430,7 +426,6 @@ parser root = _brackets.skip(whitespace);"#;
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_ident() {
         let (lang, node) = parse_test("[hello]");

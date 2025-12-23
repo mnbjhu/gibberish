@@ -159,7 +159,6 @@ mod tests {
         node::Node,
     };
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -174,7 +173,6 @@ mod tests {
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_single() {
         let (lang, node) = parse_sep_test("123");
@@ -184,7 +182,6 @@ mod tests {
         assert_token_kind!(lang, &children[0], num);
     }
 
-    #[serial]
     #[test]
     fn test_empty() {
         let (lang, node) = parse_sep_test("");
@@ -204,7 +201,6 @@ mod tests {
         assert_eq!(lang.token_name(t), "num");
     }
 
-    #[serial]
     #[test]
     fn test_multi() {
         let (lang, node) = parse_sep_test("123,123");
@@ -216,7 +212,6 @@ mod tests {
         assert_token_kind!(lang, &children[2], num);
     }
 
-    #[serial]
     #[test]
     fn test_missing_last() {
         let (lang, node) = parse_sep_test("123,");
@@ -238,7 +233,6 @@ mod tests {
         assert_eq!(lang.token_name(t), "num");
     }
 
-    #[serial]
     #[test]
     fn test_missing_between() {
         let (lang, node) = parse_sep_test("123,,123");

@@ -197,7 +197,6 @@ pub fn seq(parts: Vec<Parser>) -> Parser {
 mod seq_test {
     use gibberish_core::{lang::Lang, node::Node};
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -212,7 +211,6 @@ parser root = (first + second).skip(whitespace);
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_ok() {
         let (lang, node) = parse_test("first second");
@@ -241,7 +239,6 @@ mod sep_seq_test {
         node::Node,
     };
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -259,7 +256,6 @@ parser root = _brackets;"#;
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_ok() {
         let (lang, node) = parse_test("[123,123]");
@@ -283,7 +279,6 @@ parser root = _brackets;"#;
         assert_token_kind!(lang, &items[2], num);
     }
 
-    #[serial]
     #[test]
     fn test_missing_items() {
         let (lang, node) = parse_test("[]");

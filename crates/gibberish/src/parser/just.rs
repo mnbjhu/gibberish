@@ -89,7 +89,6 @@ impl Display for Just {
 mod tests {
     use gibberish_core::{lang::Lang, node::Node};
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::parser::tests::build_test_parser;
 
@@ -102,7 +101,6 @@ mod tests {
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_just() {
         let (lang, lst) = parse_just_test("123");
@@ -117,7 +115,6 @@ mod tests {
         }
     }
 
-    #[serial]
     #[test]
     fn test_just_error() {
         let (lang, lst) = parse_just_test("   123");
@@ -139,7 +136,6 @@ mod tests {
         }
     }
 
-    #[serial]
     #[test]
     fn test_just_missing() {
         let (lang, lst) = parse_just_test("");
@@ -147,7 +143,6 @@ mod tests {
         assert_eq!(1, lst.as_group().children.len());
     }
 
-    #[serial]
     #[test]
     fn test_keyword_lex() {
         let parser = r#"keyword just;
