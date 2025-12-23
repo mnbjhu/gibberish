@@ -1606,100 +1606,27 @@ static size_t lex_FOLD(LexerState *lexer_state) {
 }
 
 
-/* RegexChar */
-static bool lex_42(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)32) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChar */
-static bool lex_43(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)9) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChar */
-static bool lex_44(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)10) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-/* RegexChar */
-static bool lex_temp(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)13) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChoice */
+/* Whitespace */
 static bool lex_41(LexerState *lexer_state) {
-    size_t start = lexer_state->offset;
+    if (lexer_state->offset >= lexer_state->len) {
+        return false;
+    }
 
+    unsigned char c = (unsigned char)lexer_state->data[lexer_state->offset];
+    bool is_space = (c == 32);
+    bool is_ctrl_ws = (c >= 9 && c <= 13);
 
-    lexer_state->offset = start;
-    if (lex_42(lexer_state)) {
+    if (is_space || is_ctrl_ws) {
+        lexer_state->offset += 1;
         return true;
     }
 
-
-    lexer_state->offset = start;
-    if (lex_43(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_44(lexer_state)) {
-        return true;
-    }
-
-    lexer_state->offset = start;
-    if (lex_temp(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
     return false;
 }
 
 
 /* Rep1Regex */
-static bool lex_45(LexerState *lexer_state) {
+static bool lex_42(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
     if (lexer_state->offset >= lexer_state->len) {
@@ -1732,7 +1659,7 @@ static bool lex_40(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_45(lexer_state)) {
+    if (!lex_42(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1755,7 +1682,7 @@ static size_t lex_whitespace(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_48(LexerState *lexer_state) {
+static bool lex_45(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -1771,12 +1698,12 @@ static bool lex_48(LexerState *lexer_state) {
 
 
 /* RegexChoice */
-static bool lex_47(LexerState *lexer_state) {
+static bool lex_44(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
-    if (lex_48(lexer_state)) {
+    if (lex_45(lexer_state)) {
         return true;
     }
 
@@ -1787,20 +1714,20 @@ static bool lex_47(LexerState *lexer_state) {
 
 
 /* Rep1Regex */
-static bool lex_49(LexerState *lexer_state) {
+static bool lex_46(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
     if (lexer_state->offset >= lexer_state->len) {
         return false;
     }
-    if (!lex_47(lexer_state)) {
+    if (!lex_44(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
     for (;;) {
         size_t before = lexer_state->offset;
-        if (!lex_47(lexer_state)) {
+        if (!lex_44(lexer_state)) {
             break;
         }
         if (lexer_state->offset == before) {
@@ -1816,11 +1743,11 @@ static bool lex_49(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_46(LexerState *lexer_state) {
+static bool lex_43(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_49(lexer_state)) {
+    if (!lex_46(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1831,7 +1758,7 @@ static bool lex_46(LexerState *lexer_state) {
 
 
 static size_t lex_int(LexerState *lexer_state) {
-    if (!lex_46(lexer_state)) {
+    if (!lex_43(lexer_state)) {
         return 0;
     }
 
@@ -1843,7 +1770,7 @@ static size_t lex_int(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_51(LexerState *lexer_state) {
+static bool lex_48(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -1863,11 +1790,11 @@ static bool lex_51(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_50(LexerState *lexer_state) {
+static bool lex_47(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_51(lexer_state)) {
+    if (!lex_48(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1878,7 +1805,7 @@ static bool lex_50(LexerState *lexer_state) {
 
 
 static size_t lex_colon(LexerState *lexer_state) {
-    if (!lex_50(lexer_state)) {
+    if (!lex_47(lexer_state)) {
         return 0;
     }
 
@@ -1890,7 +1817,7 @@ static size_t lex_colon(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_53(LexerState *lexer_state) {
+static bool lex_50(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -1910,11 +1837,11 @@ static bool lex_53(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_52(LexerState *lexer_state) {
+static bool lex_49(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_53(lexer_state)) {
+    if (!lex_50(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1925,7 +1852,7 @@ static bool lex_52(LexerState *lexer_state) {
 
 
 static size_t lex_comma(LexerState *lexer_state) {
-    if (!lex_52(lexer_state)) {
+    if (!lex_49(lexer_state)) {
         return 0;
     }
 
@@ -1937,7 +1864,7 @@ static size_t lex_comma(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_55(LexerState *lexer_state) {
+static bool lex_52(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -1957,11 +1884,11 @@ static bool lex_55(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_54(LexerState *lexer_state) {
+static bool lex_51(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_55(lexer_state)) {
+    if (!lex_52(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1972,7 +1899,7 @@ static bool lex_54(LexerState *lexer_state) {
 
 
 static size_t lex_bar(LexerState *lexer_state) {
-    if (!lex_54(lexer_state)) {
+    if (!lex_51(lexer_state)) {
         return 0;
     }
 
@@ -1984,7 +1911,7 @@ static size_t lex_bar(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_57(LexerState *lexer_state) {
+static bool lex_54(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2004,11 +1931,11 @@ static bool lex_57(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_56(LexerState *lexer_state) {
+static bool lex_53(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_57(lexer_state)) {
+    if (!lex_54(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2019,7 +1946,7 @@ static bool lex_56(LexerState *lexer_state) {
 
 
 static size_t lex_dot(LexerState *lexer_state) {
-    if (!lex_56(lexer_state)) {
+    if (!lex_53(lexer_state)) {
         return 0;
     }
 
@@ -2031,7 +1958,7 @@ static size_t lex_dot(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_59(LexerState *lexer_state) {
+static bool lex_56(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2051,11 +1978,11 @@ static bool lex_59(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_58(LexerState *lexer_state) {
+static bool lex_55(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_59(lexer_state)) {
+    if (!lex_56(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2066,7 +1993,7 @@ static bool lex_58(LexerState *lexer_state) {
 
 
 static size_t lex_l_bracket(LexerState *lexer_state) {
-    if (!lex_58(lexer_state)) {
+    if (!lex_55(lexer_state)) {
         return 0;
     }
 
@@ -2078,7 +2005,7 @@ static size_t lex_l_bracket(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_61(LexerState *lexer_state) {
+static bool lex_58(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2098,11 +2025,11 @@ static bool lex_61(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_60(LexerState *lexer_state) {
+static bool lex_57(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_61(lexer_state)) {
+    if (!lex_58(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2113,7 +2040,7 @@ static bool lex_60(LexerState *lexer_state) {
 
 
 static size_t lex_r_bracket(LexerState *lexer_state) {
-    if (!lex_60(lexer_state)) {
+    if (!lex_57(lexer_state)) {
         return 0;
     }
 
@@ -2125,7 +2052,7 @@ static size_t lex_r_bracket(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_63(LexerState *lexer_state) {
+static bool lex_60(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2145,11 +2072,11 @@ static bool lex_63(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_62(LexerState *lexer_state) {
+static bool lex_59(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_63(lexer_state)) {
+    if (!lex_60(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2160,7 +2087,7 @@ static bool lex_62(LexerState *lexer_state) {
 
 
 static size_t lex_l_paren(LexerState *lexer_state) {
-    if (!lex_62(lexer_state)) {
+    if (!lex_59(lexer_state)) {
         return 0;
     }
 
@@ -2172,7 +2099,7 @@ static size_t lex_l_paren(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_65(LexerState *lexer_state) {
+static bool lex_62(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2192,11 +2119,11 @@ static bool lex_65(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_64(LexerState *lexer_state) {
+static bool lex_61(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_65(lexer_state)) {
+    if (!lex_62(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2207,7 +2134,7 @@ static bool lex_64(LexerState *lexer_state) {
 
 
 static size_t lex_r_paren(LexerState *lexer_state) {
-    if (!lex_64(lexer_state)) {
+    if (!lex_61(lexer_state)) {
         return 0;
     }
 
@@ -2219,7 +2146,7 @@ static size_t lex_r_paren(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_67(LexerState *lexer_state) {
+static bool lex_64(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2239,11 +2166,11 @@ static bool lex_67(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_66(LexerState *lexer_state) {
+static bool lex_63(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_67(lexer_state)) {
+    if (!lex_64(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2254,7 +2181,7 @@ static bool lex_66(LexerState *lexer_state) {
 
 
 static size_t lex_l_brace(LexerState *lexer_state) {
-    if (!lex_66(lexer_state)) {
+    if (!lex_63(lexer_state)) {
         return 0;
     }
 
@@ -2266,7 +2193,7 @@ static size_t lex_l_brace(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_69(LexerState *lexer_state) {
+static bool lex_66(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2286,11 +2213,11 @@ static bool lex_69(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_68(LexerState *lexer_state) {
+static bool lex_65(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_69(lexer_state)) {
+    if (!lex_66(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2301,7 +2228,7 @@ static bool lex_68(LexerState *lexer_state) {
 
 
 static size_t lex_r_brace(LexerState *lexer_state) {
-    if (!lex_68(lexer_state)) {
+    if (!lex_65(lexer_state)) {
         return 0;
     }
 
@@ -2313,7 +2240,7 @@ static size_t lex_r_brace(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_71(LexerState *lexer_state) {
+static bool lex_68(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2333,11 +2260,11 @@ static bool lex_71(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_70(LexerState *lexer_state) {
+static bool lex_67(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_71(lexer_state)) {
+    if (!lex_68(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2348,7 +2275,7 @@ static bool lex_70(LexerState *lexer_state) {
 
 
 static size_t lex_plus(LexerState *lexer_state) {
-    if (!lex_70(lexer_state)) {
+    if (!lex_67(lexer_state)) {
         return 0;
     }
 
@@ -2360,7 +2287,7 @@ static size_t lex_plus(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_73(LexerState *lexer_state) {
+static bool lex_70(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2380,11 +2307,11 @@ static bool lex_73(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_72(LexerState *lexer_state) {
+static bool lex_69(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_73(lexer_state)) {
+    if (!lex_70(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2395,7 +2322,7 @@ static bool lex_72(LexerState *lexer_state) {
 
 
 static size_t lex_eq(LexerState *lexer_state) {
-    if (!lex_72(lexer_state)) {
+    if (!lex_69(lexer_state)) {
         return 0;
     }
 
@@ -2407,7 +2334,7 @@ static size_t lex_eq(LexerState *lexer_state) {
 
 
 /* RegexChar */
-static bool lex_76(LexerState *lexer_state) {
+static bool lex_73(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2422,13 +2349,72 @@ static bool lex_76(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_77(LexerState *lexer_state) {
+static bool lex_74(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
 
     unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
     if (current >= (unsigned char)97 && current <= (unsigned char)122) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexRange */
+static bool lex_75(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
+    if (current >= (unsigned char)65 && current <= (unsigned char)90) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexChoice */
+static bool lex_72(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    lexer_state->offset = start;
+    if (lex_73(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    if (lex_74(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    if (lex_75(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    return false;
+}
+
+
+/* RegexChar */
+static bool lex_77(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)95) {
         lexer_state->offset += 1;
         return true;
     }
@@ -2444,65 +2430,6 @@ static bool lex_78(LexerState *lexer_state) {
     }
 
     unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
-    if (current >= (unsigned char)65 && current <= (unsigned char)90) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChoice */
-static bool lex_75(LexerState *lexer_state) {
-    size_t start = lexer_state->offset;
-
-
-    lexer_state->offset = start;
-    if (lex_76(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_77(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_78(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    return false;
-}
-
-
-/* RegexChar */
-static bool lex_80(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)95) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexRange */
-static bool lex_81(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
     if (current >= (unsigned char)97 && current <= (unsigned char)122) {
         lexer_state->offset += 1;
         return true;
@@ -2513,7 +2440,7 @@ static bool lex_81(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_82(LexerState *lexer_state) {
+static bool lex_79(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2529,7 +2456,7 @@ static bool lex_82(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_83(LexerState *lexer_state) {
+static bool lex_80(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2545,30 +2472,30 @@ static bool lex_83(LexerState *lexer_state) {
 
 
 /* RegexChoice */
-static bool lex_79(LexerState *lexer_state) {
+static bool lex_76(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
+    if (lex_77(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    if (lex_78(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    if (lex_79(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
     if (lex_80(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_81(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_82(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_83(lexer_state)) {
         return true;
     }
 
@@ -2579,10 +2506,10 @@ static bool lex_79(LexerState *lexer_state) {
 
 
 /* Rep0Regex */
-static bool lex_84(LexerState *lexer_state) {
+static bool lex_81(LexerState *lexer_state) {
     for (;;) {
         size_t before = lexer_state->offset;
-        if (!lex_79(lexer_state)) {
+        if (!lex_76(lexer_state)) {
             break;
         }
         if (lexer_state->offset == before) {
@@ -2597,17 +2524,17 @@ static bool lex_84(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_74(LexerState *lexer_state) {
+static bool lex_71(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_75(lexer_state)) {
+    if (!lex_72(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
 
-    if (!lex_84(lexer_state)) {
+    if (!lex_81(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2618,7 +2545,7 @@ static bool lex_74(LexerState *lexer_state) {
 
 
 static size_t lex_ident(LexerState *lexer_state) {
-    if (!lex_74(lexer_state)) {
+    if (!lex_71(lexer_state)) {
         return 0;
     }
 
@@ -2630,7 +2557,7 @@ static size_t lex_ident(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_86(LexerState *lexer_state) {
+static bool lex_83(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2650,11 +2577,11 @@ static bool lex_86(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_85(LexerState *lexer_state) {
+static bool lex_82(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_86(lexer_state)) {
+    if (!lex_83(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2665,7 +2592,7 @@ static bool lex_85(LexerState *lexer_state) {
 
 
 static size_t lex_semi(LexerState *lexer_state) {
-    if (!lex_85(lexer_state)) {
+    if (!lex_82(lexer_state)) {
         return 0;
     }
 
@@ -2677,7 +2604,7 @@ static size_t lex_semi(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_88(LexerState *lexer_state) {
+static bool lex_85(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2697,7 +2624,7 @@ static bool lex_88(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_91(LexerState *lexer_state) {
+static bool lex_88(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2717,7 +2644,7 @@ static bool lex_91(LexerState *lexer_state) {
 
 
 /* Any */
-static bool lex_92(LexerState *lexer_state) {
+static bool lex_89(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false;
     }
@@ -2727,17 +2654,17 @@ static bool lex_92(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_90(LexerState *lexer_state) {
+static bool lex_87(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_91(lexer_state)) {
+    if (!lex_88(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
 
-    if (!lex_92(lexer_state)) {
+    if (!lex_89(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2748,7 +2675,7 @@ static bool lex_90(LexerState *lexer_state) {
 
 
 /* RegexChar */
-static bool lex_95(LexerState *lexer_state) {
+static bool lex_92(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2763,7 +2690,7 @@ static bool lex_95(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_97(LexerState *lexer_state) {
+static bool lex_94(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2783,23 +2710,23 @@ static bool lex_97(LexerState *lexer_state) {
 
 
 /* RegexRegexOption */
-static bool lex_96(LexerState *lexer_state) {
-    return lex_97(lexer_state);
+static bool lex_93(LexerState *lexer_state) {
+    return lex_94(lexer_state);
 }
 
 
 /* RegexNegatedChoice */
-static bool lex_94(LexerState *lexer_state) {
+static bool lex_91(LexerState *lexer_state) {
     size_t len = lexer_state->len;
     size_t start = lexer_state->offset;
 
 
-    if (lex_95(lexer_state)) {
+    if (lex_92(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
-    if (lex_96(lexer_state)) {
+    if (lex_93(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2815,11 +2742,11 @@ static bool lex_94(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_93(LexerState *lexer_state) {
+static bool lex_90(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_94(lexer_state)) {
+    if (!lex_91(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2830,18 +2757,18 @@ static bool lex_93(LexerState *lexer_state) {
 
 
 /* RegexGroup */
-static bool lex_89(LexerState *lexer_state) {
+static bool lex_86(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
-    if (lex_90(lexer_state)) {
+    if (lex_87(lexer_state)) {
 
         return true;
     }
 
     lexer_state->offset = start;
-    if (lex_93(lexer_state)) {
+    if (lex_90(lexer_state)) {
 
         return true;
     }
@@ -2852,10 +2779,10 @@ static bool lex_89(LexerState *lexer_state) {
 
 
 /* Rep0Regex */
-static bool lex_98(LexerState *lexer_state) {
+static bool lex_95(LexerState *lexer_state) {
     for (;;) {
         size_t before = lexer_state->offset;
-        if (!lex_89(lexer_state)) {
+        if (!lex_86(lexer_state)) {
             break;
         }
         if (lexer_state->offset == before) {
@@ -2870,7 +2797,7 @@ static bool lex_98(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_99(LexerState *lexer_state) {
+static bool lex_96(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2890,23 +2817,23 @@ static bool lex_99(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_87(LexerState *lexer_state) {
+static bool lex_84(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_88(lexer_state)) {
+    if (!lex_85(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
 
-    if (!lex_98(lexer_state)) {
+    if (!lex_95(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
 
 
-    if (!lex_99(lexer_state)) {
+    if (!lex_96(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2917,7 +2844,7 @@ static bool lex_87(LexerState *lexer_state) {
 
 
 static size_t lex_string(LexerState *lexer_state) {
-    if (!lex_87(lexer_state)) {
+    if (!lex_84(lexer_state)) {
         return 0;
     }
 
@@ -2929,7 +2856,7 @@ static size_t lex_string(LexerState *lexer_state) {
 
 
 /* Exact */
-static bool lex_101(LexerState *lexer_state) {
+static bool lex_98(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
@@ -2949,11 +2876,11 @@ static bool lex_101(LexerState *lexer_state) {
 
 
 /* RegexSeq */
-static bool lex_100(LexerState *lexer_state) {
+static bool lex_97(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_101(lexer_state)) {
+    if (!lex_98(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -2964,7 +2891,7 @@ static bool lex_100(LexerState *lexer_state) {
 
 
 static size_t lex_at(LexerState *lexer_state) {
-    if (!lex_100(lexer_state)) {
+    if (!lex_97(lexer_state)) {
         return 0;
     }
 
@@ -5243,8 +5170,8 @@ static bool peak_37(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -5286,8 +5213,8 @@ static bool peak_35(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -5631,8 +5558,8 @@ static bool peak_53(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -6063,8 +5990,8 @@ static bool peak_33(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6105,8 +6032,8 @@ static bool peak_32(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6393,8 +6320,8 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -6435,8 +6362,8 @@ static bool peak_29(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6723,8 +6650,8 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)13) return true;
     if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
     return false;
 }
 
@@ -6765,8 +6692,8 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)19) return true;
     if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
     return false;
 }
 
@@ -8336,9 +8263,9 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8382,10 +8309,10 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)2) return true;
     return false;
 }
 
@@ -8501,10 +8428,10 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8550,10 +8477,10 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
