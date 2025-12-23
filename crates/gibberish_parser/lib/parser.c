@@ -1608,81 +1608,27 @@ static size_t lex_FOLD(LexerState *lexer_state) {
 }
 
 
-/* RegexChar */
-static bool lex_42(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)32) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChar */
-static bool lex_43(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)9) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChar */
-static bool lex_44(LexerState *lexer_state) {
-    if (lexer_state->offset >= lexer_state->len) {
-        return false; /* EOF */
-    }
-
-    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)10) {
-        lexer_state->offset += 1;
-        return true;
-    }
-
-    return false;
-}
-
-
-/* RegexChoice */
+/* Whitespace */
 static bool lex_41(LexerState *lexer_state) {
-    size_t start = lexer_state->offset;
+    if (lexer_state->offset >= lexer_state->len) {
+        return false;
+    }
 
+    unsigned char c = (unsigned char)lexer_state->data[lexer_state->offset];
+    bool is_space = (c == 32);
+    bool is_ctrl_ws = (c >= 9 && c <= 13);
 
-    lexer_state->offset = start;
-    if (lex_42(lexer_state)) {
+    if (is_space || is_ctrl_ws) {
+        lexer_state->offset += 1;
         return true;
     }
 
-
-    lexer_state->offset = start;
-    if (lex_43(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
-    if (lex_44(lexer_state)) {
-        return true;
-    }
-
-
-    lexer_state->offset = start;
     return false;
 }
 
 
 /* Rep1Regex */
-static bool lex_45(LexerState *lexer_state) {
+static bool lex_42(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
     if (lexer_state->offset >= lexer_state->len) {
@@ -1715,7 +1661,7 @@ static bool lex_40(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
-    if (!lex_45(lexer_state)) {
+    if (!lex_42(lexer_state)) {
         lexer_state->offset = start;
         return false;
     }
@@ -1737,6 +1683,7 @@ static size_t lex_whitespace(LexerState *lexer_state) {
 }
 
 
+<<<<<<< HEAD
 /* Exact */
 static bool lex_47(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
@@ -1846,6 +1793,10 @@ static size_t lex_comment(LexerState *lexer_state) {
 
 /* RegexRange */
 static bool lex_53(LexerState *lexer_state) {
+=======
+/* RegexRange */
+static bool lex_45(LexerState *lexer_state) {
+>>>>>>> master
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -1861,12 +1812,20 @@ static bool lex_53(LexerState *lexer_state) {
 
 
 /* RegexChoice */
+<<<<<<< HEAD
 static bool lex_52(LexerState *lexer_state) {
+=======
+static bool lex_44(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
+<<<<<<< HEAD
     if (lex_53(lexer_state)) {
+=======
+    if (lex_45(lexer_state)) {
+>>>>>>> master
         return true;
     }
 
@@ -1877,20 +1836,32 @@ static bool lex_52(LexerState *lexer_state) {
 
 
 /* Rep1Regex */
+<<<<<<< HEAD
 static bool lex_54(LexerState *lexer_state) {
+=======
+static bool lex_46(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
     if (lexer_state->offset >= lexer_state->len) {
         return false;
     }
+<<<<<<< HEAD
     if (!lex_52(lexer_state)) {
+=======
+    if (!lex_44(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
     for (;;) {
         size_t before = lexer_state->offset;
+<<<<<<< HEAD
         if (!lex_52(lexer_state)) {
+=======
+        if (!lex_44(lexer_state)) {
+>>>>>>> master
             break;
         }
         if (lexer_state->offset == before) {
@@ -1906,11 +1877,19 @@ static bool lex_54(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_51(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_54(lexer_state)) {
+=======
+static bool lex_43(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_46(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -1921,7 +1900,11 @@ static bool lex_51(LexerState *lexer_state) {
 
 
 static size_t lex_int(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_51(lexer_state)) {
+=======
+    if (!lex_43(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -1933,7 +1916,11 @@ static size_t lex_int(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_56(LexerState *lexer_state) {
+=======
+static bool lex_48(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -1953,11 +1940,19 @@ static bool lex_56(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_55(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_56(lexer_state)) {
+=======
+static bool lex_47(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_48(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -1968,7 +1963,11 @@ static bool lex_55(LexerState *lexer_state) {
 
 
 static size_t lex_colon(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_55(lexer_state)) {
+=======
+    if (!lex_47(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -1980,7 +1979,11 @@ static size_t lex_colon(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_58(LexerState *lexer_state) {
+=======
+static bool lex_50(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2000,11 +2003,19 @@ static bool lex_58(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_57(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_58(lexer_state)) {
+=======
+static bool lex_49(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_50(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2015,7 +2026,11 @@ static bool lex_57(LexerState *lexer_state) {
 
 
 static size_t lex_comma(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_57(lexer_state)) {
+=======
+    if (!lex_49(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2027,7 +2042,11 @@ static size_t lex_comma(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_60(LexerState *lexer_state) {
+=======
+static bool lex_52(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2047,11 +2066,19 @@ static bool lex_60(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_59(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_60(lexer_state)) {
+=======
+static bool lex_51(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_52(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2062,7 +2089,11 @@ static bool lex_59(LexerState *lexer_state) {
 
 
 static size_t lex_bar(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_59(lexer_state)) {
+=======
+    if (!lex_51(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2074,7 +2105,11 @@ static size_t lex_bar(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_62(LexerState *lexer_state) {
+=======
+static bool lex_54(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2094,11 +2129,19 @@ static bool lex_62(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_61(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_62(lexer_state)) {
+=======
+static bool lex_53(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_54(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2109,7 +2152,11 @@ static bool lex_61(LexerState *lexer_state) {
 
 
 static size_t lex_dot(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_61(lexer_state)) {
+=======
+    if (!lex_53(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2121,7 +2168,11 @@ static size_t lex_dot(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_64(LexerState *lexer_state) {
+=======
+static bool lex_56(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2141,11 +2192,19 @@ static bool lex_64(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_63(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_64(lexer_state)) {
+=======
+static bool lex_55(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_56(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2156,7 +2215,11 @@ static bool lex_63(LexerState *lexer_state) {
 
 
 static size_t lex_l_bracket(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_63(lexer_state)) {
+=======
+    if (!lex_55(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2168,7 +2231,11 @@ static size_t lex_l_bracket(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_66(LexerState *lexer_state) {
+=======
+static bool lex_58(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2188,11 +2255,19 @@ static bool lex_66(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_65(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_66(lexer_state)) {
+=======
+static bool lex_57(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_58(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2203,7 +2278,11 @@ static bool lex_65(LexerState *lexer_state) {
 
 
 static size_t lex_r_bracket(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_65(lexer_state)) {
+=======
+    if (!lex_57(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2215,7 +2294,11 @@ static size_t lex_r_bracket(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_68(LexerState *lexer_state) {
+=======
+static bool lex_60(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2235,11 +2318,19 @@ static bool lex_68(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_67(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_68(lexer_state)) {
+=======
+static bool lex_59(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_60(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2250,7 +2341,11 @@ static bool lex_67(LexerState *lexer_state) {
 
 
 static size_t lex_l_paren(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_67(lexer_state)) {
+=======
+    if (!lex_59(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2262,7 +2357,11 @@ static size_t lex_l_paren(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_70(LexerState *lexer_state) {
+=======
+static bool lex_62(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2282,11 +2381,19 @@ static bool lex_70(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_69(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_70(lexer_state)) {
+=======
+static bool lex_61(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_62(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2297,7 +2404,11 @@ static bool lex_69(LexerState *lexer_state) {
 
 
 static size_t lex_r_paren(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_69(lexer_state)) {
+=======
+    if (!lex_61(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2309,7 +2420,11 @@ static size_t lex_r_paren(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_72(LexerState *lexer_state) {
+=======
+static bool lex_64(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2329,11 +2444,19 @@ static bool lex_72(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_71(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_72(lexer_state)) {
+=======
+static bool lex_63(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_64(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2344,7 +2467,11 @@ static bool lex_71(LexerState *lexer_state) {
 
 
 static size_t lex_l_brace(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_71(lexer_state)) {
+=======
+    if (!lex_63(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2356,7 +2483,11 @@ static size_t lex_l_brace(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_74(LexerState *lexer_state) {
+=======
+static bool lex_66(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2376,11 +2507,19 @@ static bool lex_74(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_73(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_74(lexer_state)) {
+=======
+static bool lex_65(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_66(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2391,7 +2530,11 @@ static bool lex_73(LexerState *lexer_state) {
 
 
 static size_t lex_r_brace(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_73(lexer_state)) {
+=======
+    if (!lex_65(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2403,7 +2546,11 @@ static size_t lex_r_brace(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_76(LexerState *lexer_state) {
+=======
+static bool lex_68(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2423,11 +2570,19 @@ static bool lex_76(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_75(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_76(lexer_state)) {
+=======
+static bool lex_67(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_68(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2438,7 +2593,11 @@ static bool lex_75(LexerState *lexer_state) {
 
 
 static size_t lex_plus(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_75(lexer_state)) {
+=======
+    if (!lex_67(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2450,7 +2609,11 @@ static size_t lex_plus(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_78(LexerState *lexer_state) {
+=======
+static bool lex_70(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2470,11 +2633,19 @@ static bool lex_78(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_77(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_78(lexer_state)) {
+=======
+static bool lex_69(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_70(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2485,7 +2656,11 @@ static bool lex_77(LexerState *lexer_state) {
 
 
 static size_t lex_eq(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_77(lexer_state)) {
+=======
+    if (!lex_69(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2497,12 +2672,18 @@ static size_t lex_eq(LexerState *lexer_state) {
 
 
 /* RegexChar */
+<<<<<<< HEAD
 static bool lex_81(LexerState *lexer_state) {
+=======
+static bool lex_73(LexerState *lexer_state) {
+>>>>>>> master
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
 
     if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)95) {
+<<<<<<< HEAD
+=======
         lexer_state->offset += 1;
         return true;
     }
@@ -2512,7 +2693,7 @@ static bool lex_81(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_82(LexerState *lexer_state) {
+static bool lex_74(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2528,7 +2709,7 @@ static bool lex_82(LexerState *lexer_state) {
 
 
 /* RegexRange */
-static bool lex_83(LexerState *lexer_state) {
+static bool lex_75(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2544,24 +2725,24 @@ static bool lex_83(LexerState *lexer_state) {
 
 
 /* RegexChoice */
-static bool lex_80(LexerState *lexer_state) {
+static bool lex_72(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
-    if (lex_81(lexer_state)) {
+    if (lex_73(lexer_state)) {
         return true;
     }
 
 
     lexer_state->offset = start;
-    if (lex_82(lexer_state)) {
+    if (lex_74(lexer_state)) {
         return true;
     }
 
 
     lexer_state->offset = start;
-    if (lex_83(lexer_state)) {
+    if (lex_75(lexer_state)) {
         return true;
     }
 
@@ -2571,6 +2752,121 @@ static bool lex_80(LexerState *lexer_state) {
 }
 
 
+/* RegexChar */
+static bool lex_77(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    if ((unsigned char)lexer_state->data[lexer_state->offset] == (unsigned char)95) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexRange */
+static bool lex_78(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
+    if (current >= (unsigned char)97 && current <= (unsigned char)122) {
+>>>>>>> master
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexRange */
+static bool lex_79(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
+    if (current >= (unsigned char)97 && current <= (unsigned char)122) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexRange */
+static bool lex_80(LexerState *lexer_state) {
+    if (lexer_state->offset >= lexer_state->len) {
+        return false; /* EOF */
+    }
+
+    unsigned char current = (unsigned char)lexer_state->data[lexer_state->offset];
+    if (current >= (unsigned char)65 && current <= (unsigned char)90) {
+        lexer_state->offset += 1;
+        return true;
+    }
+
+    return false;
+}
+
+
+/* RegexChoice */
+<<<<<<< HEAD
+static bool lex_80(LexerState *lexer_state) {
+=======
+static bool lex_76(LexerState *lexer_state) {
+>>>>>>> master
+    size_t start = lexer_state->offset;
+
+
+    lexer_state->offset = start;
+<<<<<<< HEAD
+    if (lex_81(lexer_state)) {
+=======
+    if (lex_77(lexer_state)) {
+>>>>>>> master
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+<<<<<<< HEAD
+    if (lex_82(lexer_state)) {
+=======
+    if (lex_78(lexer_state)) {
+>>>>>>> master
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+<<<<<<< HEAD
+    if (lex_83(lexer_state)) {
+=======
+    if (lex_79(lexer_state)) {
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    if (lex_80(lexer_state)) {
+>>>>>>> master
+        return true;
+    }
+
+
+    lexer_state->offset = start;
+    return false;
+}
+
+
+<<<<<<< HEAD
 /* RegexChar */
 static bool lex_85(LexerState *lexer_state) {
     if (lexer_state->offset >= lexer_state->len) {
@@ -2673,6 +2969,13 @@ static bool lex_89(LexerState *lexer_state) {
     for (;;) {
         size_t before = lexer_state->offset;
         if (!lex_84(lexer_state)) {
+=======
+/* Rep0Regex */
+static bool lex_81(LexerState *lexer_state) {
+    for (;;) {
+        size_t before = lexer_state->offset;
+        if (!lex_76(lexer_state)) {
+>>>>>>> master
             break;
         }
         if (lexer_state->offset == before) {
@@ -2687,17 +2990,29 @@ static bool lex_89(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_79(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_80(lexer_state)) {
+=======
+static bool lex_71(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_72(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
 
+<<<<<<< HEAD
     if (!lex_89(lexer_state)) {
+=======
+    if (!lex_81(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2708,7 +3023,11 @@ static bool lex_79(LexerState *lexer_state) {
 
 
 static size_t lex_ident(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_79(lexer_state)) {
+=======
+    if (!lex_71(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2720,7 +3039,11 @@ static size_t lex_ident(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_91(LexerState *lexer_state) {
+=======
+static bool lex_83(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2740,11 +3063,19 @@ static bool lex_91(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_90(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_91(lexer_state)) {
+=======
+static bool lex_82(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_83(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2755,7 +3086,11 @@ static bool lex_90(LexerState *lexer_state) {
 
 
 static size_t lex_semi(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_90(lexer_state)) {
+=======
+    if (!lex_82(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -2767,7 +3102,11 @@ static size_t lex_semi(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_93(LexerState *lexer_state) {
+=======
+static bool lex_85(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2787,7 +3126,11 @@ static bool lex_93(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_96(LexerState *lexer_state) {
+=======
+static bool lex_88(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2807,7 +3150,11 @@ static bool lex_96(LexerState *lexer_state) {
 
 
 /* Any */
+<<<<<<< HEAD
 static bool lex_97(LexerState *lexer_state) {
+=======
+static bool lex_89(LexerState *lexer_state) {
+>>>>>>> master
     if (lexer_state->offset >= lexer_state->len) {
         return false;
     }
@@ -2817,17 +3164,29 @@ static bool lex_97(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_95(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_96(lexer_state)) {
+=======
+static bool lex_87(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_88(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
 
+<<<<<<< HEAD
     if (!lex_97(lexer_state)) {
+=======
+    if (!lex_89(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2838,7 +3197,11 @@ static bool lex_95(LexerState *lexer_state) {
 
 
 /* RegexChar */
+<<<<<<< HEAD
 static bool lex_100(LexerState *lexer_state) {
+=======
+static bool lex_92(LexerState *lexer_state) {
+>>>>>>> master
     if (lexer_state->offset >= lexer_state->len) {
         return false; /* EOF */
     }
@@ -2853,7 +3216,11 @@ static bool lex_100(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_102(LexerState *lexer_state) {
+=======
+static bool lex_94(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2873,23 +3240,40 @@ static bool lex_102(LexerState *lexer_state) {
 
 
 /* RegexRegexOption */
+<<<<<<< HEAD
 static bool lex_101(LexerState *lexer_state) {
     return lex_102(lexer_state);
+=======
+static bool lex_93(LexerState *lexer_state) {
+    return lex_94(lexer_state);
+>>>>>>> master
 }
 
 
 /* RegexNegatedChoice */
+<<<<<<< HEAD
 static bool lex_99(LexerState *lexer_state) {
+=======
+static bool lex_91(LexerState *lexer_state) {
+>>>>>>> master
     size_t len = lexer_state->len;
     size_t start = lexer_state->offset;
 
 
+<<<<<<< HEAD
     if (lex_100(lexer_state)) {
+=======
+    if (lex_92(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
+<<<<<<< HEAD
     if (lex_101(lexer_state)) {
+=======
+    if (lex_93(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2905,11 +3289,19 @@ static bool lex_99(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_98(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_99(lexer_state)) {
+=======
+static bool lex_90(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_91(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -2920,18 +3312,30 @@ static bool lex_98(LexerState *lexer_state) {
 
 
 /* RegexGroup */
+<<<<<<< HEAD
 static bool lex_94(LexerState *lexer_state) {
+=======
+static bool lex_86(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
     lexer_state->offset = start;
+<<<<<<< HEAD
     if (lex_95(lexer_state)) {
+=======
+    if (lex_87(lexer_state)) {
+>>>>>>> master
 
         return true;
     }
 
     lexer_state->offset = start;
+<<<<<<< HEAD
     if (lex_98(lexer_state)) {
+=======
+    if (lex_90(lexer_state)) {
+>>>>>>> master
 
         return true;
     }
@@ -2942,10 +3346,17 @@ static bool lex_94(LexerState *lexer_state) {
 
 
 /* Rep0Regex */
+<<<<<<< HEAD
 static bool lex_103(LexerState *lexer_state) {
     for (;;) {
         size_t before = lexer_state->offset;
         if (!lex_94(lexer_state)) {
+=======
+static bool lex_95(LexerState *lexer_state) {
+    for (;;) {
+        size_t before = lexer_state->offset;
+        if (!lex_86(lexer_state)) {
+>>>>>>> master
             break;
         }
         if (lexer_state->offset == before) {
@@ -2960,7 +3371,11 @@ static bool lex_103(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_104(LexerState *lexer_state) {
+=======
+static bool lex_96(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -2980,23 +3395,39 @@ static bool lex_104(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_92(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_93(lexer_state)) {
+=======
+static bool lex_84(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_85(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
 
+<<<<<<< HEAD
     if (!lex_103(lexer_state)) {
+=======
+    if (!lex_95(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
 
 
+<<<<<<< HEAD
     if (!lex_104(lexer_state)) {
+=======
+    if (!lex_96(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -3007,7 +3438,11 @@ static bool lex_92(LexerState *lexer_state) {
 
 
 static size_t lex_string(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_92(lexer_state)) {
+=======
+    if (!lex_84(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -3019,7 +3454,11 @@ static size_t lex_string(LexerState *lexer_state) {
 
 
 /* Exact */
+<<<<<<< HEAD
 static bool lex_106(LexerState *lexer_state) {
+=======
+static bool lex_98(LexerState *lexer_state) {
+>>>>>>> master
     size_t start = lexer_state->offset;
 
 
@@ -3039,11 +3478,19 @@ static bool lex_106(LexerState *lexer_state) {
 
 
 /* RegexSeq */
+<<<<<<< HEAD
 static bool lex_105(LexerState *lexer_state) {
     size_t start = lexer_state->offset;
 
 
     if (!lex_106(lexer_state)) {
+=======
+static bool lex_97(LexerState *lexer_state) {
+    size_t start = lexer_state->offset;
+
+
+    if (!lex_98(lexer_state)) {
+>>>>>>> master
         lexer_state->offset = start;
         return false;
     }
@@ -3054,7 +3501,11 @@ static bool lex_105(LexerState *lexer_state) {
 
 
 static size_t lex_at(LexerState *lexer_state) {
+<<<<<<< HEAD
     if (!lex_105(lexer_state)) {
+=======
+    if (!lex_97(lexer_state)) {
+>>>>>>> master
         return 0;
     }
 
@@ -5467,6 +5918,112 @@ static inline ExpectedVec expected_38(void) {
 
 
 
+<<<<<<< HEAD
+=======
+/* Parse Named */
+static size_t parse_41(ParserState *state, size_t unmatched_checkpoint) {
+    size_t c = checkpoint(state);
+    size_t res = parse_10(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 0);
+    }
+    return res;
+}
+
+/* peak_41 */
+static bool peak_41(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    return false;
+}
+
+
+/* expected_41 data */
+static const Expected expected_41_data[] = {
+    { .kind = 1u, .id = 0u },
+};
+
+
+/* expected_41: owning ExpectedVec copy */
+static inline ExpectedVec expected_41(void) {
+    size_t count = sizeof(expected_41_data) / sizeof(expected_41_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_41_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+/* Build Choice */
+static size_t parse_37(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t res = 1;
+
+    res = parse_38(state, unmatched_checkpoint);
+    if (res == 0) {
+        return 0;
+    }
+
+
+    res = parse_41(state, unmatched_checkpoint);
+    if (res == 0) {
+        return 0;
+    }
+
+    return res;
+}
+
+
+/* peak_37 */
+static bool peak_37(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_37 data */
+static const Expected expected_37_data[] = {
+    { .kind = 0u, .id = 13u },
+    { .kind = 1u, .id = 0u },
+};
+
+
+/* expected_37: owning ExpectedVec copy */
+static inline ExpectedVec expected_37(void) {
+    size_t count = sizeof(expected_37_data) / sizeof(expected_37_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_37_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+>>>>>>> master
 /* Parse Label */
 static size_t parse_36(ParserState *state, size_t unmatched_checkpoint) {
     return parse_38(state, unmatched_checkpoint);
@@ -5479,8 +6036,13 @@ static bool peak_36(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+<<<<<<< HEAD
     if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+=======
+    if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
+>>>>>>> master
     return false;
 }
 
@@ -5510,6 +6072,448 @@ static inline ExpectedVec expected_36(void) {
 
 
 /* Parse Just */
+<<<<<<< HEAD
+=======
+static size_t parse_47(ParserState *state, size_t unmatched_checkpoint) {
+    (void)unmatched_checkpoint;
+
+    for (;;) {
+        /* EOF */
+        if (state->offset >= state->tokens.len) {
+            return 2;
+        }
+
+        uint32_t current = current_kind(state);
+        if (current == (uint32_t)10) {
+            bump(state);
+            return 0;
+        }
+        if (skipped_vec_contains(&state->skipped, current)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
+
+    size_t index = state->breaks.len;
+    while (index != 0) {
+        index -= 1;
+        PeakFunc pf = state->breaks.data[index];
+        if (pf && pf(state)) {
+            return index + 3;
+        }
+    }
+
+    return 1;
+}
+
+/* peak_47 */
+static bool peak_47(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)10) return true;
+    return false;
+}
+
+
+/* expected_47 data */
+static const Expected expected_47_data[] = {
+    { .kind = 0u, .id = 10u },
+};
+
+
+/* expected_47: owning ExpectedVec copy */
+static inline ExpectedVec expected_47(void) {
+    size_t count = sizeof(expected_47_data) / sizeof(expected_47_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_47_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Named */
+static size_t parse_48(ParserState *state, size_t unmatched_checkpoint) {
+    size_t c = checkpoint(state);
+    size_t res = parse_10(state, unmatched_checkpoint);
+    if (res == 0) {
+        group_at(state, c, 2);
+    }
+    return res;
+}
+
+/* peak_48 */
+static bool peak_48(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    return false;
+}
+
+
+/* expected_48 data */
+static const Expected expected_48_data[] = {
+    { .kind = 1u, .id = 2u },
+};
+
+
+/* expected_48: owning ExpectedVec copy */
+static inline ExpectedVec expected_48(void) {
+    size_t count = sizeof(expected_48_data) / sizeof(expected_48_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_48_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Just */
+static size_t parse_55(ParserState *state, size_t unmatched_checkpoint) {
+    (void)unmatched_checkpoint;
+
+    for (;;) {
+        /* EOF */
+        if (state->offset >= state->tokens.len) {
+            return 2;
+        }
+
+        uint32_t current = current_kind(state);
+        if (current == (uint32_t)8) {
+            bump(state);
+            return 0;
+        }
+        if (skipped_vec_contains(&state->skipped, current)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
+
+    size_t index = state->breaks.len;
+    while (index != 0) {
+        index -= 1;
+        PeakFunc pf = state->breaks.data[index];
+        if (pf && pf(state)) {
+            return index + 3;
+        }
+    }
+
+    return 1;
+}
+
+/* peak_55 */
+static bool peak_55(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)8) return true;
+    return false;
+}
+
+
+/* expected_55 data */
+static const Expected expected_55_data[] = {
+    { .kind = 0u, .id = 8u },
+};
+
+
+/* expected_55: owning ExpectedVec copy */
+static inline ExpectedVec expected_55(void) {
+    size_t count = sizeof(expected_55_data) / sizeof(expected_55_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_55_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+static bool break_pred_sep_54_item(ParserState *state) {
+    return peak_25(state, 0, false);
+}
+
+static bool break_pred_sep_54_sep(ParserState *state) {
+    return peak_55(state, 0, false);
+}
+
+
+/* Parse Sep */
+static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
+    size_t item_brk = push_break(state, break_pred_sep_54_item);
+    size_t sep_brk  = push_break(state, break_pred_sep_54_sep);
+    size_t res = 0;
+    res = parse_25(state, unmatched_checkpoint);
+    if (res != 0) {
+        goto ret_err;
+    }
+    for (;;) {
+        for (;;) {
+            res = parse_55(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+
+        if (res == 0) {
+        } else {
+            if (res == 2) {
+                goto ret_ok;
+            }
+
+            if (res == item_brk) {
+                ExpectedVec e = expected_55();
+                missing(state, e);
+            } else {
+                goto ret_ok;
+            }
+        }
+        for (;;) {
+            res = parse_25(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+
+        if (res == 0) {
+            continue;
+        }
+
+        {
+            ExpectedVec e = expected_25();
+            missing(state, e);
+
+            if (res == 2) {
+                goto ret_ok;
+            }
+
+            if (res == sep_brk) {
+                continue;
+            }
+            goto ret_ok;
+        }
+    }
+
+ret_ok:
+    (void)break_stack_pop(&state->breaks, NULL);
+    (void)break_stack_pop(&state->breaks, NULL);
+    return 0;
+
+ret_err:
+    (void)break_stack_pop(&state->breaks, NULL);
+    (void)break_stack_pop(&state->breaks, NULL);
+    return res;
+}
+
+
+/* peak_54 */
+static bool peak_54(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_54 data */
+static const Expected expected_54_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_54: owning ExpectedVec copy */
+static inline ExpectedVec expected_54(void) {
+    size_t count = sizeof(expected_54_data) / sizeof(expected_54_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_54_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Optional */
+static size_t parse_53(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_54(state, unmatched_checkpoint);
+}
+
+/* peak_53 */
+static bool peak_53(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
+    return false;
+}
+
+
+/* expected_53: optional => empty */
+static inline ExpectedVec expected_53(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
+static bool break_pred_seq_52_1(ParserState *state) {
+    return peak_53(state, 0, false);
+}
+
+
+static bool break_pred_seq_52_2(ParserState *state) {
+    return peak_40(state, 0, false);
+}
+
+
+/* Parse Seq */
+static size_t parse_52(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_2 = push_break(state, break_pred_seq_52_2);
+    size_t brk_1 = push_break(state, break_pred_seq_52_1);
+
+    size_t res;
+
+    res = parse_39(state, unmatched_checkpoint);
+    if (res != 0) {
+        for(int i = 0; i < 2;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_53();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_53(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_53();
+            missing(state, e);
+        }
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_2) {
+        ExpectedVec e = expected_40();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_40(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_2) {
+            ExpectedVec e = expected_40();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
+
+/* peak_52 */
+static bool peak_52(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_52 data */
+static const Expected expected_52_data[] = {
+    { .kind = 0u, .id = 13u },
+};
+
+
+/* expected_52: owning ExpectedVec copy */
+static inline ExpectedVec expected_52(void) {
+    size_t count = sizeof(expected_52_data) / sizeof(expected_52_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_52_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Named */
+>>>>>>> master
 static size_t parse_50(ParserState *state, size_t unmatched_checkpoint) {
     (void)unmatched_checkpoint;
 
@@ -5614,7 +6618,188 @@ static inline ExpectedVec expected_51(void) {
     Expected *data = (Expected *)malloc(count * sizeof *data);
     if (!data) abort();
 
+<<<<<<< HEAD
     memcpy(data, expected_51_data, count * sizeof *data);
+=======
+    memcpy(data, expected_44_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+static bool break_pred_rep0_43(ParserState *state) {
+    return peak_44(state, 0, false);
+}
+
+
+/* Parse Rep0 */
+static size_t parse_43(ParserState *state, size_t unmatched_checkpoint) {
+    size_t brk = push_break(state, break_pred_rep0_43);
+    size_t res = parse_44(state, unmatched_checkpoint);
+    if(res != 0) {
+        (void)break_stack_pop(&state->breaks, NULL);
+        return res;
+    }
+    for (;;) {
+        size_t res = parse_44(state, unmatched_checkpoint);
+
+        if (res == 0) {
+            continue;
+        }
+
+        if (res == 1) {
+            bump_err(state);
+            continue;
+        }
+
+        if (res == brk) {
+            continue;
+        }
+        return 0;
+    }
+
+    (void)break_stack_pop(&state->breaks, NULL);
+    return 0;
+}
+
+/* peak_43 */
+static bool peak_43(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)10) return true;
+    return false;
+}
+
+
+/* expected_43: optional => empty */
+static inline ExpectedVec expected_43(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
+static bool break_pred_33(ParserState *state) {
+    return peak_43(state, 0, false);
+}
+
+
+/* Parse Fold */
+static size_t parse_33(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_35(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
+
+    size_t c = checkpoint(state);
+    size_t break_code = push_break(state, break_pred_33);
+    size_t res = parse_35(state, unmatched_checkpoint);
+    (void)break_stack_pop(&state->breaks, NULL);
+    if (res != 0 && res != break_code) {
+        return res;
+    }
+    for(;;){
+        size_t res_next = parse_43(state, unmatched_checkpoint);
+        if (res_next == 1) {
+            bump_err(state);
+            continue;
+        }
+        if (res_next != 0) {
+            return 0;
+        }
+        (void)group_at(state, c, 5);
+        return 0;
+    }
+}
+
+
+/* peak_33 */
+static bool peak_33(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_33 data */
+static const Expected expected_33_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_33: owning ExpectedVec copy */
+static inline ExpectedVec expected_33(void) {
+    size_t count = sizeof(expected_33_data) / sizeof(expected_33_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_33_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Label */
+static size_t parse_32(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_33(state, unmatched_checkpoint);
+}
+
+/* peak_32 */
+static bool peak_32(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_32 data */
+static const Expected expected_32_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_32: owning ExpectedVec copy */
+static inline ExpectedVec expected_32(void) {
+    size_t count = sizeof(expected_32_data) / sizeof(expected_32_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_32_data, count * sizeof *data);
+>>>>>>> master
 
     return (ExpectedVec){
         .data = data,
@@ -5636,6 +6821,339 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
         }
 
         uint32_t current = current_kind(state);
+<<<<<<< HEAD
+=======
+        if (current == (uint32_t)17) {
+            bump(state);
+            return 0;
+        }
+        if (skipped_vec_contains(&state->skipped, current)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
+
+    size_t index = state->breaks.len;
+    while (index != 0) {
+        index -= 1;
+        PeakFunc pf = state->breaks.data[index];
+        if (pf && pf(state)) {
+            return index + 3;
+        }
+    }
+
+    return 1;
+}
+
+/* peak_58 */
+static bool peak_58(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)17) return true;
+    return false;
+}
+
+
+/* expected_58 data */
+static const Expected expected_58_data[] = {
+    { .kind = 0u, .id = 17u },
+};
+
+
+/* expected_58: owning ExpectedVec copy */
+static inline ExpectedVec expected_58(void) {
+    size_t count = sizeof(expected_58_data) / sizeof(expected_58_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_58_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+static bool break_pred_seq_57_1(ParserState *state) {
+    return peak_32(state, 0, false);
+}
+
+
+/* Parse Seq */
+static size_t parse_57(ParserState *state, size_t unmatched_checkpoint) {
+
+    size_t brk_1 = push_break(state, break_pred_seq_57_1);
+
+    size_t res;
+
+    res = parse_58(state, unmatched_checkpoint);
+    if (res != 0) {
+        for(int i = 0; i < 1;i++) {
+            (void)break_stack_pop(&state->breaks, NULL);
+        }
+        return res;
+    }
+
+
+
+    (void)break_stack_pop(&state->breaks, NULL);
+
+    if (res >= 2 && res != brk_1) {
+        ExpectedVec e = expected_32();
+        missing(state, e);
+    } else {
+        for (;;) {
+            res = parse_32(state, unmatched_checkpoint);
+            if (res == 1) {
+                bump_err(state);
+                continue;
+            }
+            break;
+        }
+        if (res >= 2 && res != brk_1) {
+            ExpectedVec e = expected_32();
+            missing(state, e);
+        }
+    }
+
+
+
+    return 0;
+}
+
+
+/* peak_57 */
+static bool peak_57(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)17) return true;
+    return false;
+}
+
+
+/* expected_57 data */
+static const Expected expected_57_data[] = {
+    { .kind = 0u, .id = 17u },
+};
+
+
+/* expected_57: owning ExpectedVec copy */
+static inline ExpectedVec expected_57(void) {
+    size_t count = sizeof(expected_57_data) / sizeof(expected_57_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_57_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+static bool break_pred_rep0_56(ParserState *state) {
+    return peak_57(state, 0, false);
+}
+
+
+/* Parse Rep0 */
+static size_t parse_56(ParserState *state, size_t unmatched_checkpoint) {
+    size_t brk = push_break(state, break_pred_rep0_56);
+    size_t res = parse_57(state, unmatched_checkpoint);
+    if(res != 0) {
+        (void)break_stack_pop(&state->breaks, NULL);
+        return res;
+    }
+    for (;;) {
+        size_t res = parse_57(state, unmatched_checkpoint);
+
+        if (res == 0) {
+            continue;
+        }
+
+        if (res == 1) {
+            bump_err(state);
+            continue;
+        }
+
+        if (res == brk) {
+            continue;
+        }
+        return 0;
+    }
+
+    (void)break_stack_pop(&state->breaks, NULL);
+    return 0;
+}
+
+/* peak_56 */
+static bool peak_56(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)17) return true;
+    return false;
+}
+
+
+/* expected_56: optional => empty */
+static inline ExpectedVec expected_56(void) {
+    return (ExpectedVec){ .data = NULL, .len = 0, .cap = 0 };
+}
+
+
+static bool break_pred_30(ParserState *state) {
+    return peak_56(state, 0, false);
+}
+
+
+/* Parse Fold */
+static size_t parse_30(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_32(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
+
+    size_t c = checkpoint(state);
+    size_t break_code = push_break(state, break_pred_30);
+    size_t res = parse_32(state, unmatched_checkpoint);
+    (void)break_stack_pop(&state->breaks, NULL);
+    if (res != 0 && res != break_code) {
+        return res;
+    }
+    for(;;){
+        size_t res_next = parse_56(state, unmatched_checkpoint);
+        if (res_next == 1) {
+            bump_err(state);
+            continue;
+        }
+        if (res_next != 0) {
+            return 0;
+        }
+        (void)group_at(state, c, 6);
+        return 0;
+    }
+}
+
+
+/* peak_30 */
+static bool peak_30(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
+    return false;
+}
+
+
+/* expected_30 data */
+static const Expected expected_30_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_30: owning ExpectedVec copy */
+static inline ExpectedVec expected_30(void) {
+    size_t count = sizeof(expected_30_data) / sizeof(expected_30_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_30_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Label */
+static size_t parse_29(ParserState *state, size_t unmatched_checkpoint) {
+    return parse_30(state, unmatched_checkpoint);
+}
+
+/* peak_29 */
+static bool peak_29(ParserState *state, size_t offset, bool recover) {
+    (void)offset;
+    (void)recover;
+
+    uint32_t current = current_kind(state);
+
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+    return false;
+}
+
+
+/* expected_29 data */
+static const Expected expected_29_data[] = {
+    { .kind = 2u, .id = 0u },
+};
+
+
+/* expected_29: owning ExpectedVec copy */
+static inline ExpectedVec expected_29(void) {
+    size_t count = sizeof(expected_29_data) / sizeof(expected_29_data[0]);
+
+    Expected *data = (Expected *)malloc(count * sizeof *data);
+    if (!data) abort();
+
+    memcpy(data, expected_29_data, count * sizeof *data);
+
+    return (ExpectedVec){
+        .data = data,
+        .len  = count,
+        .cap  = count,
+    };
+}
+
+
+
+/* Parse Just */
+static size_t parse_61(ParserState *state, size_t unmatched_checkpoint) {
+    (void)unmatched_checkpoint;
+
+    for (;;) {
+        /* EOF */
+        if (state->offset >= state->tokens.len) {
+            return 2;
+        }
+
+        uint32_t current = current_kind(state);
+>>>>>>> master
         if (current == (uint32_t)9) {
             bump(state);
             return 0;
@@ -6604,8 +8122,13 @@ static bool peak_31(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+<<<<<<< HEAD
     if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+=======
+    if (current == (uint32_t)19) return true;
+    if (current == (uint32_t)13) return true;
+>>>>>>> master
     return false;
 }
 
@@ -6646,8 +8169,13 @@ static bool peak_30(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+<<<<<<< HEAD
     if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+=======
+    if (current == (uint32_t)13) return true;
+    if (current == (uint32_t)19) return true;
+>>>>>>> master
     return false;
 }
 
@@ -8641,10 +10169,17 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+<<<<<<< HEAD
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
+=======
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)3) return true;
+>>>>>>> master
     return false;
 }
 
@@ -8760,10 +10295,17 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+<<<<<<< HEAD
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
+=======
+    if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)2) return true;
+>>>>>>> master
     return false;
 }
 
@@ -8813,6 +10355,8 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
