@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::Range};
+use std::{
+    fmt::Debug,
+    ops::{Range, RangeInclusive},
+};
 
 use crate::{err::Expected, expected::ExpectedData, lang::RawLang, vec::RawVec};
 
@@ -10,7 +13,7 @@ use ansi_term::{
 
 const GREY: Color = Color::RGB(100, 100, 100);
 
-pub type Span = Range<usize>;
+pub type Span = RangeInclusive<usize>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lexeme<L: Lang> {
@@ -30,7 +33,7 @@ pub struct LexemeData {
 impl Lexeme<RawLang> {
     pub fn from_data(value: LexemeData, src: &str) -> Self {
         Lexeme {
-            span: value.start..value.end,
+            span: value.start..=value.end,
             kind: value.kind as u32,
             text: src[value.start..value.end].to_string(),
         }
@@ -130,11 +133,13 @@ impl<L: Lang> Node<L> {
         match self {
             Node::Group(group) => group.children.iter().find_map(|it| it.at_offset(offset)),
             Node::Skipped(Lexeme { span, .. }) | Node::Lexeme(Lexeme { span, .. })
-                if span.start <= offset && offset <= span.end =>
+                if *span.start() <= offset && offset <= *span.end() =>
             {
                 Some(self)
             }
-            Node::Err(err) if err.span().start <= offset && offset <= err.span().end => Some(self),
+            Node::Err(err) if *err.span().start() <= offset && offset <= *err.span().end() => {
+                Some(self)
+            }
             _ => None,
         }
     }
@@ -198,11 +203,22 @@ impl<L: Lang> Node<L> {
         }
     }
 
+    pub fn has_errors(&self) -> bool {
+        match self {
+            Node::Group(group) => group.has_errors(),
+            Node::Lexeme(_) => false,
+            Node::Skipped(_) => false,
+            Node::Err(_) => true,
+        }
+    }
+
     pub fn start_offset(&self) -> usize {
         match self {
             Node::Group(group) => group.start_offset(),
-            Node::Skipped(lexeme) | Node::Lexeme(lexeme) => lexeme.span.start,
-            Node::Err(ParseError::Unexpected { actual, .. }) => actual.first().unwrap().span.start,
+            Node::Skipped(lexeme) | Node::Lexeme(lexeme) => *lexeme.span.start(),
+            Node::Err(ParseError::Unexpected { actual, .. }) => {
+                *actual.first().unwrap().span.start()
+            }
             Node::Err(ParseError::MissingError { start, .. }) => *start,
         }
     }
@@ -210,18 +226,18 @@ impl<L: Lang> Node<L> {
     pub fn end_offset(&self) -> usize {
         match self {
             Node::Group(group) => group.end_offset(),
-            Node::Lexeme(lexeme) => lexeme.span.end,
-            Node::Skipped(lexeme) => lexeme.span.end,
+            Node::Lexeme(lexeme) => *lexeme.span.end(),
+            Node::Skipped(lexeme) => *lexeme.span.end(),
             Node::Err(parse_error) => parse_error
                 .actual()
                 .last()
-                .map(|it| it.span.end)
+                .map(|it| *it.span.end())
                 .unwrap_or(parse_error.start()),
         }
     }
 
     pub fn span(&self) -> Span {
-        self.start_offset()..self.end_offset()
+        self.start_offset()..=self.end_offset()
     }
 
     pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -253,6 +269,10 @@ impl<L: Lang> Group<L> {
             stack.push(child);
         }
         LeadingErrorIter { stack, offset: 0 }
+    }
+
+    pub fn has_errors(&self) -> bool {
+        self.children.iter().any(|it| it.has_errors())
     }
 
     pub fn all_tokens(&self) -> impl Iterator<Item = &Lexeme<L>> {
@@ -319,7 +339,7 @@ impl<L: Lang> Group<L> {
     }
 
     pub fn span(&self) -> Span {
-        self.start_offset()..self.end_offset()
+        self.start_offset()..=self.end_offset()
     }
 
     pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -340,7 +360,7 @@ impl<L: Lang> Group<L> {
         let mut index = None;
         let mut res = vec![];
         for (i, child) in self.children.iter().enumerate() {
-            if child.span().contains(&offset) {
+            if child.span().contains(&(offset - 1)) {
                 if let Node::Group(group) = child {
                     return group.completions_at(offset);
                 }
@@ -425,7 +445,7 @@ impl<'a, L: Lang> Iterator for LeadingErrorIter<'a, L> {
                     if first.is_some() {
                         return first;
                     }
-                    self.offset = l.span.end;
+                    self.offset = *l.span.end();
                 }
                 Node::Group(g) => {
                     // push children in reverse so we visit in original order
@@ -435,7 +455,11 @@ impl<'a, L: Lang> Iterator for LeadingErrorIter<'a, L> {
                 }
                 Node::Err(e) => {
                     if let ParseError::Unexpected { start, actual } = e {
-                        self.offset = actual.iter().last().map(|it| it.span.end).unwrap_or(*start);
+                        self.offset = actual
+                            .iter()
+                            .last()
+                            .map(|it| *it.span.end())
+                            .unwrap_or(*start);
                         return Some((self.offset, e));
                     } else if first.is_none() {
                         first = Some((self.offset, e))
@@ -459,7 +483,7 @@ impl<'a, L: Lang> Iterator for ErrorIter<'a, L> {
         while let Some(node) = self.stack.pop() {
             match node {
                 Node::Skipped(l) | Node::Lexeme(l) => {
-                    self.offset = l.span.end;
+                    self.offset = *l.span.end();
                 }
                 Node::Group(g) => {
                     // push children in reverse so we visit in original order
@@ -498,7 +522,7 @@ impl Node<RawLang> {
                 let payload = unsafe { value.payload.lexeme };
                 *offset = payload.end;
                 Node::Lexeme(Lexeme {
-                    span: payload.start..payload.end,
+                    span: payload.start..=payload.end,
                     kind: payload.kind as u32,
                     text: src[payload.start..payload.end].to_string(),
                 })
@@ -520,7 +544,7 @@ impl Node<RawLang> {
                     .map(|it| Lexeme::from_data(it, src))
                     .collect::<Vec<_>>();
                 if let Some(last) = tokens.last() {
-                    *offset = last.span.end;
+                    *offset = *last.span.end();
                 }
 
                 Node::Err(ParseError::Unexpected {
@@ -539,7 +563,7 @@ impl Node<RawLang> {
                 let payload = unsafe { value.payload.lexeme };
                 *offset = payload.end;
                 Node::Skipped(Lexeme {
-                    span: payload.start..payload.end,
+                    span: payload.start..=payload.end,
                     kind: payload.kind as u32,
                     text: src[payload.start..payload.end].to_string(),
                 })

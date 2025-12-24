@@ -3,14 +3,17 @@ use std::{collections::HashMap, fmt::Display};
 use expr::ExprAst;
 use gibberish_core::{
     err::ParseError,
-    node::{Group, Lexeme},
+    node::{Group, Lexeme, Node, Span},
 };
-use gibberish_gibberish_parser::Gibberish;
-use tower_lsp::lsp_types::{DiagnosticSeverity, HoverContents, MarkedString};
+use gibberish_gibberish_parser::{Gibberish, GibberishToken};
+use pretty::{DocAllocator, DocBuilder};
+use tower_lsp::lsp_types::{
+    CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, MarkedString,
+};
 
 use crate::{
     ast::{builder::ParserBuilder, stmt::StmtAst},
-    lsp::span::Span,
+    lsp::funcs::DEFAULT_FUNCS,
     parser::Parser,
 };
 
@@ -18,21 +21,6 @@ pub mod builder;
 pub mod expr;
 pub mod stmt;
 
-pub fn try_parse(id: usize, name: &str, after: &str, f: &mut impl std::fmt::Write) {
-    write!(
-        f,
-        "
-@try_parse_{name}
-    %res =l call $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    %is_err =l ceql 1, %res
-    jnz %is_err, @bump_err_{name}, {after}
-@bump_err_{name}
-    call $bump_err(l %state_ptr)
-    jmp @try_parse_{name}
-",
-    )
-    .unwrap();
-}
 #[derive(Clone)]
 pub struct RootAst<'a>(pub &'a Group<Gibberish>);
 
@@ -64,7 +52,7 @@ impl<'a> RootAst<'a> {
             }
         }
         if !found_root {
-            state.info("Parser is missing a 'root'".to_string(), 0..0);
+            state.info("Parser is missing a 'root'".to_string(), 0..=0);
         }
         for span in missing {
             state.error("Parser or token not found".to_string(), span);
@@ -96,6 +84,37 @@ impl<'a> RootAst<'a> {
             builder.vars[i].1 = res;
         }
     }
+
+    pub fn pretty<'b, D, A>(&'b self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+    {
+        let mut doc = allocator.nil();
+        for item in &self.0.children {
+            match item {
+                Node::Group(group) => doc = doc.append(StmtAst::from(group).pretty(allocator)),
+                Node::Lexeme(l) => doc = doc.append(&l.text).append(allocator.hardline()),
+                Node::Skipped(lexeme) => match lexeme.kind {
+                    GibberishToken::Whitespace => {
+                        let lines = lexeme.text.chars().filter(|it| *it == '\n').count();
+                        let new = match lines {
+                            0 | 1 => allocator.nil(),
+                            _ => allocator.hardline(),
+                        };
+                        doc = doc.append(new);
+                    }
+                    GibberishToken::Comment => {
+                        doc = doc.append(&lexeme.text).append(allocator.hardline());
+                    }
+                    _ => panic!("Unexpected"),
+                },
+                Node::Err(_) => panic!("Unexpected"),
+            };
+        }
+        doc
+    }
 }
 
 pub enum CheckError {
@@ -111,6 +130,18 @@ pub enum CheckError {
         name: String,
     },
     ParseError(ParseError<Gibberish>),
+}
+
+impl CheckError {
+    pub fn severity(&self) -> DiagnosticSeverity {
+        match self {
+            CheckError::Simple { severity, .. } => *severity,
+            CheckError::Unused(_) => DiagnosticSeverity::WARNING,
+            CheckError::Redeclaration { .. } | CheckError::ParseError(_) => {
+                DiagnosticSeverity::ERROR
+            }
+        }
+    }
 }
 
 #[derive(Default)]
@@ -174,6 +205,21 @@ impl<'a> LspNode<'a> {
                     }
                 })
                 .cloned()
+                .collect(),
+            _ => vec![],
+        }
+    }
+
+    pub fn completions(&self, _: &CheckState) -> Vec<CompletionItem> {
+        dbg!("Getting completions", self.to_string());
+        match self {
+            LspNode::FunctionName(_) => DEFAULT_FUNCS
+                .iter()
+                .map(|f| CompletionItem {
+                    label: f.name.to_string(),
+                    kind: Some(CompletionItemKind::FUNCTION),
+                    ..Default::default()
+                })
                 .collect(),
             _ => vec![],
         }

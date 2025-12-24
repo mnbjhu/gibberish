@@ -3,18 +3,14 @@ keyword export;
 keyword data;
 keyword type;
 keyword align;
-
 keyword add;
 keyword sub;
 keyword mul;
-
 keyword and;
 keyword or;
-
 keyword ceql;
 keyword ceqw;
 keyword ceqb;
-
 keyword culel;
 keyword cugel;
 keyword cultl;
@@ -39,28 +35,22 @@ keyword csleb;
 keyword csgeb;
 keyword csltb;
 keyword csgtb;
-
 keyword copy;
-
 keyword storew;
 keyword storel;
 keyword storeb;
 keyword storeub;
-
 keyword loadl;
 keyword loadw;
 keyword loadb;
 keyword loadub;
-
 keyword call;
-
 keyword jmp;
 keyword jnz;
 keyword b;
 keyword w;
 keyword l;
 keyword ret;
-
 keyword alloc4;
 keyword alloc8;
 keyword alloc16;
@@ -90,11 +80,55 @@ token r_paren = "\)";
 
 parser ty = (b | w | l | type_name);
 
+parser _cmp_kw = culel
+    | cugel
+    | cultl
+    | cugtl
+    | culew
+    | cugew
+    | cultw
+    | cugtw
+    | culeb
+    | cugeb
+    | cultb
+    | cugtb
+    | cslel
+    | csgel
+    | csltl
+    | csgtl
+    | cslew
+    | csgew
+    | csltw
+    | csgtw
+    | csleb
+    | csgeb
+    | csltb
+    | csgtb
+    | ceql
+    | ceqw
+    | ceqb;
 
-parser _cmp_kw = culel | cugel | cultl | cugtl | culew | cugew | cultw | cugtw | culeb | cugeb | cultb | cugtb | cslel | csgel | csltl | csgtl | cslew | csgew | csltw | csgtw | csleb | csgeb | csltb | csgtb | 
-  ceql | ceqw | ceqb;
-parser _instr_start = ret | add | and | or | sub | mul | jnz | jmp | copy | 
-  storew | storel | storeub | storeb | loadl | loadw | loadb | loadub | alloc4 | alloc8 | alloc16 | blit;
+parser _instr_start = ret
+    | add
+    | and
+    | or
+    | sub
+    | mul
+    | jnz
+    | jmp
+    | copy
+    | storew
+    | storel
+    | storeub
+    | storeb
+    | loadl
+    | loadw
+    | loadb
+    | loadub
+    | alloc4
+    | alloc8
+    | alloc16
+    | blit;
 
 parser expr = label | int | temp | global;
 
@@ -103,32 +137,39 @@ parser call_args = call_arg.sep_by(comma).delim_by(l_paren, r_paren);
 
 parser _call_instr = call + global + call_args;
 parser _instr = (_instr_start | _cmp_kw);
-parser instr =  (_instr + expr.sep_by(comma)) | _call_instr;
-
+parser instr = (_instr + expr.sep_by(comma)) | _call_instr;
 
 parser assignment = temp + (eqw | eql | eqb | (eq + type_name)) + instr;
 parser _stmt = (assignment | instr) + newline;
 
 parser func_arg = ty + temp;
-parser func_args = func_arg
-  .sep_by(comma)
-  .or_not()
-  .delim_by(l_paren, r_paren);
+parser func_args = func_arg.sep_by(comma).or_not().delim_by(l_paren, r_paren);
 
 parser block = label + newline + _stmt.repeated();
 parser func_body = l_brace + newline + block.repeated() + r_brace;
 
-parser function_def = export.or_not() + function + ty + global + func_args + func_body.unskip(newline);
+parser function_def = export.or_not()
+    + function
+    + ty
+    + global
+    + func_args
+    + func_body.unskip(newline);
 
 parser data_part = ty + (int | string);
-parser data_def = data + global + eq + data_part.sep_by(comma).delim_by(l_brace, r_brace);
+parser data_def = data
+    + global
+    + eq
+    + data_part.sep_by(comma).delim_by(l_brace, r_brace);
 
 parser type_part = ty + int.or_not();
 parser alignment = align + int;
-parser type_def = type + type_name + eq + alignment.or_not() + type_part.sep_by(comma).delim_by(l_brace, r_brace);
+
+parser type_def = type
+    + type_name
+    + eq
+    + alignment.or_not()
+    + type_part.sep_by(comma).delim_by(l_brace, r_brace);
+
 parser _decl = data_def | function_def | type_def;
 
-parser root = _decl.repeated()
-  .skip(comment)
-  .skip(ws)
-  .skip(newline)
+parser root = _decl.repeated().skip(comment).skip(ws).skip(newline);

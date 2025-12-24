@@ -1,5 +1,6 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::Gibberish;
+use pretty::{DocAllocator, DocBuilder};
 
 use crate::ast::{
     CheckError, CheckState, LspItem, LspNode,
@@ -48,6 +49,21 @@ impl<'a> StmtAst<'a> {
             StmtAst::Keyword(_) => {}
             StmtAst::Parser(p) => p.check(state),
             StmtAst::Fold(f) => f.check(state),
+        }
+    }
+
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        match self {
+            StmtAst::Token(token) => token.pretty(allocator),
+            StmtAst::Keyword(keyword) => keyword.pretty(allocator),
+            StmtAst::Parser(parser) => parser.pretty(allocator),
+            StmtAst::Fold(fold) => fold.pretty(allocator),
         }
     }
 }

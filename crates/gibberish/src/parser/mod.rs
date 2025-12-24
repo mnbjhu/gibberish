@@ -4,7 +4,6 @@ use std::{
 };
 
 use choice::Choice;
-use delim::Delim;
 use gibberish_core::{err::Expected, lang::RawLang};
 use just::Just;
 use named::Named;
@@ -25,7 +24,6 @@ use crate::{
 pub mod build;
 pub mod checkpoint;
 pub mod choice;
-pub mod delim;
 pub mod fold_once;
 pub mod just;
 pub mod label;
@@ -44,8 +42,6 @@ pub enum Parser {
     Choice(Choice),
     Seq(Seq),
     Sep(Sep),
-    #[allow(unused)]
-    Delim(Delim),
     Named(Named),
     Skip(Skip),
     UnSkip(UnSkip),
@@ -66,7 +62,6 @@ impl Display for Parser {
             Parser::Choice(choice) => write!(f, "{choice}"),
             Parser::Seq(seq) => write!(f, "{seq}"),
             Parser::Sep(sep) => write!(f, "{sep}"),
-            Parser::Delim(_) => todo!(),
             Parser::Named(named) => write!(f, "{named}"),
             Parser::Skip(skip) => write!(f, "{skip}"),
             Parser::UnSkip(un_skip) => write!(f, "{un_skip}"),
@@ -134,7 +129,6 @@ impl Parser {
                 sep.item.predefine(builder, f);
                 sep.sep.predefine(builder, f);
             }
-            Parser::Delim(_) => todo!(),
             Parser::Named(named) => named.inner.predefine(builder, f),
             Parser::Skip(skip) => skip.inner.predefine(builder, f),
             Parser::UnSkip(un_skip) => un_skip.inner.predefine(builder, f),
@@ -161,7 +155,6 @@ impl Parser {
             Parser::Choice(choice) => choice.expected(builder),
             Parser::Seq(seq) => seq.expected(builder),
             Parser::Sep(sep) => sep.expected(builder),
-            Parser::Delim(delim) => delim.expected(builder),
             Parser::Named(named) => named.expected(builder),
             Parser::Skip(skip) => skip.expected(builder),
             Parser::Optional(optional) => optional.expected(builder),
@@ -185,7 +178,6 @@ impl Parser {
             Parser::Choice(_) => "Choice".to_string(),
             Parser::Seq(_) => "Seq".to_string(),
             Parser::Sep(_) => "Sep".to_string(),
-            Parser::Delim(_) => "Delim".to_string(),
             Parser::Named(named) => named.to_string(),
             Parser::Skip(_) => "Skip".to_string(),
             Parser::Optional(_) => "Optional".to_string(),
@@ -206,7 +198,6 @@ impl Parser {
             Parser::Choice(choice) => choice.build_parse(id, builder, f),
             Parser::Seq(seq) => seq.build_parse(id, builder, f),
             Parser::Sep(sep) => sep.build_parse(id, builder, f),
-            Parser::Delim(delim) => delim.build_parse(id, builder, f),
             Parser::Named(named) => named.build_parse(id, builder, f),
             Parser::Skip(skip) => skip.build_parse(id, builder, f),
             Parser::UnSkip(unskip) => unskip.build_parse(id, builder, f),
@@ -327,7 +318,6 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::Choice(choice) => choice.start_tokens(builder),
             Parser::Seq(seq) => seq.start_tokens(builder),
             Parser::Sep(sep) => sep.start_tokens(builder),
-            Parser::Delim(delim) => delim.start_tokens(builder),
             Parser::Named(named) => named.start_tokens(builder),
             Parser::Skip(skip) => skip.start_tokens(builder),
             Parser::UnSkip(un_skip) => un_skip.start_tokens(builder),
@@ -348,7 +338,6 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::Choice(choice) => choice.is_optional(builder),
             Parser::Seq(seq) => seq.is_optional(builder),
             Parser::Sep(sep) => sep.is_optional(builder),
-            Parser::Delim(delim) => delim.is_optional(builder),
             Parser::Named(named) => named.is_optional(builder),
             Parser::Skip(skip) => skip.is_optional(builder),
             Parser::UnSkip(un_skip) => un_skip.is_optional(builder),
@@ -376,7 +365,6 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::Choice(choice) => choice.after_token(token, builder),
             Parser::Seq(seq) => seq.after_token(token, builder),
             Parser::Sep(_) => todo!(),
-            Parser::Delim(_) => todo!(),
             Parser::Named(named) => named.after_token(token, builder),
             Parser::Skip(_) => todo!(),
             Parser::UnSkip(_) => todo!(),
@@ -406,7 +394,7 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::FoldOnce(fold_once) => fold_once.remove_conflicts(builder, depth),
             Parser::Repeated(repeated) => repeated.remove_conflicts(builder, depth),
             Parser::Rename(rename) => rename.remove_conflicts(builder, depth),
-            Parser::Checkpoint(_) | Parser::Delim(_) => todo!(),
+            Parser::Checkpoint(_) => todo!(),
             Parser::Label(Label { name, inner }) => Parser::Label(Label {
                 name: name.to_string(),
                 inner: Box::new(inner.remove_conflicts(builder, depth)),
@@ -422,6 +410,7 @@ mod tests {
 
     use gibberish_dyn_lib::bindings::lang::CompiledLang;
     use tempfile::Builder;
+    use tower_lsp::lsp_types::DiagnosticSeverity;
 
     use crate::cli::{self};
 
@@ -434,7 +423,7 @@ mod tests {
             .tempfile()
             .unwrap();
         let lib_path = lib.into_temp_path().to_path_buf();
-        cli::build::build(&src_file_path, &lib_path);
+        cli::build::build(&src_file_path, &lib_path, DiagnosticSeverity::ERROR);
         CompiledLang::load(&lib_path)
     }
 

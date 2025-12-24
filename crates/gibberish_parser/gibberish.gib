@@ -4,7 +4,8 @@ token TOKEN = "(token)[^_a-zA-Z]";
 token HIGHTLIGHT = "(highlight)[^_a-zA-Z]";
 token FOLD = "(fold)[^_a-zA-Z]";
 
-token whitespace = "\s+"; 
+token comment = "#[^\n]*";
+token whitespace = "\s+";
 token int = "[0-9]+";
 token colon = ":";
 token comma = ",";
@@ -23,19 +24,24 @@ token semi = ";";
 token string = "\"(?:\\\\.|[^\"\\\\])*\"";
 token at = "@";
 
-
 parser named = ident;
-parser _atom = (_expr.delim_by(l_paren, r_paren) | named).labelled(expression);
+parser bracketed = _expr.delim_by(l_paren, r_paren);
+parser _atom = (bracketed | named).labelled(expression);
 parser call_name = ident;
 parser args = _expr.sep_by(comma).or_not().delim_by(l_paren, r_paren);
 parser call = dot + call_name + args;
 parser member_call = _atom fold call.repeated();
-parser seq = member_call.labelled(expression) fold (plus + member_call.labelled(expression)).repeated();
-parser choice = seq.labelled(expression) fold (bar + seq.labelled(expression)).repeated();
+parser seq = member_call.labelled(expression) fold
+    (plus + member_call.labelled(expression)).repeated();
+parser choice = seq.labelled(expression) fold
+    (bar + seq.labelled(expression)).repeated();
 parser _expr = choice.labelled(expression);
 
 parser kw_def = KEYWORD + ident.labelled(token_name);
-parser token_def = TOKEN + ident.labelled(token_name) + eq + string.labelled(regex);
+parser token_def = TOKEN
+    + ident.labelled(token_name)
+    + eq
+    + string.labelled(regex);
 
 parser fold_stmt = _expr fold FOLD + _expr;
 parser parser_def = PARSER + ident.labelled(parser_name) + eq + fold_stmt;
@@ -47,9 +53,9 @@ parser labelled_query = group_query fold label;
 parser _query = labelled_query;
 
 parser highlight_def = HIGHTLIGHT + _query;
-
-parser _stmt = kw_def | token_def | parser_def | highlight_def;
+parser _stmt = (kw_def | token_def | parser_def | highlight_def) + semi;
 parser root = _stmt
-  .labelled(declaration)
-  .sep_by(semi)
-  .skip(whitespace)
+    .labelled(declaration)
+    .repeated()
+    .skip(whitespace)
+    .skip(comment);

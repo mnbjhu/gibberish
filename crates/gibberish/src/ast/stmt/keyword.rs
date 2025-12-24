@@ -1,5 +1,6 @@
 use gibberish_core::node::{Group, Lexeme};
 use gibberish_gibberish_parser::{Gibberish, GibberishToken};
+use pretty::{DocAllocator, DocBuilder};
 
 use crate::{
     ast::{LspItem, LspNode, builder::ParserBuilder, expr::ExprAst, stmt::StmtAst},
@@ -33,6 +34,18 @@ impl<'a> KeywordDefAst<'a> {
                 },
             ]),
         ));
+    }
+
+    pub fn pretty<'b, D, A>(self, allocator: &'b D) -> DocBuilder<'b, D, A>
+    where
+        D: DocAllocator<'b, A>,
+        D::Doc: Clone,
+        A: Clone,
+        'a: 'b,
+    {
+        allocator
+            .text("keyword ")
+            .append(&self.name().unwrap().text)
     }
 }
 

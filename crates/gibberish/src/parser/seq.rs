@@ -63,6 +63,22 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         )
         .unwrap();
 
+        let delim_count = part_ids.len() - 1;
+        let catch_delim = if delim_count != 0 {
+            format!(
+                "
+        for(int i = 0; i < {delim_count};i++) {{
+            (void)break_stack_pop(&state->breaks, NULL);
+        }}
+        if (res >= brk_{delim_count}) {{
+            return 1;
+        }}
+
+            "
+            )
+        } else {
+            "".to_string()
+        };
         if n > 1 {
             for i in (1..n).rev() {
                 writeln!(
@@ -80,14 +96,11 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
 
     res = parse_{p0}(state, unmatched_checkpoint);
     if (res != 0) {{
-        for(int i = 0; i < {delim_count};i++) {{
-            (void)break_stack_pop(&state->breaks, NULL);
-        }}
+        {catch_delim}
         return res;
     }}
 
 "#,
-            delim_count = part_ids.len() - 1
         )
         .unwrap();
 
@@ -184,7 +197,6 @@ pub fn seq(parts: Vec<Parser>) -> Parser {
 mod seq_test {
     use gibberish_core::{lang::Lang, node::Node};
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -192,14 +204,13 @@ mod seq_test {
         let parser = r#"keyword first;
 keyword second;
 token whitespace = "\s+";
-parser root = (first + second).skip(whitespace)
+parser root = (first + second).skip(whitespace);
         "#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_ok() {
         let (lang, node) = parse_test("first second");
@@ -228,7 +239,6 @@ mod sep_seq_test {
         node::Node,
     };
     use gibberish_dyn_lib::bindings::{lang::CompiledLang, parse};
-    use serial_test::serial;
 
     use crate::{assert_syntax_kind, assert_token_kind, parser::tests::build_test_parser};
 
@@ -240,13 +250,12 @@ token l_bracket = "\[";
 token r_bracket = "\]";
 parser items = num.sep_by(comma);
 parser _brackets = l_bracket + items + r_bracket;
-parser root = _brackets"#;
+parser root = _brackets;"#;
         let lang = build_test_parser(parser);
         let node = parse(&lang, text);
         (lang, node)
     }
 
-    #[serial]
     #[test]
     fn test_ok() {
         let (lang, node) = parse_test("[123,123]");
@@ -270,7 +279,6 @@ parser root = _brackets"#;
         assert_token_kind!(lang, &items[2], num);
     }
 
-    #[serial]
     #[test]
     fn test_missing_items() {
         let (lang, node) = parse_test("[]");

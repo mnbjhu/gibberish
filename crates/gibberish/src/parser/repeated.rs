@@ -41,13 +41,6 @@ static bool break_pred_rep0_{id}(ParserState *state) {{
         )
         .unwrap();
 
-        // C version of Parse Rep0
-        // - push_break for inner so inner parsers can "break" out cleanly
-        // - repeatedly parse inner
-        // - if parse returns 1: bump_err and retry (your rule)
-        // - if parse returns 0: continue
-        // - if parse returns 2 (EOF) or break code: stop successfully
-        // - pop break before returning
         write!(
             f,
             r#"
@@ -57,6 +50,9 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     size_t res = parse_{inner}(state, unmatched_checkpoint);
     if(res != 0) {{
         (void)break_stack_pop(&state->breaks, NULL);
+        if (res == brk) {{
+            return 1;
+        }}
         return res;
     }}
     for (;;) {{
@@ -74,7 +70,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         if (res == brk) {{
             continue;
         }}
-        return 0;
+        break;
     }}
 
     (void)break_stack_pop(&state->breaks, NULL);

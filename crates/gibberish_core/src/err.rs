@@ -42,8 +42,8 @@ impl<L: Lang> ParseError<L> {
     pub fn span(&self) -> Span {
         self.actual()
             .first()
-            .map(|it| it.span.start..self.actual().last().unwrap().span.end)
-            .unwrap_or(self.start()..self.start())
+            .map(|it| *it.span.start()..=*self.actual().last().unwrap().span.end())
+            .unwrap_or(self.start()..=self.start())
     }
 }
 
