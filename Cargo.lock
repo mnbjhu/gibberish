@@ -449,6 +449,7 @@ dependencies = [
  "ansi_term",
  "anyhow",
  "ariadne",
+ "cc",
  "clap",
  "dashmap 6.1.0",
  "env_logger",

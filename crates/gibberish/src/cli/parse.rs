@@ -8,10 +8,7 @@ use gibberish_gibberish_parser::Gibberish;
 use tempfile::Builder;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
-use crate::{
-    cli::build::{build_c_str, build_dynamic_lib},
-    report::report_errors,
-};
+use crate::{build::build_shared_c_library, cli::build::build_c_str, report::report_errors};
 
 pub const C_EXT: &str = "c";
 pub const GIBBERISH_EXT: &str = "gib";
@@ -62,14 +59,14 @@ pub fn load_parser(parser: &Path, min_severity: DiagnosticSeverity) -> CompiledL
     let parser = match parser.extension().unwrap().to_str().unwrap() {
         DYN_LIB_EXT => parser.canonicalize().unwrap(),
         C_EXT => {
-            build_dynamic_lib(parser, &lib_path);
+            build_shared_c_library(parser, &lib_path);
             lib_path
         }
         GIBBERISH_EXT => {
             let c_str = build_c_str(parser, min_severity);
             let c = Builder::new().suffix(".c").tempfile().unwrap();
             fs::write(&c, c_str).unwrap();
-            build_dynamic_lib(&c.into_temp_path(), &lib_path);
+            build_shared_c_library(&c.into_temp_path(), &lib_path);
             lib_path
         }
         _ => {

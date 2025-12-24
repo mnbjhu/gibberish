@@ -9,6 +9,7 @@ use tempfile::Builder;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 
 use crate::ast::builder::ParserBuilder;
+use crate::build::{build_shared_c_library, build_static_c_library};
 use crate::cli::parse::{C_EXT, DYN_LIB_EXT, STATIC_LIB_EXT};
 use crate::parser::build::build_parser_c;
 
@@ -63,7 +64,7 @@ pub fn build(parser_file: &Path, output: &Path, min_severity: DiagnosticSeverity
             let c = Builder::new().suffix(".c").tempfile().unwrap();
             fs::write(&c, res).unwrap();
             let c_path = c.into_temp_path();
-            build_dynamic_lib(&c_path, output);
+            build_shared_c_library(&c_path, output);
         }
     }
     println!("{}", Color::Green.paint("[Build successful]"));
@@ -171,16 +172,17 @@ pub fn build_static_lib(c_text: &str, out: &Path) {
     let c_file = Builder::new().suffix(".c").tempfile().unwrap();
     let c_path = c_file.into_temp_path().to_path_buf();
 
-    let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
-    let obj_path = obj_file.path().to_path_buf();
+    // let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
+    // let obj_path = obj_file.path().to_path_buf();
 
     fs::write(&c_path, c_text).unwrap();
 
-    compile_c_to_object(&c_path, &obj_path, false);
-    archive_static(&obj_path, out);
+    build_static_c_library(&c_path, out);
+    // compile_c_to_object(&c_path, &obj_path, false);
+    // archive_static(&obj_path, out);
 }
 
-pub fn build_dynamic_lib(c_path: &Path, out: &Path) {
+pub fn _build_dynamic_lib(c_path: &Path, out: &Path) {
     let obj_file = Builder::new().suffix(obj_suffix()).tempfile().unwrap();
     let obj_path = obj_file.into_temp_path();
     compile_c_to_object(c_path, &obj_path, /*pic*/ true);

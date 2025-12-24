@@ -28,3 +28,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-log = "0.2"
 pretty = "0.12.5"
+cc = "1.2.50"
