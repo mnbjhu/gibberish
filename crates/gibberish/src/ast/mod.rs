@@ -210,7 +210,7 @@ impl<'a> LspNode<'a> {
         }
     }
 
-    pub fn completions(&self, _: &CheckState) -> Vec<CompletionItem> {
+    pub fn completions(&self, state: &CheckState) -> Vec<CompletionItem> {
         dbg!("Getting completions", self.to_string());
         match self {
             LspNode::FunctionName(_) => DEFAULT_FUNCS
@@ -218,6 +218,15 @@ impl<'a> LspNode<'a> {
                 .map(|f| CompletionItem {
                     label: f.name.to_string(),
                     kind: Some(CompletionItemKind::FUNCTION),
+                    ..Default::default()
+                })
+                .collect(),
+            LspNode::Expr(ExprAst::Ident(_)) => state
+                .defs
+                .keys()
+                .map(|name| CompletionItem {
+                    label: name.to_string(),
+                    kind: Some(CompletionItemKind::VARIABLE),
                     ..Default::default()
                 })
                 .collect(),

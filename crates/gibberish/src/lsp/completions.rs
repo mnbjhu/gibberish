@@ -1,3 +1,4 @@
+use crate::ast::{CheckState, RootAst};
 use crate::lsp::definition::node_at_pos;
 use crate::lsp::{Backend, position_to_offset};
 use gibberish_core::err::Expected;
@@ -21,11 +22,14 @@ pub async fn completion(
         vec![]
     };
     let completions = if completions.is_empty() {
+        let mut state = CheckState::default();
+        let root = RootAst(ast.as_group());
+        root.check(&mut state);
         let offset = position_to_offset(position, &rope).unwrap();
         let completions = ast.as_group().completions_at(offset);
         completions
             .iter()
-            .flat_map(|it| completions_from_expected(it).into_iter())
+            .flat_map(|it| completions_from_expected(it, &state).into_iter())
             .collect()
     } else {
         completions
@@ -33,7 +37,10 @@ pub async fn completion(
     Ok(Some(CompletionResponse::Array(completions)))
 }
 
-fn completions_from_expected(expected: &Expected<Gibberish>) -> Vec<CompletionItem> {
+fn completions_from_expected(
+    expected: &Expected<Gibberish>,
+    state: &CheckState<'_>,
+) -> Vec<CompletionItem> {
     match expected {
         Expected::Token(_) => {}
         Expected::Group(_) => {}
@@ -44,6 +51,17 @@ fn completions_from_expected(expected: &Expected<Gibberish>) -> Vec<CompletionIt
                     kind: Some(CompletionItemKind::KEYWORD),
                     ..Default::default()
                 }];
+            }
+            GibberishLabel::Expression => {
+                return state
+                    .defs
+                    .iter()
+                    .map(|(name, _)| CompletionItem {
+                        label: name.to_string(),
+                        kind: Some(CompletionItemKind::VARIABLE),
+                        ..Default::default()
+                    })
+                    .collect();
             }
             _ => {}
         },
