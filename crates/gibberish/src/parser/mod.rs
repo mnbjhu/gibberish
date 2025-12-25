@@ -16,11 +16,12 @@ use tracing::debug;
 use crate::{
     ast::builder::ParserBuilder,
     parser::{
-        checkpoint::Checkpoint, fold_once::FoldOnce, label::Label, rename::Rename,
+        break_::Break, checkpoint::Checkpoint, fold_once::FoldOnce, label::Label, rename::Rename,
         repeated::Repeated, unskip::UnSkip,
     },
 };
 
+pub mod break_;
 pub mod build;
 pub mod checkpoint;
 pub mod choice;
@@ -50,6 +51,7 @@ pub enum Parser {
     Repeated(Repeated),
     Rename(Rename),
     Checkpoint(Checkpoint),
+    Break(Break),
     Empty,
     Reference(String),
     Label(Label),
@@ -73,6 +75,7 @@ impl Display for Parser {
             Parser::Empty => todo!(),
             Parser::Reference(n) => write!(f, "{n}"),
             Parser::Label(Label { name, inner }) => write!(f, "{inner}:{name}"),
+            Parser::Break(b) => write!(f, "{b}"),
         }
     }
 }
@@ -145,6 +148,10 @@ impl Parser {
             Parser::Empty => todo!(),
             Parser::Reference(r) => builder.get_var(r).unwrap().clone().predefine(builder, f),
             Parser::Label(label) => label.inner.predefine(builder, f),
+            Parser::Break(b) => {
+                b.inner.predefine(builder, f);
+                b.at.predefine(builder, f);
+            }
         }
     }
 
@@ -169,6 +176,7 @@ impl Parser {
                 let label_id = builder.labels.iter().position(|it| it == name).unwrap();
                 vec![Expected::Label(label_id as u32)]
             }
+            Parser::Break(b) => b.expected(builder),
         }
     }
 
@@ -189,6 +197,7 @@ impl Parser {
             Parser::Checkpoint(_) => "Checkpoint".to_string(),
             Parser::Reference(n) => format!("Reference({n})"),
             Parser::Label(Label { name, .. }) => format!("Label({name})"),
+            Parser::Break(_) => format!("Break"),
         }
     }
 
@@ -209,6 +218,7 @@ impl Parser {
             Parser::Checkpoint(checkpoint) => checkpoint.build_parse(id, builder, f),
             Parser::Reference(n) => builder.get_var(n).unwrap().build_parse(id, builder, f),
             Parser::Label(label) => label.build_parse(id, builder, f),
+            Parser::Break(b) => b.build_parse(id, builder, f),
         }
     }
 
@@ -329,6 +339,7 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::Checkpoint(checkpoint) => checkpoint.start_tokens(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().start_tokens(builder),
             Parser::Label(Label { inner, .. }) => inner.start_tokens(builder),
+            Parser::Break(b) => b.inner.start_tokens(builder),
         }
     }
 
@@ -349,6 +360,7 @@ static inline ExpectedVec expected_{id}(void) {{
             Parser::Checkpoint(checkpoint) => checkpoint.is_optional(builder),
             Parser::Reference(n) => builder.get_var(n).unwrap().is_optional(builder),
             Parser::Label(Label { inner, .. }) => inner.is_optional(builder),
+            Parser::Break(b) => b.is_optional(builder),
         }
     }
 
@@ -378,6 +390,7 @@ static inline ExpectedVec expected_{id}(void) {{
             ),
             Parser::Reference(n) => builder.get_var(n).unwrap().after_token(token, builder),
             Parser::Label(Label { inner, .. }) => inner.after_token(token, builder),
+            Parser::Break(_) => todo!(),
         }
     }
 
@@ -400,6 +413,9 @@ static inline ExpectedVec expected_{id}(void) {{
                 inner: Box::new(inner.remove_conflicts(builder, depth)),
             }),
             Parser::Empty => todo!(),
+            Parser::Break(Break { inner, at }) => inner
+                .remove_conflicts(builder, depth)
+                .break_at(at.remove_conflicts(builder, depth)),
         }
     }
 }

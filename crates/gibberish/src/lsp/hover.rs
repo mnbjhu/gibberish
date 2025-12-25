@@ -9,9 +9,9 @@ pub async fn hover(backend: &Backend, params: HoverParams) -> Result<Option<Hove
         let rope = backend.document_map.get(uri.as_str())?;
         let position = params.text_document_position_params.position;
         let ast = backend.ast_map.get(uri.as_str()).unwrap();
-        let (node, state) = node_at_pos(&rope, &ast, position)?;
+        let (node, state) = node_at_pos(&rope, &ast, position);
 
-        node.hover(&state).map(|contents| Hover {
+        node?.hover(&state).map(|contents| Hover {
             contents,
             range: None,
         })

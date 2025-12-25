@@ -8,7 +8,8 @@ use gibberish_core::{
 use gibberish_gibberish_parser::{Gibberish, GibberishToken};
 use pretty::{DocAllocator, DocBuilder};
 use tower_lsp::lsp_types::{
-    CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, MarkedString,
+    CompletionItem, CompletionItemKind, DiagnosticSeverity, HoverContents, InsertTextFormat,
+    MarkedString,
 };
 
 use crate::{
@@ -230,6 +231,32 @@ impl<'a> LspNode<'a> {
                     ..Default::default()
                 })
                 .collect(),
+            LspNode::Root(_) => {
+                vec![
+                    CompletionItem {
+                        label: "parser".to_string(),
+                        kind: Some(CompletionItemKind::SNIPPET),
+                        insert_text: Some("parser ${1:name} = ${2:expr};".to_string()),
+                        insert_text_format: Some(InsertTextFormat::SNIPPET),
+                        ..Default::default()
+                    },
+                    CompletionItem {
+                        label: "parser".to_string(),
+                        kind: Some(CompletionItemKind::KEYWORD),
+                        ..Default::default()
+                    },
+                    CompletionItem {
+                        label: "token".to_string(),
+                        kind: Some(CompletionItemKind::KEYWORD),
+                        ..Default::default()
+                    },
+                    CompletionItem {
+                        label: "keyword".to_string(),
+                        kind: Some(CompletionItemKind::KEYWORD),
+                        ..Default::default()
+                    },
+                ]
+            }
             _ => vec![],
         }
     }

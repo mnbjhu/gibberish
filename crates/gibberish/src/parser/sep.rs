@@ -50,7 +50,10 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     size_t res = 0;
     res = parse_{item}(state, unmatched_checkpoint);
     if (res != 0) {{
-        goto ret_err;
+        if (res == sep_brk) {{
+            return 1;
+        }}
+        return res;
     }}
     for (;;) {{
         for (;;) {{
@@ -62,12 +65,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
             break;
         }}
 
-        if (res == 0) {{
-        }} else {{
-            if (res == 2) {{
-                goto ret_ok;
-            }}
-
+        if (res != 0) {{
             if (res == item_brk) {{
                 ExpectedVec e = expected_{sep}();
                 missing(state, e);
@@ -91,11 +89,6 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         {{
             ExpectedVec e = expected_{item}();
             missing(state, e);
-
-            if (res == 2) {{
-                goto ret_ok;
-            }}
-
             if (res == sep_brk) {{
                 continue;
             }}

@@ -1,48 +1,74 @@
-keyword select;
-keyword from;
-keyword delete;
-keyword define;
-keyword table;
-keyword field;
-keyword on;
-keyword struct;
-keyword enum;
-keyword void;
-keyword type;
+keyword SELECT;
+keyword UPDATE;
+keyword FROM;
+keyword DELETE;
+keyword WHERE;
+keyword ORDER;
+keyword BY;
+keyword AND;
+keyword OR;
+keyword SET;
+keyword AS;
 
 token NUM = "[0-9]+";
 token STR = "\"[^\"]*\"";
 token WHITESPACE = "\s+";
 token IDENT = "[_a-zA-Z]+";
-token COLON = ":";
 token COMMA = ",";
 token SEMI = ";";
 token PLUS = "\+";
+token MINUS = "-";
 token TIMES = "\*";
+token DIV = "/";
+token LTE = "<=";
+token GTE = ">=";
+token LT = "<";
+token GT = ">";
 token LParen = "\(";
 token RParen = "\)";
+token EQ = "=";
+token DOT = "\.";
 
 parser field_name = IDENT;
+parser alias = IDENT;
 parser num = NUM;
 parser string = STR;
 
 parser _atom = field_name | num | string | _expr.delim_by(LParen, RParen);
-parser product = _atom fold TIMES + _atom;
-parser sum = product fold PLUS + product;
-parser _expr = sum;
+parser field_access = _atom fold DOT + field_name;
+parser product = field_access fold ((TIMES | DIV) + field_access).repeated();
+parser sum = product fold ((PLUS | MINUS) + product).repeated();
+parser cmp = sum fold (LT | GT | LTE | GTE) + sum;
+parser eq = cmp fold EQ + cmp;
+parser and = eq fold (AND + eq).repeated();
+parser or = and fold (OR + and).repeated();
+parser _expr = or;
+
+parser wildcard = TIMES;
+parser projection = wildcard | _expr fold AS + alias;
+
+parser where_clause = WHERE + _expr;
+parser order_by_clause = ORDER + BY + _expr;
+
+parser _clause = where_clause | order_by_clause;
 
 parser table_name = IDENT;
 
-parser select_stmt = select + _expr.sep_by(COMMA) + from + table_name;
-parser delete_stmt = delete + from + IDENT;
+parser set_field = field_name + EQ + _expr;
 
-parser define_table_stmt = define + table + table_name + SEMI;
-parser define_field_stmt = define + field + field_name + on + table_name + SEMI;
-parser define_enum_stmt = define + type + enum + table_name;
-parser define_struct_stmt = define + type + struct + table_name;
-parser define_void_stmt = define + type + void;
+parser select_stmt = SELECT
+    + projection.sep_by(COMMA)
+    + FROM
+    + table_name
+    + _clause.repeated();
 
-parser _define_stmt = define_enum_stmt | define_field_stmt | define_table_stmt | define_struct_stmt | define_void_stmt;
+parser update_stmt = UPDATE
+    + table_name
+    + SET
+    + set_field.sep_by(COMMA)
+    + _clause.repeated();
 
-parser _stmt = delete_stmt | select_stmt | _define_stmt;
-parser root = _stmt .sep_by(SEMI) .skip(WHITESPACE)
+parser delete_stmt = DELETE + FROM + IDENT + _clause.repeated();
+
+parser _stmt = (select_stmt | update_stmt | delete_stmt) + SEMI;
+parser root = _stmt.repeated().skip(WHITESPACE);

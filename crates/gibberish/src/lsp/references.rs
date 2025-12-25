@@ -13,8 +13,8 @@ pub async fn references(
         let position = params.text_document_position.position;
         let ast = backend.ast_map.get(uri.as_str()).unwrap();
 
-        let (node, state) = node_at_pos(&rope, &ast, position)?;
-        let reference_span_list = node.references(&state);
+        let (node, state) = node_at_pos(&rope, &ast, position);
+        let reference_span_list = node?.references(&state);
 
         let ret = reference_span_list
             .into_iter()

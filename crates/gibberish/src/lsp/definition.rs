@@ -19,8 +19,8 @@ pub async fn goto_definition(
         let position = params.text_document_position_params.position;
         let ast = backend.ast_map.get(uri.as_str()).unwrap();
 
-        let (node, state) = node_at_pos(&rope, &ast, position)?;
-        let range = node.definition(&state)?;
+        let (node, state) = node_at_pos(&rope, &ast, position);
+        let range = node?.definition(&state)?;
 
         let start_position = offset_to_position(*range.start(), &rope)?;
         let end_position = offset_to_position(*range.end(), &rope)?;
@@ -36,11 +36,11 @@ pub fn node_at_pos<'a>(
     rope: &'a Rope,
     ast: &'a Node<Gibberish>,
     position: Position,
-) -> Option<(LspNode<'a>, CheckState<'a>)> {
-    let offset = position_to_offset(position, rope)?;
+) -> (Option<LspNode<'a>>, CheckState<'a>) {
     let root = RootAst(ast.as_group());
     let mut state = CheckState::default();
     root.check(&mut state);
-    let node = root.at(offset)?;
-    Some((node, state))
+    let offset = position_to_offset(position, rope);
+    let node = offset.and_then(|o| root.at(o));
+    (node, state)
 }

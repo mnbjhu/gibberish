@@ -40,6 +40,22 @@ impl Named {
 
 /* Parse Named */
 static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    for (;;) {{
+        if (state->offset >= state->tokens.len) {{
+            return 2; /* EOF */
+        }}
+
+        if (peak_{inner}(state, 0, false)) {{
+            break;
+        }}
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {{
+            bump_skipped(state);
+            continue;
+        }}
+        break;
+    }}
     size_t c = checkpoint(state);
     size_t res = parse_{inner}(state, unmatched_checkpoint);
     if (res == 0) {{

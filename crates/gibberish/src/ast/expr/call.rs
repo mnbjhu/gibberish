@@ -62,6 +62,20 @@ impl<'a> CallAst<'a> {
                     }
                     expr = expr.sep_by(args[0].clone())
                 }
+                "break_at" => {
+                    let args = member
+                        .args()
+                        .map(|it| it.build(builder))
+                        .collect::<Vec<_>>();
+                    if args.len() != 1 {
+                        builder.error(
+                            &format!("'break_at' expected one arg but {} were found", args.len()),
+                            span.clone(),
+                        );
+                        panic!()
+                    }
+                    expr = expr.break_at(args[0].clone())
+                }
                 "delim_by" => {
                     let args = member
                         .args()
