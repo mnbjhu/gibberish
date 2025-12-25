@@ -51,6 +51,10 @@ pub const DEFAULT_FUNCS: &[FuncDef] = &[
         args: &[FuncArg::parser("open"), FuncArg::parser("close")],
     },
     FuncDef {
+        name: "break_at",
+        args: &[FuncArg::parser("at")],
+    },
+    FuncDef {
         name: "sep_by",
         args: &[FuncArg::parser("seperator")],
     },

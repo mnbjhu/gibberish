@@ -26,17 +26,30 @@ impl UnSkip {
         write!(
             f,
             "
-# Parse Unskip
-function l $parse_{id}(l %state_ptr, w %recover, l %unmatched_checkpoint) {{
-@start
-    %unskipped =l call $unskip(l %state_ptr, l {kind})
-    %res =l call $parse_{inner}(l %state_ptr, w %recover, l %unmatched_checkpoint)
-    jnz %unskipped, @skip, @ret
-@skip
-    call $skip(l %state_ptr, l {kind})
-    ret %res
-@ret
-    ret %res
+/* Parse Unskip */
+static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
+    for (;;) {{
+        if (state->offset >= state->tokens.len) {{
+            return 2; /* EOF */
+        }}
+
+        if (peak_{inner}(state, 0, false)) {{
+            break;
+        }}
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {{
+            bump_skipped(state);
+            continue;
+        }}
+        break;
+    }}
+    bool did_unskip = unskip(state, (uint32_t){kind});
+    size_t res = parse_{inner}(state, unmatched_checkpoint);
+    if (did_unskip) {{
+        (void)skip(state, (uint32_t){kind});
+    }}
+    return res;
 }}",
             kind = builder.get_token_id(&self.token)
         )
