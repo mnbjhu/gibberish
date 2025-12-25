@@ -72,7 +72,10 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     size_t break_code = push_break(state, break_pred_{id});
     size_t res = parse_{first}(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {{
+    if (res != 0) {{
+        if (res == break_code) {{
+            return 1;
+        }}
         return res;
     }}
     for(;;){{
