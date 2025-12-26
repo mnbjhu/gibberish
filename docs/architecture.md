@@ -272,27 +272,27 @@ This establishes clear ownership rules:
 
 ### Token
 
-![just](docs/svg/just.svg)
+![just](svg/just.svg)
 
 ### Key
 
-![key](docs/svg/key.svg)
+![key](svg/key.svg)
 
 ### Choice
 
-![choice](docs/svg/choice.svg)
+![choice](svg/choice.svg)
 
 ### Sequence
 
-![seq](docs/svg/seq.svg)
+![seq](svg/seq.svg)
 
 ### Named
 
-![named](docs/svg/named.svg)
+![named](svg/named.svg)
 
 ### Fold
 
-![fold](docs/svg/fold.svg)
+![fold](svg/fold.svg)
 
 ---
 
