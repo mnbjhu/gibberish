@@ -63,7 +63,7 @@ docs/examples/
 For example, the JSON grammar can be parsed and tested against an input file:
 
 ```sh
-gibberish parse examples/test.json --parser docs/examples/json.gib
+gibberish parse docs/examples/test.json --parser docs/examples/json.gib
 ```
 
 This will print the **lossless syntax tree**, including structure, skipped tokens, and explicit error nodes.
