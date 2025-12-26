@@ -8,7 +8,9 @@ Unlike traditional parser combinator libraries that fail fast and discard struct
 gibberish parse bad.json --parser grammar.gib
 ```
 
-![example](docs/svg/example.svg)
+<div align="center">
+  <img src="docs/svg/example.svg" alt="demo" width="500">
+</div>
 
 ---
 
@@ -189,16 +191,12 @@ The documentation reflects the current implementation but is still **early-stage
 The following documents capture the core ideas accurately:
 
 - **Architecture & Runtime Model**
-  Parser state, commitment, delimiters, and `BREAK` semantics
+  Parser state, commitment and `BREAK` semantics
   → [`docs/architecture.md`](docs/architecture.md)
 
 - **Language & Grammar Syntax**
   Tokens, keywords, parsers, and grammar expressions
   → [`docs/language.md`](docs/language.md)
-
-- **Error Recovery Model**
-  Missing vs unexpected nodes, commitment, and recovery behavior
-  → [`docs/error-recovery.md`](docs/error-recovery.md)
 
 - **Examples**
   Complete grammars (JSON, SQL, etc.)

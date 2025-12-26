@@ -173,7 +173,7 @@ Parsers in Gibberish can be described by 3 properties and a `parse` function:
 ### Properties
 
 - Start Tokens: A list of all the tokens it's possible for the parser to start with.
-- Expected: A list of expected items which is generated when this parse is missing from a parent.
+- Expected: A list of expected items which is generated when this parser is missing from a parent.
 - Optional: Is the parser optional
 
 ### The `parse` function
@@ -282,7 +282,7 @@ This establishes clear ownership rules:
 
 ![choice](svg/choice.svg)
 
-### Sequence
+### Sequence (The logic here varies if any of the starting parts are optional)
 
 ![seq](svg/seq.svg)
 
