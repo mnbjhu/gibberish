@@ -13,11 +13,7 @@ This is not a language reference; instead, it explains _how_ Gibberish works und
 
 At runtime, Gibberish operates as a collection of cooperating parsers that all mutate a shared `ParserState`. Parsing is **single-pass**, **deterministic**, and **non-backtracking**.
 
-Rather than succeeding or failing outright, parsers communicate via:
-
-- Explicit state mutation
-- Structured delimiters
-- Integer return values (`OK`, `ERR`, `BREAK`)
+Rather than succeeding or failing outright, parsers recover by hitting `BREAK` boundaries set by parent parsers.
 
 The result of parsing is always a **lossless syntax tree**, even in the presence of severe syntax errors.
 
@@ -140,6 +136,19 @@ Pops the current group from the stack and appends it to the parent group.
 
 ---
 
+### Breaks
+
+#### `PushBreak(parser)`
+
+Pushes a `break` onto the break stack, returns the `break_index`
+(the integer value returned if calling `parse` hits this `break`).
+
+#### `PopBreak`
+
+Pops an element of the break stack.
+
+---
+
 ### Skipping Tokens
 
 #### `Skip(token_kind)`
@@ -157,19 +166,65 @@ Skipped tokens are still consumed and emitted as `Skip` nodes.
 
 ---
 
-## Delimiters
+## Parsers
 
-Delimiters are the core mechanism used to coordinate recovery between parsers.
+Parsers in Gibberish can be described by 3 properties and a `parse` function:
 
-A delimiter is a _sentinel_ representing a parser’s **start condition** rather than a hard stop. Delimiters are used to determine whether a parser should _begin_, not to force it to stop once committed.
+### Properties
+
+- Start Tokens: A list of all the tokens it's possible for the parser to start with.
+- Expected: A list of expected items which is generated when this parse is missing from a parent.
+- Optional: Is the parser optional
+
+### The `parse` function
+
+This function describes how the parser should interact with the `state`
+and call child `parse` functions to attempt a parse.
+
+The execution of the parse can be seperated into two parts, committed and uncommitted.
+Every parser in Gibberish requires **exactly one** token to match before committing to parsing.
+Once the parser has committed it's required that function returns `OK`.
+If the parser fails to commit, there are two possible returns:
+
+- `BREAK(index)`: The first token didn't match `OK` but was an item on the break stack.
+  The index is used to determine who is responsible to handling break.
+- `ERR`: Otherwise
+
+Each `parse` function is required to behave by a set of rules:
+
+1. `parse` may mutate the state, however it's required that the `break_stack` and
+   `skip_set` recovered at the end of each `parse`. The parser didn't commit, then the whole state
+   should be recovered.
+2. Any groups opened should be closed or deleted.
+3. A parser should only return a `BREAK` if it was the first token and was added
+   to the `break_stack` by a parent, not itself.
+4. Anytime a parser calls a child `parse` function and it returns a
+   parent `BREAK` it should exit gracefully (without bumping following these rules).
+
+## Breaks
+
+Breaks are the core mechanism used to coordinate recovery between parsers.
+
+Each parser has a set of potential start tokens. For example the start of an sql statment might be 'SELECT', 'UPDATE', 'DELETE'.
+A break is a _sentinel_ representing a parser’s **start condition** and just checks if the current token matches one of its start tokens.
+When a parser fails to parse a token, it then checks to see if any `break` in the stack matches the token.
+
+- If this token doesn't match any break, then the token is bumped as `Unexpected`, or the parser returns `ERR` if uncommitted.
+- Otherwise:
+  1. If the `BREAK` was is local to the parser, then it should handle this depending on the parsers behaviour.
+  2. If the `BREAK` occured after the parser committed, then the parser should end gracefully.
+     i.e. create errors for nodes which are missing and end opened groups.
+  3. If the `BREAK` was the parsers first token, propergate it. Unless it was a local `break`.
+
+Breaks are used to determine whether a parser should _begin_, not to force it to stop once committed.
 
 ### Delimiter Stack
 
-- Delimiters are pushed by parsers to advertise their start tokens
-- Delimiters are removed dynamically as parsing progresses (e.g. in sequences)
+- Breaks are pushed by parsers to advertise their start tokens
+- Breaks are removed dynamically as parsing progresses (e.g. in sequences)
 - The stack represents nested parsing expectations, not strict termination points
 
-Delimiters are consulted **only before a parser commits**. Once a parser has consumed any non-skipped token, delimiters no longer cause a `BREAK`.
+Breaks are consulted **only before a parser commits**. Once a parser has consumed any non-skipped token, delimiters no longer cause a `BREAK`.
 
 ---
 
