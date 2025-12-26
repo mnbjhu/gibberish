@@ -1,15 +1,15 @@
 keyword true;
 keyword false;
 
-token whitespace = "\s+";
+token whitespace = "\\s+";
 token str = "\"[^\"]*\"";
 token int = "[0-9]+";
 token colon = ":";
 token comma = ",";
-token l_bracket = "\[";
-token r_bracket = "\]";
-token l_brace = "\{";
-token r_brace = "\}";
+token l_bracket = "\\[";
+token r_bracket = "\\]";
+token l_brace = "\\{";
+token r_brace = "\\}";
 
 parser string = str;
 parser num = int;
