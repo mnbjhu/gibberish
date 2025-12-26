@@ -4,6 +4,8 @@ Gibberish is a **parser combinator language and compiler** designed to produce *
 
 Unlike traditional parser combinator libraries that fail fast and discard structure on errors, Gibberish always produces a tree. Missing and unexpected syntax is represented explicitly, making it possible to reason about and recover from errors without backtracking or global failure.
 
+![example](docs/svg/example.svg)
+
 ---
 
 ## Getting Started
