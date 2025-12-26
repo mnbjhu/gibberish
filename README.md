@@ -5,7 +5,7 @@ Gibberish is a **parser combinator language and compiler** designed to produce *
 Unlike traditional parser combinator libraries that fail fast and discard structure on errors, Gibberish always produces a tree. Missing and unexpected syntax is represented explicitly, making it possible to reason about and recover from errors without backtracking or global failure.
 
 ```sh
-gibberish parse data.json --parser grammar.gib
+gibberish parse bad.json --parser grammar.gib
 ```
 
 ![example](docs/svg/example.svg)
@@ -26,6 +26,7 @@ For windows you'll need CL.
 > point the `gibberish` CLI to that instead.
 > I think my plan is to build a Gibberish runtime for when you exeucte 'lex', 'parse', 'watch' etc
 > to avoid these struggles.
+> I'm hoping the current implementation is enough to demo the core ideas of the combinators.
 
 ---
 
