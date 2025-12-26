@@ -9,7 +9,7 @@ gibberish parse bad.json --parser grammar.gib
 ```
 
 <div align="center">
-  <img src="docs/svg/example.svg" alt="demo" width="500">
+  <img src="docs/svg/example.svg" alt="demo" width="800">
 </div>
 
 ---
@@ -148,14 +148,14 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
   ```
 
 - **`build`**
-  Compile a `.gib` grammar into a parser library (requires `qbe`).
+  Compile a `.gib` grammar into a parser library.
 
   ```sh
   gibberish build <path> --output <output>
   ```
 
 - **`generate`**
-  Generate libraries and APIs from a grammar (requires `qbe`).
+  Generate libraries and APIs from a grammar.
 
   ```sh
   gibberish generate <path>
