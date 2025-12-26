@@ -4,6 +4,10 @@ Gibberish is a **parser combinator language and compiler** designed to produce *
 
 Unlike traditional parser combinator libraries that fail fast and discard structure on errors, Gibberish always produces a tree. Missing and unexpected syntax is represented explicitly, making it possible to reason about and recover from errors without backtracking or global failure.
 
+```sh
+gibberish parse data.json --parser grammar.gib
+```
+
 ![example](docs/svg/example.svg)
 
 ---
@@ -12,12 +16,16 @@ Unlike traditional parser combinator libraries that fail fast and discard struct
 
 ### Prerequisites
 
-Gibberish relies on **QBE** for code generation.
+Gibberish builds a C library and many of the commands rely on cc being present on the PATH.
+For windows you'll need CL.
 
-- `qbe` must be installed
-- `qbe` must be available on your `$PATH`
-
-If `qbe` is not present, grammar compilation (`build`, `generate`) will fail.
+> **Note**
+> Depending on a C compiler already seems like it's going to be a pain.
+> There's likely a lot configuations which won't work under the current setup.
+> However if this is the case you can generate the C instead, compile it to a shared lib and
+> point the `gibberish` CLI to that instead.
+> I think my plan is to build a Gibberish runtime for when you exeucte 'lex', 'parse', 'watch' etc
+> to avoid these struggles.
 
 ---
 
@@ -29,7 +37,13 @@ Prebuilt binaries are available on the [**GitHub Releases**](https://github.com/
 - Place it somewhere on your `$PATH`
 - The executable is called `gibberish`
 
-At the moment, using a release binary is the recommended way to get started.
+#### Building from source
+
+```sh
+git clone https://github.com/mnbjhu/gibberish
+cd gibberish
+cargo install --path crates/gibberish
+```
 
 ---
 
