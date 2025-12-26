@@ -207,24 +207,25 @@ Breaks are the core mechanism used to coordinate recovery between parsers.
 
 Each parser has a set of potential start tokens. For example the start of an sql statment might be 'SELECT', 'UPDATE', 'DELETE'.
 A break is a _sentinel_ representing a parser’s **start condition** and just checks if the current token matches one of its start tokens.
-When a parser fails to parse a token, it then checks to see if any `break` in the stack matches the token.
+When a parser fails to parse a token, it then checks to see if any `break`
+in the stack matches the token (in reverse order to how it was added).
 
 - If this token doesn't match any break, then the token is bumped as `Unexpected`, or the parser returns `ERR` if uncommitted.
 - Otherwise:
   1. If the `BREAK` was is local to the parser, then it should handle this depending on the parsers behaviour.
+     (see diagrams below)
   2. If the `BREAK` occured after the parser committed, then the parser should end gracefully.
      i.e. create errors for nodes which are missing and end opened groups.
   3. If the `BREAK` was the parsers first token, propergate it. Unless it was a local `break`.
 
 Breaks are used to determine whether a parser should _begin_, not to force it to stop once committed.
 
-### Delimiter Stack
+### Break Stack
 
-- Breaks are pushed by parsers to advertise their start tokens
-- Breaks are removed dynamically as parsing progresses (e.g. in sequences)
-- The stack represents nested parsing expectations, not strict termination points
-
-Breaks are consulted **only before a parser commits**. Once a parser has consumed any non-skipped token, delimiters no longer cause a `BREAK`.
+- Breaks are pushed by parsers to give child parsers opportunities to recover.
+- They can also provide the current parser with infomation,
+  like telling a sequence that it should skip to parsing a later part.
+- Breaks are removed dynamically as parsing progresses (e.g. in sequences, repeated)
 
 ---
 
@@ -267,20 +268,31 @@ This establishes clear ownership rules:
 
 ---
 
-## Recovery Model
+## Combinator Diagrams
 
-Unexpected tokens are consumed eagerly and recorded as `Unexpected` nodes unless a parser declines to start via `BREAK`.
+### Token
 
-Missing nodes are synthesized when:
+![just](docs/svg/just.svg)
 
-- A delimiter is encountered _after_ a parser has committed
-- A parser completes without finding required elements
+### Key
 
-This ensures that:
+![key](docs/svg/key.svg)
 
-- Parsing always makes forward progress
-- Structure is preserved even in broken input
-- Errors are localized and explicit
+### Choice
+
+![choice](docs/svg/choice.svg)
+
+### Sequence
+
+![seq](docs/svg/seq.svg)
+
+### Named
+
+![named](docs/svg/named.svg)
+
+### Fold
+
+![fold](docs/svg/fold.svg)
 
 ---
 
