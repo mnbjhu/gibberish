@@ -164,9 +164,9 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
 - **`lsp`**
   Start the Gibberish language server.
 
-```sh
-gibberish lsp
-```
+  ```sh
+  gibberish lsp
+  ```
 
 ---
 
