@@ -4343,6 +4343,22 @@ static inline ExpectedVec expected_9(void) {
 
 /* Parse Named */
 static size_t parse_7(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_9(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_9(state, unmatched_checkpoint);
     if (res == 0) {
@@ -4785,6 +4801,22 @@ static inline ExpectedVec expected_15(void) {
 
 /* Parse Named */
 static size_t parse_13(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_15(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_15(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5199,6 +5231,22 @@ static inline ExpectedVec expected_42(void) {
 
 /* Parse Named */
 static size_t parse_40(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_42(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_42(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5245,6 +5293,22 @@ static inline ExpectedVec expected_40(void) {
 
 /* Parse Named */
 static size_t parse_45(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_12(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_12(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5358,8 +5422,8 @@ static bool peak_37(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -5460,6 +5524,22 @@ static inline ExpectedVec expected_51(void) {
 
 /* Parse Named */
 static size_t parse_52(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_12(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_12(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5589,7 +5669,10 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
     size_t res = 0;
     res = parse_27(state, unmatched_checkpoint);
     if (res != 0) {
-        goto ret_err;
+        if (res == sep_brk) {
+            return 1;
+        }
+        return res;
     }
     for (;;) {
         for (;;) {
@@ -5601,12 +5684,7 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
             break;
         }
 
-        if (res == 0) {
-        } else {
-            if (res == 2) {
-                goto ret_ok;
-            }
-
+        if (res != 0) {
             if (res == item_brk) {
                 ExpectedVec e = expected_59();
                 missing(state, e);
@@ -5630,11 +5708,6 @@ static size_t parse_58(ParserState *state, size_t unmatched_checkpoint) {
         {
             ExpectedVec e = expected_27();
             missing(state, e);
-
-            if (res == 2) {
-                goto ret_ok;
-            }
-
             if (res == sep_brk) {
                 continue;
             }
@@ -5661,8 +5734,8 @@ static bool peak_58(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -5835,6 +5908,22 @@ static inline ExpectedVec expected_56(void) {
 
 /* Parse Named */
 static size_t parse_54(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_56(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_56(state, unmatched_checkpoint);
     if (res == 0) {
@@ -5998,6 +6087,22 @@ static inline ExpectedVec expected_50(void) {
 
 /* Parse Named */
 static size_t parse_48(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_50(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_50(state, unmatched_checkpoint);
     if (res == 0) {
@@ -6125,7 +6230,10 @@ static size_t parse_35(ParserState *state, size_t unmatched_checkpoint) {
     size_t break_code = push_break(state, break_pred_35);
     size_t res = parse_37(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {
+    if (res != 0) {
+        if (res == break_code) {
+            return 1;
+        }
         return res;
     }
     for(;;){
@@ -6192,8 +6300,8 @@ static bool peak_34(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -6464,7 +6572,10 @@ static size_t parse_32(ParserState *state, size_t unmatched_checkpoint) {
     size_t break_code = push_break(state, break_pred_32);
     size_t res = parse_34(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {
+    if (res != 0) {
+        if (res == break_code) {
+            return 1;
+        }
         return res;
     }
     for(;;){
@@ -6531,8 +6642,8 @@ static bool peak_31(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -6803,7 +6914,10 @@ static size_t parse_29(ParserState *state, size_t unmatched_checkpoint) {
     size_t break_code = push_break(state, break_pred_29);
     size_t res = parse_31(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {
+    if (res != 0) {
+        if (res == break_code) {
+            return 1;
+        }
         return res;
     }
     for(;;){
@@ -6870,8 +6984,8 @@ static bool peak_27(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -7086,7 +7200,10 @@ static size_t parse_25(ParserState *state, size_t unmatched_checkpoint) {
     size_t break_code = push_break(state, break_pred_25);
     size_t res = parse_27(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {
+    if (res != 0) {
+        if (res == break_code) {
+            return 1;
+        }
         return res;
     }
     for(;;){
@@ -7111,8 +7228,8 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -7288,6 +7405,22 @@ static inline ExpectedVec expected_22(void) {
 
 /* Parse Named */
 static size_t parse_20(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_22(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_22(state, unmatched_checkpoint);
     if (res == 0) {
@@ -7487,7 +7620,10 @@ static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
     size_t res = 0;
     res = parse_72(state, unmatched_checkpoint);
     if (res != 0) {
-        goto ret_err;
+        if (res == sep_brk) {
+            return 1;
+        }
+        return res;
     }
     for (;;) {
         for (;;) {
@@ -7499,12 +7635,7 @@ static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
             break;
         }
 
-        if (res == 0) {
-        } else {
-            if (res == 2) {
-                goto ret_ok;
-            }
-
+        if (res != 0) {
             if (res == item_brk) {
                 ExpectedVec e = expected_59();
                 missing(state, e);
@@ -7528,11 +7659,6 @@ static size_t parse_85(ParserState *state, size_t unmatched_checkpoint) {
         {
             ExpectedVec e = expected_72();
             missing(state, e);
-
-            if (res == 2) {
-                goto ret_ok;
-            }
-
             if (res == sep_brk) {
                 continue;
             }
@@ -7731,6 +7857,22 @@ static inline ExpectedVec expected_83(void) {
 
 /* Parse Named */
 static size_t parse_81(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_83(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_83(state, unmatched_checkpoint);
     if (res == 0) {
@@ -7979,6 +8121,22 @@ static inline ExpectedVec expected_77(void) {
 
 /* Parse Named */
 static size_t parse_75(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_77(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_77(state, unmatched_checkpoint);
     if (res == 0) {
@@ -8184,6 +8342,22 @@ static inline ExpectedVec expected_88(void) {
 
 /* Parse Named */
 static size_t parse_86(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_88(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_88(state, unmatched_checkpoint);
     if (res == 0) {
@@ -8255,7 +8429,10 @@ static size_t parse_72(ParserState *state, size_t unmatched_checkpoint) {
     size_t break_code = push_break(state, break_pred_72);
     size_t res = parse_75(state, unmatched_checkpoint);
     (void)break_stack_pop(&state->breaks, NULL);
-    if (res != 0 && res != break_code) {
+    if (res != 0) {
+        if (res == break_code) {
+            return 1;
+        }
         return res;
     }
     for(;;){
@@ -8400,6 +8577,22 @@ static inline ExpectedVec expected_70(void) {
 
 /* Parse Named */
 static size_t parse_68(ParserState *state, size_t unmatched_checkpoint) {
+    for (;;) {
+        if (state->offset >= state->tokens.len) {
+            return 2; /* EOF */
+        }
+
+        if (peak_70(state, 0, false)) {
+            break;
+        }
+
+        uint32_t k = current_kind(state);
+        if (skipped_vec_contains(&state->skipped, k)) {
+            bump_skipped(state);
+            continue;
+        }
+        break;
+    }
     size_t c = checkpoint(state);
     size_t res = parse_70(state, unmatched_checkpoint);
     if (res == 0) {
@@ -8482,8 +8675,8 @@ static bool peak_6(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
     return false;
@@ -8647,9 +8840,9 @@ static bool peak_4(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)0) return true;
     if (current == (uint32_t)1) return true;
     return false;
 }
@@ -8694,10 +8887,10 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)2) return true;
-    if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 
@@ -8771,8 +8964,8 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
     return false;
 }
@@ -8802,9 +8995,9 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)3) return true;
     return false;
 }
@@ -8835,9 +9028,9 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)1) return true;
     return false;
 }
 

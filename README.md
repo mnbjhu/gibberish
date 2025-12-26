@@ -4,18 +4,31 @@ Gibberish is a **parser combinator language and compiler** designed to produce *
 
 Unlike traditional parser combinator libraries that fail fast and discard structure on errors, Gibberish always produces a tree. Missing and unexpected syntax is represented explicitly, making it possible to reason about and recover from errors without backtracking or global failure.
 
+```sh
+gibberish parse bad.json --parser grammar.gib
+```
+
+<div align="center">
+  <img src="docs/svg/example.svg" alt="demo" width="500">
+</div>
+
 ---
 
 ## Getting Started
 
 ### Prerequisites
 
-Gibberish relies on **QBE** for code generation.
+Gibberish builds a C library and many of the commands rely on cc being present on the PATH.
+For windows you'll need CL.
 
-- `qbe` must be installed
-- `qbe` must be available on your `$PATH`
-
-If `qbe` is not present, grammar compilation (`build`, `generate`) will fail.
+> **Note**
+> Depending on a C compiler already seems like it's going to be a pain.
+> There's likely a lot configuations which won't work under the current setup.
+> However if this is the case you can generate the C instead, compile it to a shared lib and
+> point the `gibberish` CLI to that instead.
+> I think my plan is to build a Gibberish runtime for when you exeucte 'lex', 'parse', 'watch' etc
+> to avoid these struggles.
+> I'm hoping the current implementation is enough to demo the core ideas of the combinators.
 
 ---
 
@@ -27,7 +40,13 @@ Prebuilt binaries are available on the [**GitHub Releases**](https://github.com/
 - Place it somewhere on your `$PATH`
 - The executable is called `gibberish`
 
-At the moment, using a release binary is the recommended way to get started.
+#### Building from source
+
+```sh
+git clone https://github.com/mnbjhu/gibberish
+cd gibberish
+cargo install --path crates/gibberish
+```
 
 ---
 
@@ -44,7 +63,7 @@ docs/examples/
 For example, the JSON grammar can be parsed and tested against an input file:
 
 ```sh
-gibberish parse examples/test.json --parser docs/examples/json.gib
+gibberish parse docs/examples/test.json --parser docs/examples/json.gib
 ```
 
 This will print the **lossless syntax tree**, including structure, skipped tokens, and explicit error nodes.
@@ -145,9 +164,9 @@ The Gibberish compiler provides a set of tools for working with grammars and sou
 - **`lsp`**
   Start the Gibberish language server.
 
-```sh
-gibberish lsp
-```
+  ```sh
+  gibberish lsp
+  ```
 
 ---
 
@@ -159,6 +178,7 @@ Most parser combinator systems revolve around _success vs failure_. Gibberish in
 - Once a parser consumes input, it **must commit and finish responsibly** (`OK`)
 - Parsers can tell child parsers to `BREAK` rather than `ERR` when failing to pass specific tokens.
 - When a parser encounters a `BREAK` (that it wasn't the author of) the parser will **finish responsibly**
+  without consuming more input.
 - Errors are synthesized structurally, not thrown
 
 This allows Gibberish to recover gracefully from deeply broken input while still producing a meaningful, navigable tree.
@@ -172,16 +192,12 @@ The documentation reflects the current implementation but is still **early-stage
 The following documents capture the core ideas accurately:
 
 - **Architecture & Runtime Model**
-  Parser state, commitment, delimiters, and `BREAK` semantics
+  Parser state, commitment and `BREAK` semantics
   → [`docs/architecture.md`](docs/architecture.md)
 
 - **Language & Grammar Syntax**
   Tokens, keywords, parsers, and grammar expressions
   → [`docs/language.md`](docs/language.md)
-
-- **Error Recovery Model**
-  Missing vs unexpected nodes, commitment, and recovery behavior
-  → [`docs/error-recovery.md`](docs/error-recovery.md)
 
 - **Examples**
   Complete grammars (JSON, SQL, etc.)
