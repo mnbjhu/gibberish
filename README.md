@@ -178,6 +178,7 @@ Most parser combinator systems revolve around _success vs failure_. Gibberish in
 - Once a parser consumes input, it **must commit and finish responsibly** (`OK`)
 - Parsers can tell child parsers to `BREAK` rather than `ERR` when failing to pass specific tokens.
 - When a parser encounters a `BREAK` (that it wasn't the author of) the parser will **finish responsibly**
+  without consuming more input.
 - Errors are synthesized structurally, not thrown
 
 This allows Gibberish to recover gracefully from deeply broken input while still producing a meaningful, navigable tree.
