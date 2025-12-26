@@ -342,7 +342,7 @@ Overrides the default expected value used when generating `Missing` nodes.
 keyword true;
 keyword false;
 
-token whitespace = "[ \t\n\f]+";
+token whitespace = "\\s+";
 token str = "\"[^\"]*\"";
 token int = "[0-9]+";
 token colon = ":";
