@@ -486,6 +486,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gibberish-runtime"
+version = "0.1.0"
+dependencies = [
+ "gibberish-core",
+]
+
+[[package]]
 name = "gibberish_dyn_lib"
 version = "0.1.0"
 dependencies = [
