@@ -16,5 +16,5 @@ parser bool = true | false;
 parser array = _expr.sep_by(comma).delim_by(l_bracket, r_bracket);
 parser field = str + colon + _expr;
 parser object = field.sep_by(comma).delim_by(l_brace, r_brace);
-parser _expr = (object | array | string | num | bool).labelled(expr);
+parser _expr = (object | array | string | num | bool);
 parser root = _expr.skip(whitespace);
