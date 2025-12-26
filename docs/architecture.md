@@ -294,6 +294,10 @@ This establishes clear ownership rules:
 
 ![fold](svg/fold.svg)
 
+### Examples walkthrough
+
+![example](svg/gibberish-example.svg)
+
 ---
 
 ## Why This Model?
