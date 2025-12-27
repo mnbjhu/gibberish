@@ -155,7 +155,7 @@ impl<L: Lang> Lexeme<L> {
             "{}: {:?}{span}",
             color.paint(lang.token_name(&self.kind)),
             self.text,
-            span = GREY.paint(format!("@{:?}", self.span)),
+            span = GREY.paint(format!("@{}..{}", self.span.start(), self.span.end())),
         )
     }
 }

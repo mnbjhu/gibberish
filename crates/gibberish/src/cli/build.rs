@@ -196,6 +196,7 @@ fn compile_c_to_object(c_path: &Path, obj_path: &Path, pic: bool) {
             .arg("/Zi")
             .arg("/Od")
             .arg("/std:c11")
+            .arg("/FS")
             .arg("/Fo:".to_string() + obj_path.to_string_lossy().as_ref())
             .arg(c_path);
 

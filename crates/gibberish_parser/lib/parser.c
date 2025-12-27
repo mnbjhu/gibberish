@@ -5776,8 +5776,8 @@ static bool peak_57(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -6258,8 +6258,8 @@ static bool peak_35(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)14) return true;
     if (current == (uint32_t)20) return true;
+    if (current == (uint32_t)14) return true;
     return false;
 }
 
@@ -7228,8 +7228,8 @@ static bool peak_25(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)20) return true;
     if (current == (uint32_t)14) return true;
+    if (current == (uint32_t)20) return true;
     return false;
 }
 
@@ -8675,10 +8675,10 @@ static bool peak_6(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)3) return true;
     return false;
 }
 
@@ -8841,9 +8841,9 @@ static bool peak_4(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)2) return true;
     return false;
 }
 
@@ -8887,10 +8887,10 @@ static bool peak_3(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)0) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)1) return true;
+    if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)3) return true;
+    if (current == (uint32_t)2) return true;
     return false;
 }
 
@@ -8963,9 +8963,9 @@ static bool peak_2(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
+    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
     if (current == (uint32_t)1) return true;
-    if (current == (uint32_t)2) return true;
     if (current == (uint32_t)0) return true;
     return false;
 }
@@ -8995,8 +8995,8 @@ static bool peak_1(ParserState *state, size_t offset, bool recover) {
 
     uint32_t current = current_kind(state);
 
-    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
+    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)0) return true;
     if (current == (uint32_t)3) return true;
     return false;
@@ -9028,9 +9028,9 @@ static bool peak_0(ParserState *state, size_t offset, bool recover) {
     uint32_t current = current_kind(state);
 
     if (current == (uint32_t)0) return true;
+    if (current == (uint32_t)1) return true;
     if (current == (uint32_t)2) return true;
     if (current == (uint32_t)3) return true;
-    if (current == (uint32_t)1) return true;
     return false;
 }
 

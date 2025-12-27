@@ -1,10 +1,10 @@
 token num = "[0-9]+";
-token whitespace = "\s+";
+token whitespace = "\\s+";
 token comma = ",";
-token plus = "\+";
-token star = "\*";
-token l_bracket = "\[";
-token r_bracket = "\]";
+token plus = "\\+";
+token star = "\\*";
+token l_bracket = "\\[";
+token r_bracket = "\\]";
 token eq = "=";
 token ident = "[_a-zA-Z][_a-zA-Z0-9]*";
 
