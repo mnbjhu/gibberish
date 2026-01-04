@@ -5,7 +5,7 @@ use std::{
 
 use crate::lexer::{RegexAst, build::LexerBuilderState, parse_special};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OptionAst {
     Range(RangeInclusive<u8>),
     Char(u8),

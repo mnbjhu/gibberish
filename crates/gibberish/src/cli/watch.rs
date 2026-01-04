@@ -12,7 +12,7 @@ use tower_lsp::lsp_types::DiagnosticSeverity;
 use crate::cli::parse::load_parser;
 
 /// ANSI-clear + move cursor to top-left
-fn clear_screen() {
+pub fn clear_screen() {
     // \x1B[2J = clear screen, \x1B[1;1H = cursor home
     print!("\x1B[2J\x1B[1;1H");
     stdout().flush().unwrap();

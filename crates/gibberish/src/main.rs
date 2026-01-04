@@ -7,6 +7,7 @@ mod lexer;
 mod lsp;
 mod parser;
 mod report;
+mod runtime;
 
 #[tokio::main]
 async fn main() {

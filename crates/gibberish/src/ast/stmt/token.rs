@@ -60,7 +60,7 @@ impl<'a> TokenDefAst<'a> {
     }
 }
 
-fn parse_string(text: &str) -> String {
+pub fn parse_string(text: &str) -> String {
     let mut text = text.to_string();
     text.remove(0);
     text.pop();

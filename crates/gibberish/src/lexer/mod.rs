@@ -9,7 +9,7 @@ pub mod group;
 pub mod option;
 pub mod seq;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RegexAst {
     Exact(String),
     Seq(Vec<RegexAst>),

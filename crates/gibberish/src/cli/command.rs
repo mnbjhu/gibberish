@@ -49,6 +49,12 @@ pub enum Command {
         /// The minimum severity for an error to be reported
         #[clap(long, value_enum, default_value_t = Severity::default())]
         min_severity: Severity,
+
+        #[clap(short, long)]
+        runtime: bool,
+
+        #[clap(short, long)]
+        watch: bool,
     },
 
     /// Parses a file and shows the LST
@@ -116,6 +122,11 @@ pub enum Command {
 
     /// Start the Gibberish language server
     Lsp,
+
+    RuntimeLsp {
+        #[clap(short, long)]
+        parser: PathBuf,
+    },
 }
 
 impl Command {
@@ -137,9 +148,11 @@ impl Command {
                 src: path,
                 parser: parser_src,
                 min_severity,
+                runtime,
+                watch,
             } => {
                 if let Some(parser_src) = parser_src {
-                    lex_custom(path, parser_src, min_severity.into())
+                    lex_custom(path, parser_src, min_severity.into(), *runtime, *watch)
                 } else {
                     lex(path)
                 }
@@ -184,6 +197,9 @@ impl Command {
             } => build(path, output, min_severity.into()),
             Command::Generate { path } => generate(path),
             Command::Lsp => start_lsp().await,
+            Command::RuntimeLsp { parser } => {
+                crate::runtime::lsp::start_lsp(parser);
+            }
         }
     }
 }
