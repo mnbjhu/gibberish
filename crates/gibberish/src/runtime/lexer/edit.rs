@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::runtime::lexer::{Lexer, state::LexerState, token::Tok};
+use crate::runtime::lexer::{Lexer, pos::Pos, state::LexerState, token::Tok};
 
 pub struct TextEdit {
     pub remove: Range<usize>,
@@ -22,35 +22,35 @@ impl LexerState {
     pub fn edit(&mut self, lexer: &Lexer, edit: &TextEdit) -> TokenEdit {
         self.text.replace_range(edit.remove.clone(), &edit.text);
         let mut new: Vec<Tok> = vec![];
-        let mut offset = 0;
+        let mut pos = Pos::zero();
         let mut index = 0;
         for t in &self.tokens {
-            let lookahead = offset + t.len + t.lookahead;
+            let lookahead = pos.offset + t.relative_pos.offset + t.lookahead;
             if lookahead > edit.remove.start {
                 break;
             } else {
                 index += 1;
-                offset += t.len;
+                pos += t.relative_pos;
                 new.push(*t);
             }
         }
         let start = new.len();
         let rest = self.tokens[index..].to_vec();
         let mut rest_iter = rest.into_iter();
-        let mut after_edit_offset = isize::try_from(offset).unwrap() + edit.change();
+        let mut after_edit_offset = isize::try_from(pos.offset).unwrap() + edit.change();
         let mut removed = 0;
         let mut insert = 0;
         let edit_end = edit.remove.end + edit.text.len() - edit.remove.len();
         'outer: loop {
-            let ioffset = isize::try_from(offset).unwrap();
+            let ioffset = isize::try_from(pos.offset).unwrap();
             while after_edit_offset < ioffset {
                 let Some(next) = rest_iter.next() else {
                     break 'outer;
                 };
                 removed += 1;
-                after_edit_offset += isize::try_from(next.len).unwrap();
+                after_edit_offset += isize::try_from(next.relative_pos.offset).unwrap();
             }
-            if after_edit_offset == ioffset && offset >= edit_end {
+            if after_edit_offset == ioffset && pos.offset >= edit_end {
                 let end = new.len();
                 new.extend(rest_iter);
                 let new_len = new.len();
@@ -60,15 +60,15 @@ impl LexerState {
                     insert,
                 };
             }
-            if let Some(tok) = self.lex_token(offset, lexer) {
+            if let Some(tok) = self.lex_token(pos, lexer) {
                 insert += 1;
-                offset += tok.len;
+                pos += tok.relative_pos;
                 new.push(tok);
             }
         }
-        while let Some(tok) = self.lex_token(offset, lexer) {
+        while let Some(tok) = self.lex_token(pos, lexer) {
             insert += 1;
-            offset += tok.len;
+            pos += tok.relative_pos;
             new.push(tok);
         }
         let old_len = self.tokens.len();
@@ -83,7 +83,7 @@ impl LexerState {
 mod tests {
     use crate::{
         lexer::{RegexAst, seq::parse_seq},
-        runtime::lexer::{Lexer, LexerToken, edit::TextEdit, token::Tok},
+        runtime::lexer::{Lexer, LexerToken, edit::TextEdit, pos::Pos, token::Tok},
     };
 
     const WHITESPACE: u32 = 0;
@@ -138,7 +138,7 @@ mod tests {
         );
         assert_eq!(res.tokens.len(), 1);
         assert_eq!(res.tokens[0].kind, IDENT);
-        assert_eq!(res.tokens[0].len, 5);
+        assert_eq!(res.tokens[0].relative_pos.offset, 5);
         assert_eq!(res.tokens[0].lookahead, 1);
 
         assert_eq!(edit.remove, 0..0);
@@ -152,7 +152,7 @@ mod tests {
 
         assert_eq!(res.tokens.len(), 1);
         assert_eq!(res.tokens[0].kind, IDENT);
-        assert_eq!(res.tokens[0].len, 5);
+        assert_eq!(res.tokens[0].relative_pos.offset, 5);
         assert_eq!(res.tokens[0].lookahead, 1);
 
         let edit = res.edit(
@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(res.text, "hi");
         assert_eq!(res.tokens.len(), 1);
         assert_eq!(res.tokens[0].kind, IDENT);
-        assert_eq!(res.tokens[0].len, 2);
+        assert_eq!(res.tokens[0].relative_pos.offset, 2);
         assert_eq!(res.tokens[0].lookahead, 1);
 
         assert_eq!(edit.remove, 0..1);
@@ -183,7 +183,11 @@ mod tests {
             res.tokens[0],
             Tok {
                 kind: WHITESPACE,
-                len: 1,
+                relative_pos: Pos {
+                    offset: 1,
+                    char: 1,
+                    line: 0
+                },
                 lookahead: 1
             }
         );
@@ -191,7 +195,11 @@ mod tests {
             res.tokens[1],
             Tok {
                 kind: IDENT,
-                len: 5,
+                relative_pos: Pos {
+                    offset: 5,
+                    char: 5,
+                    line: 0
+                },
                 lookahead: 1
             }
         );
@@ -200,7 +208,11 @@ mod tests {
             res.tokens[2],
             Tok {
                 kind: WHITESPACE,
-                len: 1,
+                relative_pos: Pos {
+                    offset: 1,
+                    char: 1,
+                    line: 0
+                },
                 lookahead: 1
             }
         );
@@ -220,7 +232,11 @@ mod tests {
             res.tokens[0],
             Tok {
                 kind: WHITESPACE,
-                len: 1,
+                relative_pos: Pos {
+                    offset: 1,
+                    char: 1,
+                    line: 0
+                },
                 lookahead: 1
             }
         );
@@ -228,7 +244,11 @@ mod tests {
             res.tokens[1],
             Tok {
                 kind: IDENT,
-                len: 2,
+                relative_pos: Pos {
+                    offset: 2,
+                    char: 2,
+                    line: 0
+                },
                 lookahead: 1
             }
         );
@@ -237,7 +257,11 @@ mod tests {
             res.tokens[2],
             Tok {
                 kind: WHITESPACE,
-                len: 1,
+                relative_pos: Pos {
+                    offset: 1,
+                    char: 1,
+                    line: 0
+                },
                 lookahead: 1
             }
         );

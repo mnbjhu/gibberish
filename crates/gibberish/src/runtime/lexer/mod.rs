@@ -9,7 +9,10 @@ use std::cmp::max;
 
 use crate::{
     lexer::RegexAst,
-    runtime::{lexer::state::LexerState, parser::Parser},
+    runtime::{
+        lexer::{pos::Pos, state::LexerState},
+        parser::Parser,
+    },
 };
 
 #[derive(Default)]
@@ -36,20 +39,20 @@ impl Lexer {
 
     pub fn lex(&self, text: String) -> LexerState {
         let err_id = self.tokens.len() as u32;
-        let mut offset = 0;
+        let mut offset = Pos::zero();
         let mut state = LexerState {
             text,
             max_peak: 0,
             tokens: vec![],
         };
         while let Some(tok) = state.lex_token(offset, self) {
-            offset += tok.len;
+            offset += tok.relative_pos;
             if tok.kind == err_id
                 && let Some(last) = state.tokens.last_mut()
                 && last.kind == err_id
             {
                 last.lookahead = max(last.lookahead.saturating_sub(1), tok.lookahead);
-                last.len += 1
+                last.relative_pos += tok.relative_pos;
             } else {
                 state.tokens.push(tok);
             }

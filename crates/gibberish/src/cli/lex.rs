@@ -49,13 +49,13 @@ pub fn lex_custom(
         if watch {
             for tok in &lex_res.tokens {
                 println!(
-                    "{name}:{len}:{lookahead}",
+                    "{name}:{pos:?}:{lookahead}",
                     name = parser
                         .lexer
                         .get(tok.kind as usize)
                         .map(|(name, _)| name.as_str())
                         .unwrap_or("Err"),
-                    len = tok.len,
+                    pos = tok.relative_pos,
                     lookahead = tok.lookahead
                 )
             }
@@ -73,13 +73,13 @@ pub fn lex_custom(
                         lex_res = lexer.lex(text);
                         for tok in &lex_res.tokens {
                             println!(
-                                "{name}:{len}:{lookahead}",
+                                "{name}:{pos:?}:{lookahead}",
                                 name = parser
                                     .lexer
                                     .get(tok.kind as usize)
                                     .map(|(name, _)| name.as_str())
                                     .unwrap_or("Err"),
-                                len = tok.len,
+                                pos = tok.relative_pos,
                                 lookahead = tok.lookahead
                             )
                         }
@@ -90,13 +90,13 @@ pub fn lex_custom(
         } else {
             for tok in &lex_res.tokens {
                 println!(
-                    "{name}:{len}:{lookahead}",
+                    "{name}:{pos:?}:{lookahead}",
                     name = parser
                         .lexer
                         .get(tok.kind as usize)
                         .map(|(name, _)| name.as_str())
                         .unwrap_or("Err"),
-                    len = tok.len,
+                    pos = tok.relative_pos,
                     lookahead = tok.lookahead
                 )
             }

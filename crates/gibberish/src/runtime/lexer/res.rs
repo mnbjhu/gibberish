@@ -1,5 +1,7 @@
+use crate::runtime::lexer::pos::Pos;
+
 #[derive(Default)]
 pub struct LexResult {
-    pub matched: usize,
-    pub group: Option<usize>,
+    pub matched: Pos,
+    pub group: Option<Pos>,
 }

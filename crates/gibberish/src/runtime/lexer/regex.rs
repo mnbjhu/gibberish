@@ -1,15 +1,15 @@
 use crate::{
     lexer::{RegexAst, option::OptionAst},
-    runtime::lexer::{res::LexResult, state::LexerState},
+    runtime::lexer::{pos::Pos, res::LexResult, state::LexerState},
 };
 
 impl RegexAst {
-    pub fn lex(&self, mut offset: usize, state: &mut LexerState) -> Option<LexResult> {
+    pub fn lex(&self, mut pos: Pos, state: &mut LexerState) -> Option<LexResult> {
         match self {
             RegexAst::Exact(t) => {
-                if state.cmp_str(offset, t) {
+                if let Some(matched) = state.cmp_str(pos.offset, t) {
                     Some(LexResult {
-                        matched: t.len(),
+                        matched,
                         group: None,
                     })
                 } else {
@@ -19,8 +19,8 @@ impl RegexAst {
             RegexAst::Seq(regex_asts) => {
                 let mut res = LexResult::default();
                 for part in regex_asts {
-                    let p = part.lex(offset, state)?;
-                    offset += p.matched;
+                    let p = part.lex(pos, state)?;
+                    pos += p.matched;
                     res.matched += p.matched;
                     if let Some(group) = p.group {
                         res.group = Some(group)
@@ -31,14 +31,12 @@ impl RegexAst {
             RegexAst::Choice { negate, options } => {
                 if *negate {
                     for op in options {
-                        if op.lex(offset, state).is_some() {
+                        if op.lex(pos, state).is_some() {
                             return None;
                         }
                     }
-                    let matched = if state.get_char(offset).is_some() {
-                        1
-                    } else {
-                        0
+                    let (Some(_), matched) = state.get_char_with_pos(pos.offset) else {
+                        return None;
                     };
                     Some(LexResult {
                         matched,
@@ -46,7 +44,7 @@ impl RegexAst {
                     })
                 } else {
                     for op in options {
-                        if let Some(res) = op.lex(offset, state) {
+                        if let Some(res) = op.lex(pos, state) {
                             return Some(res);
                         }
                     }
@@ -56,7 +54,7 @@ impl RegexAst {
             RegexAst::Group { options, capture } => {
                 let mut res = None;
                 for op in options {
-                    res = op.lex(offset, state);
+                    res = op.lex(pos, state);
                     if res.is_some() {
                         break;
                     }
@@ -71,12 +69,12 @@ impl RegexAst {
                 }
             }
             RegexAst::Rep0(regex_ast) => {
-                let mut matched = 0;
-                while let Some(res) = regex_ast.lex(offset, state)
-                    && res.matched > 0
+                let mut matched = Pos::zero();
+                while let Some(res) = regex_ast.lex(pos, state)
+                    && res.matched.offset > 0
                 {
                     matched += res.matched;
-                    offset += res.matched;
+                    pos += res.matched;
                 }
                 Some(LexResult {
                     matched,
@@ -84,17 +82,17 @@ impl RegexAst {
                 })
             }
             RegexAst::Rep1(regex_ast) => {
-                let mut matched = 0;
-                if let Some(res) = regex_ast.lex(offset, state) {
-                    offset += res.matched;
+                let mut matched = Pos::zero();
+                if let Some(res) = regex_ast.lex(pos, state) {
+                    pos += res.matched;
                     matched += res.matched;
                 } else {
                     return None;
                 }
-                while let Some(res) = regex_ast.lex(offset, state)
-                    && res.matched > 0
+                while let Some(res) = regex_ast.lex(pos, state)
+                    && res.matched.offset > 0
                 {
-                    offset += res.matched;
+                    pos += res.matched;
                     matched += res.matched;
                 }
                 Some(LexResult {
@@ -103,11 +101,11 @@ impl RegexAst {
                 })
             }
             RegexAst::Whitepace => {
-                if let Some(char) = state.get_char(offset)
+                if let (Some(char), pos) = state.get_char_with_pos(pos.offset)
                     && char.is_whitespace()
                 {
                     Some(LexResult {
-                        matched: 1,
+                        matched: pos,
                         group: None,
                     })
                 } else {
@@ -115,9 +113,9 @@ impl RegexAst {
                 }
             }
             RegexAst::Any => {
-                if state.get_char(offset).is_some() {
+                if let (Some(_), matched) = state.get_char_with_pos(pos.offset) {
                     Some(LexResult {
-                        matched: 1,
+                        matched,
                         group: None,
                     })
                 } else {
@@ -130,32 +128,33 @@ impl RegexAst {
 }
 
 impl OptionAst {
-    pub fn lex(&self, offset: usize, state: &mut LexerState) -> Option<LexResult> {
+    pub fn lex(&self, pos: Pos, state: &mut LexerState) -> Option<LexResult> {
         match self {
             OptionAst::Range(range) => {
-                if state.get_char(offset).is_some_and(|it| {
-                    let it = it as u8;
-                    it >= *range.start() && it <= *range.end()
-                }) {
-                    Some(LexResult {
-                        matched: 1,
-                        group: None,
-                    })
-                } else {
-                    None
+                if let (Some(char), matched) = state.get_char_with_pos(pos.offset) {
+                    let it = char as u8;
+                    if it >= *range.start() && it <= *range.end() {
+                        return Some(LexResult {
+                            matched,
+                            group: None,
+                        });
+                    }
                 }
+                None
             }
             OptionAst::Char(char) => {
-                if state.get_char(offset).is_some_and(|it| it as u8 == *char) {
+                if let (Some(it), matched) = state.get_char_with_pos(pos.offset)
+                    && it as u8 == *char
+                {
                     Some(LexResult {
-                        matched: 1,
+                        matched,
                         group: None,
                     })
                 } else {
                     None
                 }
             }
-            OptionAst::Regex(regex_ast) => regex_ast.lex(offset, state),
+            OptionAst::Regex(regex_ast) => regex_ast.lex(pos, state),
         }
     }
 }
