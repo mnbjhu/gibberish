@@ -1,9 +1,76 @@
+use std::iter::Peekable;
+
 use tracing::info;
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
-    parser::{node::Node, res::Res, state::State},
+    parser::{Parser, node::Node, res::Res, state::State},
 };
+
+impl Parser {
+    pub fn try_edit<'a, 't>(
+        &'a self,
+        existing: &mut Peekable<impl Iterator<Item = Node<'a>>>,
+        new: &mut Vec<Node<'a>>,
+        index: usize,
+        edit: &mut TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+        match self {
+            Parser::Just(tok) => self.parse(index, state),
+            Parser::Choice(parsers) => {
+                todo!()
+            }
+            Parser::Seq(parsers) => todo!(),
+            Parser::Rep(parser) => todo!(),
+            Parser::Named { name, inner } => todo!(),
+        }
+    }
+
+    pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {
+        match self {
+            Parser::Just(tok) => {
+                if let Node::Token(id) = node
+                    && tok == id
+                {
+                    true
+                } else {
+                    false
+                }
+            }
+            Parser::Choice(parsers) => parsers.iter().any(|it| it.peak_edit(node)),
+            Parser::Seq(parsers) => parsers.first().unwrap().peak_edit(node),
+            Parser::Rep(parser) => parser.peak_edit(node),
+            Parser::Named { name, .. } => {
+                if let Node::Group { kind, .. } = node
+                    && name == kind
+                {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    pub fn edit<'a, 't>(
+        &'a self,
+        node: Node<'a>,
+        index: usize,
+        mut edit: TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+    }
+}
+
+impl<'a> Res<'a> {
+    pub fn map(self, f: fn(Node<'a>) -> Node<'a>) -> Res<'a> {
+        match self {
+            Res::Ok(node) => Res::Ok(f(node)),
+            res => res,
+        }
+    }
+}
 
 impl<'a> Node<'a> {
     pub fn edit<'t>(
@@ -15,7 +82,7 @@ impl<'a> Node<'a> {
         match self {
             Node::Unexpected(len) => (None, None),
             Node::Missing(parser) => (None, None),
-            Node::Token => (None, None),
+            Node::Token(_) => (None, None),
             Node::List { items, len } => todo!(),
             Node::Group {
                 mut children,

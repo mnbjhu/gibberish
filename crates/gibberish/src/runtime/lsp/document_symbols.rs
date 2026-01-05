@@ -116,7 +116,7 @@ impl<'a> Node<'a> {
                     children: None,
                 })
             }
-            Node::Token => state
+            Node::Token(_) => state
                 .lexer_state
                 .tokens
                 .get(*index)

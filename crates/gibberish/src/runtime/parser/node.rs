@@ -6,7 +6,7 @@ use crate::runtime::{LexerParserState, parser::Parser};
 pub enum Node<'a> {
     Unexpected(usize),
     Missing(&'a Parser),
-    Token,
+    Token(u32),
     List {
         items: Vec<Node<'a>>,
         len: usize,
@@ -33,7 +33,7 @@ impl<'a> Node<'a> {
         match self {
             Node::Unexpected(len) => *len,
             Node::Missing(_) => 0,
-            Node::Token => 1,
+            Node::Token(_) => 1,
             Node::List { len, .. } => *len,
             Node::Group { len, .. } => *len,
         }
@@ -72,9 +72,8 @@ impl<'a> Node<'a> {
                         .join(", ")
                 )
             }
-            Node::Token => {
-                let kind = state.lexer_state.tokens[offset].kind;
-                writeln!(f, "{}", state.lexer.name_by_id(kind))
+            Node::Token(kind) => {
+                writeln!(f, "{}", state.lexer.name_by_id(*kind))
             }
             Node::Group { kind, children, .. } => {
                 writeln!(f, "{}", state.name_by_id(*kind))?;

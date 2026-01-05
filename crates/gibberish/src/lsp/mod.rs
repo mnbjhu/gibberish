@@ -1,6 +1,8 @@
 use crate::lsp::definition::goto_definition;
 use crate::lsp::fmt::formatting;
-use crate::lsp::semantic_token::{semantic_tokens_full, semantic_tokens_range, ImCompleteSemanticToken};
+use crate::lsp::semantic_token::{
+    ImCompleteSemanticToken, semantic_tokens_full, semantic_tokens_range,
+};
 use dashmap::DashMap;
 use gibberish_core::node::Node;
 use gibberish_gibberish_parser::Gibberish;
@@ -13,17 +15,17 @@ use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-pub mod fmt;
-pub mod references;
-pub mod funcs;
+mod capabilities;
 pub mod change;
 pub mod completions;
-pub mod semantic_token;
-mod hover;
-mod rename;
-mod diagnostics;
-mod capabilities;
 mod definition;
+mod diagnostics;
+pub mod fmt;
+pub mod funcs;
+mod hover;
+pub mod references;
+mod rename;
+pub mod semantic_token;
 
 #[derive(Debug)]
 pub struct Backend {
@@ -37,7 +39,10 @@ pub struct Backend {
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
-            server_info: Some(ServerInfo { name: "gibls".to_string(), version: None }),
+            server_info: Some(ServerInfo {
+                name: "gibls".to_string(),
+                version: None,
+            }),
             offset_encoding: None,
             capabilities: capabilities::capabilities(),
         })
@@ -156,7 +161,6 @@ impl LanguageServer for Backend {
 
         Ok(None)
     }
-
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -176,7 +180,6 @@ pub struct TextDocumentItem<'a> {
     text: &'a str,
     version: Option<i32>,
 }
-
 
 pub async fn start_lsp() {
     env_logger::init();

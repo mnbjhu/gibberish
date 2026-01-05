@@ -36,7 +36,7 @@ impl<'a> Parser {
             Parser::Just(token) => {
                 if let Some(current) = state.token_at(offset) {
                     if current == *token {
-                        Res::Ok(Node::Token)
+                        Res::Ok(Node::Token(*token))
                     } else if let Some(index) = state.get_break(offset) {
                         let b = index + 1;
                         Res::Break(b)
