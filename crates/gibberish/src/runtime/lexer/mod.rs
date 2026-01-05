@@ -7,6 +7,8 @@ pub mod token;
 
 use std::cmp::max;
 
+use tracing::debug;
+
 use crate::{
     lexer::RegexAst,
     runtime::{
@@ -27,6 +29,19 @@ pub struct LexerToken {
 }
 
 impl Lexer {
+    pub fn name_by_id(&self, id: u32) -> &str {
+        self.tokens
+            .iter()
+            .find_map(|it| {
+                if it.id == id {
+                    Some(it.name.as_str())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or("ERR")
+    }
+
     pub fn get_parser(&self, name: &str) -> Option<Parser> {
         self.tokens.iter().find_map(|it| {
             if it.name == name {
@@ -46,6 +61,7 @@ impl Lexer {
             tokens: vec![],
         };
         while let Some(tok) = state.lex_token(offset, self) {
+            debug!("Parsed: {tok:?} | offset: {offset:?}");
             offset += tok.relative_pos;
             if tok.kind == err_id
                 && let Some(last) = state.tokens.last_mut()

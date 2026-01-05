@@ -6,6 +6,7 @@ pub enum Res<'a> {
     Break(usize),
     Err,
 }
+
 impl<'a> Res<'a> {
     pub fn unwrap(self) -> Node<'a> {
         match self {
@@ -13,5 +14,9 @@ impl<'a> Res<'a> {
             Res::Break(index) => panic!("Expected Ok node but got Break({index})"),
             Res::Err => panic!("Expected Ok node but got Err"),
         }
+    }
+
+    pub fn pop(&mut self) -> Self {
+        std::mem::replace(self, Res::Err)
     }
 }

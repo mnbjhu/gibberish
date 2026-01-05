@@ -39,6 +39,7 @@ impl LexerState {
                 } else {
                     pos.char += 1;
                 }
+                pos.offset += 1;
                 offset += 1;
             } else {
                 return None;

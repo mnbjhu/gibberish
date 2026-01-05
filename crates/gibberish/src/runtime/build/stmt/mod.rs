@@ -5,7 +5,7 @@ use crate::{
         token::{TokenDefAst, parse_string},
     },
     lexer::{RegexAst, seq::parse_seq},
-    runtime::{build::RuntimeBuilder, lexer::LexerToken},
+    runtime::{build::RuntimeBuilder, lexer::LexerToken, parser::Parser},
 };
 
 impl<'a> StmtAst<'a> {
@@ -35,6 +35,17 @@ impl<'a> ParserDefAst<'a> {
     pub fn build_runtime(&self, builder: &mut RuntimeBuilder) {
         let name = self.name().unwrap().text.to_string();
         let expr = self.expr().unwrap().build_runtime(builder);
+        builder
+            .named
+            .insert(builder.parsers.len() as u32, name.clone());
+        let expr = if name.starts_with("_") {
+            expr
+        } else {
+            Parser::Named {
+                name: builder.parsers.len() as u32,
+                inner: Box::new(expr),
+            }
+        };
         builder.parsers.insert(name, expr);
     }
 }

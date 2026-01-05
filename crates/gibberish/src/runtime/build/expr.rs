@@ -18,7 +18,16 @@ impl<'a> ExprAst<'a> {
             ),
             ExprAst::Bracketed(expr_ast, _) => expr_ast.build_runtime(builder),
             ExprAst::Empty => todo!(),
-            ExprAst::Call(_) => todo!(),
+            ExprAst::Call(call) => {
+                let mut expr = call.target().build_runtime(builder);
+                for arm in call.arms() {
+                    match arm.name().unwrap().text.as_str() {
+                        "repeated" => expr = Parser::Rep(Box::new(expr)),
+                        _ => todo!(),
+                    }
+                }
+                expr
+            }
         }
     }
 }

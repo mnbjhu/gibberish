@@ -1,5 +1,11 @@
-use crate::runtime::parser::{node::Node, res::Res, state::State};
+use log::info;
 
+use crate::runtime::{
+    LexerParserState,
+    parser::{node::Node, res::Res, state::State},
+};
+
+pub mod edit;
 pub mod node;
 pub mod res;
 pub mod state;
@@ -25,16 +31,14 @@ impl<'a> Parser {
     }
 
     pub fn parse<'t>(&'a self, mut offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
-        println!("Parsing {kind} at {offset}", kind = self.kind());
+        info!("Parsing {self:#?} at {offset}",);
         match self {
             Parser::Just(token) => {
                 if let Some(current) = state.token_at(offset) {
                     if current == *token {
-                        println!("Bump {token:?}");
-                        Res::Ok(Node::Token(self))
+                        Res::Ok(Node::Token)
                     } else if let Some(index) = state.get_break(offset) {
                         let b = index + 1;
-                        println!("Hit break {b}: {}", state.break_stack[b - 1].kind());
                         Res::Break(b)
                     } else {
                         Res::Err
@@ -170,7 +174,7 @@ impl<'a> Parser {
                             len: children.iter().map(Node::len).sum(),
                             children,
                             breaks_from_parent,
-                            parser: inner,
+                            parser: self,
                         })
                     }
                     res => res,
@@ -190,10 +194,6 @@ impl<'a> Parser {
         let mut res = self.parse(*offset, state);
         while let Res::Err = res {
             if state.token_at(*offset).is_some() {
-                println!(
-                    "Bump err from try_parse {:?}",
-                    state.token_at(*offset).unwrap()
-                );
                 *offset += 1;
                 if let Some(Node::Unexpected(len)) = nodes.last_mut() {
                     *len += 1;
@@ -215,6 +215,35 @@ impl<'a> Parser {
             Parser::Seq(parsers) => parsers.first().is_some_and(|it| it.peak(offset, state)),
             Parser::Rep(parser) => parser.peak(offset, state),
             Parser::Named { inner, .. } => inner.peak(offset, state),
+        }
+    }
+
+    pub fn expected(&self) -> Vec<Expected> {
+        match self {
+            Parser::Just(tok) => {
+                vec![Expected::Token(*tok)]
+            }
+            Parser::Choice(parsers) => parsers
+                .iter()
+                .flat_map(|it| it.expected().into_iter())
+                .collect(),
+            Parser::Seq(parsers) => parsers.first().unwrap().expected(),
+            Parser::Rep(parser) => parser.expected(),
+            Parser::Named { name, .. } => vec![Expected::Syntax(*name)],
+        }
+    }
+}
+
+pub enum Expected {
+    Token(u32),
+    Syntax(u32),
+}
+
+impl Expected {
+    pub fn get_str<'a>(&self, state: &LexerParserState<'a>) -> &'a str {
+        match self {
+            Expected::Token(id) => state.lexer.name_by_id(*id),
+            Expected::Syntax(id) => state.name_by_id(*id),
         }
     }
 }

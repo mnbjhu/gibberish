@@ -13,6 +13,7 @@ use crate::cli::lex::lex_custom;
 use crate::cli::parse::parse_custom;
 use crate::cli::watch::watch_custom;
 use crate::lsp::start_lsp;
+use crate::runtime::cmd::RuntimeCommand;
 
 use super::{lex::lex, parse::parse, watch::watch};
 
@@ -123,10 +124,8 @@ pub enum Command {
     /// Start the Gibberish language server
     Lsp,
 
-    RuntimeLsp {
-        #[clap(short, long)]
-        parser: PathBuf,
-    },
+    #[clap(subcommand)]
+    Runtime(RuntimeCommand),
 }
 
 impl Command {
@@ -197,9 +196,7 @@ impl Command {
             } => build(path, output, min_severity.into()),
             Command::Generate { path } => generate(path),
             Command::Lsp => start_lsp().await,
-            Command::RuntimeLsp { parser } => {
-                crate::runtime::lsp::start_lsp(parser);
-            }
+            Command::Runtime(r) => r.run(),
         }
     }
 }

@@ -1,24 +1,62 @@
 use std::ops::Range;
 
+use lsp_types::Position;
+use tracing::debug;
+
 use crate::runtime::lexer::{Lexer, pos::Pos, state::LexerState, token::Tok};
 
+#[derive(Debug)]
 pub struct TextEdit {
     pub remove: Range<usize>,
     pub text: String,
 }
 
+#[derive(Debug)]
 pub struct TokenEdit {
     pub remove: Range<usize>,
     pub insert: usize,
 }
 
 impl TextEdit {
-    fn change(&self) -> isize {
+    pub fn change(&self) -> isize {
         isize::try_from(self.text.len()).unwrap() - isize::try_from(self.remove.len()).unwrap()
     }
 }
 
+impl TokenEdit {
+    pub fn change(&self) -> isize {
+        isize::try_from(self.insert).unwrap() - isize::try_from(self.remove.len()).unwrap()
+    }
+}
+
+impl Pos {
+    fn less_than(&self, other: &Position) -> bool {
+        if self.line as u32 == other.line {
+            (self.char as u32) < other.character
+        } else {
+            (self.line as u32) < other.line
+        }
+    }
+}
+
 impl LexerState {
+    pub fn offset_from_position(&self, lsp_pos: &Position) -> usize {
+        let mut pos = Pos::zero();
+        for tok in &self.tokens {
+            if !(pos + tok.relative_pos).less_than(lsp_pos) {
+                while pos.less_than(lsp_pos) {
+                    pos += match self.text.chars().nth(pos.offset).unwrap() {
+                        '\n' => Pos::newline(),
+                        _ => Pos::non_newline(),
+                    }
+                }
+                return pos.offset;
+            }
+            pos += tok.relative_pos;
+        }
+        panic!("Outside of text")
+    }
+
     pub fn edit(&mut self, lexer: &Lexer, edit: &TextEdit) -> TokenEdit {
         self.text.replace_range(edit.remove.clone(), &edit.text);
         let mut new: Vec<Tok> = vec![];

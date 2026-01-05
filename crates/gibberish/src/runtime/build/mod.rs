@@ -13,6 +13,7 @@ pub struct RuntimeBuilder {
     pub lexer: Lexer,
     // TODO: Actual implementation will need to build recursize structures
     pub parsers: HashMap<String, Parser>,
+    pub named: HashMap<u32, String>,
 }
 
 impl RuntimeBuilder {
