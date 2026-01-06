@@ -8,32 +8,87 @@ use crate::runtime::{
 };
 
 impl Parser {
+    /// Edits an existing parse tree node.
+    ///
+    /// - `node`: The node to edit
+    /// - `index`: The starting position in the text
+    /// - `edit`: The edit to apply
+    /// - `state`: The parser state
+    pub fn edit<'a, 't>(
+        &'a self,
+        node: Node<'a>,
+        mut offset: usize,
+        mut edit: TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+        // Early return if the edit is empty or node is entirely before the edit
+        let node_len = node.len();
+        let node_end = offset + node_len;
+
+        if edit.is_empty() || node_end <= edit.remove.start {
+            return Res::Ok(node);
+        }
+
+        // If the node is after the edit, it shouldn't be modified
+        if offset >= edit.remove.end {
+            return Res::Ok(node);
+        }
+
+        info!("Editing {self:#?} at {offset}",);
+        match self {
+            Parser::Choice(parsers) => {
+                let option = parsers.iter().find(|it| it.peak_edit(&node));
+                if let Some(option) = option
+                    && let Res::Ok(node) = option.edit(node, offset, edit, state)
+                {
+                    return Res::Ok(node);
+                }
+                self.parse(offset, state)
+            }
+            Parser::Named { name, .. } => {
+                if let Node::Group { kind, .. } = &node
+                    && kind == name
+                {
+                    Res::Ok(node)
+                } else {
+                    self.parse(offset, state)
+                }
+            }
+            Parser::Seq(parsers) => todo!(),
+            Parser::Just(token) => {
+                todo!()
+            }
+            Parser::Rep(inner) => {
+                todo!()
+            }
+        }
+    }
+
+    pub fn edit_from_iter<'a, 't>(
+        &'a self,
+        existing: &mut Peekable<impl Iterator<Item = Node<'a>>>,
+        mut index: usize,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+        todo!()
+    }
+
     pub fn try_edit<'a, 't>(
         &'a self,
         existing: &mut Peekable<impl Iterator<Item = Node<'a>>>,
         new: &mut Vec<Node<'a>>,
-        index: usize,
+        index: &mut usize,
         edit: &mut TokenEdit,
         state: &mut State<'a, 't>,
     ) -> Res<'a> {
-        match self {
-            Parser::Just(tok) => self.parse(index, state),
-            Parser::Choice(parsers) => {
-                todo!()
-            }
-            Parser::Seq(parsers) => todo!(),
-            Parser::Rep(parser) => todo!(),
-            Parser::Named { name, inner } => todo!(),
-        }
+        todo!()
     }
 
     pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {
         match self {
             Parser::Just(tok) => {
-                if let Node::Token(id) = node
-                    && tok == id
-                {
-                    true
+                if let Node::Token(id) = node {
+                    tok == id
                 } else {
                     false
                 }
@@ -42,24 +97,13 @@ impl Parser {
             Parser::Seq(parsers) => parsers.first().unwrap().peak_edit(node),
             Parser::Rep(parser) => parser.peak_edit(node),
             Parser::Named { name, .. } => {
-                if let Node::Group { kind, .. } = node
-                    && name == kind
-                {
-                    true
+                if let Node::Group { kind, .. } = node {
+                    name == kind
                 } else {
                     false
                 }
             }
         }
-    }
-
-    pub fn edit<'a, 't>(
-        &'a self,
-        node: Node<'a>,
-        index: usize,
-        mut edit: TokenEdit,
-        state: &mut State<'a, 't>,
-    ) -> Res<'a> {
     }
 }
 
@@ -72,86 +116,73 @@ impl<'a> Res<'a> {
     }
 }
 
-impl<'a> Node<'a> {
-    pub fn edit<'t>(
-        self,
-        index: usize,
-        edit: &TokenEdit,
-        state: &mut State<'a, 't>,
-    ) -> (Option<Res<'a>>, Option<usize>) {
-        match self {
-            Node::Unexpected(len) => (None, None),
-            Node::Missing(parser) => (None, None),
-            Node::Token(_) => (None, None),
-            Node::List { items, len } => todo!(),
-            Node::Group {
-                mut children,
-                parser,
-                kind,
-                len,
-                breaks_from_parent,
-            } => {
-                let mut off = index;
-                info!(
-                    "Editing {kind}@{span:?} at {index} with {edit:?}",
-                    span = off..off + len
-                );
-                let mut s = None;
-                for i in 0..children.len() {
-                    let child_len = children[i].len();
-                    let span = off..off + child_len;
-                    info!("Checking child {i}@{span:?}");
-                    if span.contains(&edit.remove.start) {
-                        if edit.remove.end > off + child_len {
-                            info!("Edit if after token end");
-                            return (None, None);
-                        }
-                        let Node::Group { parser: inner, .. } = children[i] else {
-                            return (None, None);
-                        };
-                        let expected_len = isize::try_from(child_len).unwrap() + edit.change();
-                        for b in &breaks_from_parent {
-                            state.break_stack.push(b);
-                        }
-                        let new =
-                            if let (Some(res), start) = children.remove(i).edit(off, edit, state) {
-                                s = start;
-                                res
-                            } else {
-                                inner.parse(off, state)
-                            };
-                        for _ in &breaks_from_parent {
-                            state.break_stack.pop();
-                        }
-                        if let Res::Ok(new) = new {
-                            if usize::try_from(expected_len).unwrap() == new.len() {
-                                children.insert(i, new);
-                                info!("New matches the edit size");
-                                break;
-                            }
-                            info!(
-                                "Failed to parse new {new_len} != {expected_len} (new != expected)",
-                                new_len = new.len()
-                            );
-                        }
-                        info!("Parse failed with err",);
-                        return (None, None);
-                    }
-                    off += child_len;
-                }
-                info!("Done {kind}");
-                (
-                    Some(Res::Ok(Node::Group {
-                        kind,
-                        children,
-                        len: usize::try_from(isize::try_from(len).unwrap() + edit.change())
-                            .unwrap(),
-                        parser,
-                        breaks_from_parent,
-                    })),
-                    Some(s.unwrap_or(off)),
-                )
-            }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::lexer::token::Tok;
+
+    #[test]
+    fn test_edit_token_node() {
+        // Create a token node and a token edit
+        let node = Node::Token(42);
+        let edit = TokenEdit {
+            remove: 0..0, // Empty edit
+            insert: 0,
+        };
+
+        // Create a parser that matches the token
+        let parser = Parser::Just(42);
+
+        // Create a minimal state
+        let tokens: Vec<Tok> = Vec::new(); // Empty tokens for test
+        let mut state = State {
+            tokens: &tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+
+        // Test editing with an empty edit (should pass through unchanged)
+        let result = parser.edit(node, 0, edit, &mut state);
+
+        // The edit should succeed and return the same token
+        assert!(matches!(result, Res::Ok(Node::Token(42))));
+    }
+
+    #[test]
+    fn test_edit_list_node() {
+        // Create a list node with token items
+        let items = vec![Node::Token(1), Node::Token(2), Node::Token(3)];
+        let node = Node::List {
+            items: items,
+            len: 3,
+        };
+
+        // Create an empty edit (just for testing the method logic)
+        let edit = TokenEdit {
+            remove: 0..0,
+            insert: 0,
+        };
+
+        // Create a parser that contains the tokens
+        let parser = Parser::Rep(Box::new(Parser::Just(1)));
+
+        // Create a minimal state
+        let tokens: Vec<Tok> = Vec::new(); // Empty tokens for test
+        let mut state = State {
+            tokens: &tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+
+        // Test the Node::edit method for List
+        let (result, _) = node.edit(0, &edit, &mut state);
+
+        // The result should be a successful edit that preserves the list structure
+        assert!(result.is_some());
+        if let Some(Res::Ok(Node::List { items, .. })) = result {
+            assert_eq!(items.len(), 3);
+        } else {
+            panic!("Result should be Some(Res::Ok(Node::List))");
         }
     }
 }

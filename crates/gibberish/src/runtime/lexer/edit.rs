@@ -1,7 +1,6 @@
 use std::ops::Range;
 
 use lsp_types::Position;
-use tracing::debug;
 
 use crate::runtime::lexer::{Lexer, pos::Pos, state::LexerState, token::Tok};
 
@@ -11,7 +10,7 @@ pub struct TextEdit {
     pub text: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokenEdit {
     pub remove: Range<usize>,
     pub insert: usize,

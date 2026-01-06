@@ -1,0 +1,1163 @@
+use std::iter::Peekable;
+
+use tracing::info;
+
+use crate::runtime::{
+    lexer::edit::TokenEdit,
+    parser::{Parser, node::Node, res::Res, state::State},
+};
+
+impl Parser {
+    /// Edits an existing parse tree node.
+    ///
+    /// - `node`: The node to edit
+    /// - `index`: The starting position in the text
+    /// - `edit`: The edit to apply
+    /// - `state`: The parser state
+    pub fn edit<'a, 't>(
+        &'a self,
+        node: Node<'a>,
+        index: usize,
+        mut edit: TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+        // Early return if the edit is empty or node is entirely before the edit
+        let node_len = node.len();
+        let node_end = index + node_len;
+
+        if edit.is_empty() || node_end <= edit.remove.start {
+            return Res::Ok(node);
+        }
+
+        // If the node is after the edit, it shouldn't be modified
+        if index >= edit.remove.end {
+            return Res::Ok(node);
+        }
+
+        info!("Editing node at {index}..{node_end} with edit {:?}", edit);
+
+        match self {
+            Parser::Just(token) => {
+                if let Node::Token(t) = node {
+                    if *token == t {
+                        // The token matches and is affected by the edit
+                        // For a token, we simply return it since it can't be edited further
+                        Res::Ok(Node::Token(t))
+                    } else {
+                        // Token doesn't match - error
+                        if let Some(break_index) = state.get_break(index) {
+                            Res::Break(break_index + 1)
+                        } else {
+                            Res::Err
+                        }
+                    }
+                } else {
+                    // Not a token node - error
+                    Res::Err
+                }
+            }
+
+            Parser::Choice(parsers) => {
+                // For choice, try each parser until one succeeds
+                let mut result = Res::Err;
+
+                for p in parsers {
+                    if p.peak_edit(&node) {
+                        // Try to edit with this parser
+                        result = p.edit(node, index, edit, state);
+
+                        if matches!(result, Res::Ok(_)) {
+                            break;
+                        }
+                    }
+                }
+
+                result
+            }
+
+            Parser::Seq(parsers) => {
+                // Handle sequence parser by distributing the edit to the appropriate child
+                if let Node::List { items, len } = node {
+                    let mut new_items = Vec::new();
+                    let mut current_index = index;
+                    let mut current_edit = edit;
+
+                    // Manage the break stack like in parse()
+                    let lowest_break = 1 + state.break_stack.len();
+                    let highest_break = lowest_break + parsers.len() - 2;
+
+                    // Push break stack items for recovery
+                    parsers[1..]
+                        .iter()
+                        .rev()
+                        .for_each(|it| state.break_stack.push(it));
+
+                    // Process the first item if we have items
+                    if items.is_empty() {
+                        // No items - attempt to parse the first parser
+                        let res = parsers[0].parse(current_index, state);
+
+                        // Clean up the break stack
+                        parsers[1..].iter().for_each(|_| {
+                            state.break_stack.pop();
+                        });
+
+                        // Handle break and error results
+                        if !matches!(res, Res::Ok(_)) {
+                            if let Res::Break(index) = &res {
+                                if *index >= lowest_break {
+                                    return Res::Err;
+                                }
+                            }
+                            return res;
+                        }
+
+                        // We're unlikely to hit this branch as empty List nodes are rare
+                        return res;
+                    }
+
+                    // Create a copy of the first item for editing
+                    let first_item = match &items[0] {
+                        Node::Token(t) => Node::Token(*t),
+                        _ => {
+                            // We need better handling for other node types
+                            parsers[1..].iter().for_each(|_| {
+                                state.break_stack.pop();
+                            });
+                            return Res::Err;
+                        }
+                    };
+
+                    // Edit the first item with the first parser
+                    let mut res = parsers[0].edit(first_item, current_index, current_edit, state);
+
+                    if !matches!(res, Res::Ok(_)) {
+                        // Clean up break stack
+                        parsers[1..].iter().for_each(|_| {
+                            state.break_stack.pop();
+                        });
+
+                        if let Res::Break(index) = &res {
+                            if *index >= lowest_break {
+                                return Res::Err;
+                            }
+                        }
+                        return res;
+                    }
+
+                    // Add the first item
+                    if let Res::Ok(node) = res {
+                        let node_len = node.len();
+                        current_index += node_len;
+
+                        // Calculate how much of the edit was consumed
+                        if items[0].len() != node_len {
+                            // The node size changed, reduce the edit
+                            let mut updated_edit = TokenEdit {
+                                remove: current_edit.remove.clone(),
+                                insert: current_edit.insert,
+                            };
+                            updated_edit.reduce(node_len, items[0].len());
+                            current_edit = updated_edit;
+                        }
+
+                        new_items.push(node);
+                    }
+
+                    // Process remaining items using the current edit
+                    for (i, p) in parsers[1..].iter().enumerate() {
+                        let break_index = highest_break - i;
+                        state.break_stack.pop();
+
+                        if i >= items.len() - 1 {
+                            // No more items to process
+                            break;
+                        }
+
+                        // Create a copy of the item for editing
+                        let item = match &items[i + 1] {
+                            Node::Token(t) => Node::Token(*t),
+                            _ => {
+                                // We need better handling for other node types
+                                new_items.push(Node::Missing(p));
+                                current_index += items[i + 1].len();
+                                continue;
+                            }
+                        };
+
+                        let item_len = item.len();
+
+                        if current_edit.is_empty() || current_index >= current_edit.remove.end {
+                            // Edit is no longer relevant, just add the item
+                            new_items.push(item);
+                            current_index += item_len;
+                            continue;
+                        }
+
+                        let item_end = current_index + item_len;
+
+                        if item_end <= current_edit.remove.start {
+                            // Item is before edit, keep unchanged
+                            new_items.push(item);
+                            current_index += item_len;
+                            continue;
+                        }
+
+                        // Try to edit this item with the current parser
+                        let mut updated_edit = TokenEdit {
+                            remove: current_edit.remove.clone(),
+                            insert: current_edit.insert,
+                        };
+
+                        let edit_res = p.edit(item, current_index, updated_edit, state);
+
+                        if let Res::Ok(node) = edit_res {
+                            let node_len = node.len();
+                            current_index += node_len;
+
+                            // Update the edit for the next item
+                            if item_len != node_len {
+                                current_edit.reduce(node_len, item_len);
+                            }
+
+                            new_items.push(node);
+                        } else if let Res::Break(index) = edit_res {
+                            if index == break_index {
+                                // Skip this item and try to parse at the current position
+                                let parse_res = p.parse(current_index, state);
+
+                                if let Res::Ok(node) = parse_res {
+                                    let node_len = node.len();
+                                    current_index += node_len;
+                                    new_items.push(node);
+                                } else {
+                                    new_items.push(Node::Missing(p));
+                                }
+                            } else {
+                                new_items.push(Node::Missing(p));
+                                current_index += item_len;
+                            }
+                        } else {
+                            new_items.push(Node::Missing(p));
+                            current_index += item_len;
+                        }
+                    }
+
+                    // Clean up any remaining break stack items
+                    while state.break_stack.len() > lowest_break - 1 {
+                        state.break_stack.pop();
+                    }
+
+                    let total_len = new_items.iter().map(|n| n.len()).sum();
+
+                    Res::Ok(Node::List {
+                        items: new_items,
+                        len: total_len,
+                    })
+                } else {
+                    Res::Err
+                }
+            }
+
+            Parser::Rep(inner) => {
+                if let Node::List { items, len } = node {
+                    // Rep parser handles repetition of the same parser
+                    let mut new_items = Vec::with_capacity(items.len());
+                    let mut current_index = index;
+                    let mut current_edit = edit;
+
+                    // Push inner parser onto break stack
+                    state.break_stack.push(inner);
+                    let break_index = state.break_stack.len();
+
+                    // Process items one by one
+                    for item in items {
+                        // Create a copy of the item for editing
+                        let new_item = match &item {
+                            Node::Token(t) => Node::Token(*t),
+                            _ => {
+                                // We need better handling for other node types
+                                new_items.push(Node::Missing(inner));
+                                current_index += item.len();
+                                continue;
+                            }
+                        };
+
+                        let item_len = new_item.len();
+                        let item_end = current_index + item_len;
+
+                        if current_edit.is_empty() || current_index >= current_edit.remove.end {
+                            // If edit is empty or we're past it, keep item unchanged
+                            new_items.push(new_item);
+                            current_index += item_len;
+                            continue;
+                        }
+
+                        if item_end <= current_edit.remove.start {
+                            // Item is before edit, keep unchanged
+                            new_items.push(new_item);
+                            current_index += item_len;
+                            continue;
+                        }
+
+                        // Try to edit this item
+                        let mut updated_edit = TokenEdit {
+                            remove: current_edit.remove.clone(),
+                            insert: current_edit.insert,
+                        };
+
+                        let res = inner.edit(new_item, current_index, updated_edit, state);
+
+                        match res {
+                            Res::Ok(node) => {
+                                let node_len = node.len();
+                                current_index += node_len;
+
+                                // Update the edit based on what was consumed
+                                if item_len != node_len {
+                                    current_edit.reduce(node_len, item_len);
+                                }
+
+                                new_items.push(node);
+                            }
+                            Res::Break(index) => {
+                                if index == break_index {
+                                    // Try to parse a new node
+                                    let parse_res = inner.parse(current_index, state);
+                                    if let Res::Ok(node) = parse_res {
+                                        let node_len = node.len();
+                                        current_index += node_len;
+
+                                        // Reduce the edit
+                                        current_edit.reduce(node_len, 0);
+
+                                        new_items.push(node);
+                                    } else {
+                                        // Failed to recover, add as missing
+                                        new_items.push(Node::Missing(inner));
+                                        // Don't advance the index as we haven't consumed anything
+                                    }
+                                } else {
+                                    // This is a break from higher up, propagate it
+                                    state.break_stack.pop();
+                                    return Res::Break(index);
+                                }
+                            }
+                            Res::Err => {
+                                // Failed to edit, try parsing instead
+                                let parse_res = inner.parse(current_index, state);
+                                if let Res::Ok(node) = parse_res {
+                                    let node_len = node.len();
+                                    current_index += node_len;
+
+                                    // Reduce the edit
+                                    current_edit.reduce(node_len, 0);
+
+                                    new_items.push(node);
+                                } else {
+                                    // Failed to recover, add as missing
+                                    new_items.push(Node::Missing(inner));
+                                    // Don't advance the index as we haven't consumed anything
+                                }
+                            }
+                        }
+                    }
+
+                    // Check if we need to parse more items
+                    if !current_edit.is_empty() && current_index < current_edit.remove.end {
+                        // There's still edit left, try to parse more items
+                        loop {
+                            let parse_res = inner.parse(current_index, state);
+
+                            match parse_res {
+                                Res::Ok(node) => {
+                                    let node_len = node.len();
+                                    current_index += node_len;
+
+                                    // Reduce the edit
+                                    current_edit.reduce(node_len, 0);
+
+                                    new_items.push(node);
+
+                                    // If the edit is now empty, we're done
+                                    if current_edit.is_empty() {
+                                        break;
+                                    }
+                                }
+                                _ => {
+                                    // Failed to parse more items, we're done
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Pop the break stack
+                    state.break_stack.pop();
+
+                    // Flatten nested list items as in the original parse function
+                    let flattened_items = new_items
+                        .into_iter()
+                        .flat_map(|it| {
+                            if let Node::List { items, .. } = it {
+                                items.into_iter()
+                            } else {
+                                vec![it].into_iter()
+                            }
+                        })
+                        .collect::<Vec<Node<'a>>>();
+
+                    let total_len = flattened_items.iter().map(|n| n.len()).sum();
+
+                    Res::Ok(Node::List {
+                        items: flattened_items,
+                        len: total_len,
+                    })
+                } else {
+                    Res::Err
+                }
+            }
+
+            Parser::Named { name, inner } => {
+                if let Node::Group {
+                    kind,
+                    children,
+                    len,
+                    breaks_from_parent,
+                    ..
+                } = node
+                {
+                    if *name != kind {
+                        // Group kind doesn't match this named parser
+                        return Res::Err;
+                    }
+
+                    // We need to push the break stack like in the parse function
+                    let last_named_index = state.checkpoints.last().copied().unwrap_or(0);
+                    let breaks_from_parent_vec = state.break_stack[last_named_index..].to_vec();
+                    state.checkpoints.push(state.break_stack.len());
+
+                    // Convert the children to a List node and edit it
+                    let children_list = Node::List {
+                        items: children,
+                        len,
+                    };
+
+                    let result = inner.edit(children_list, index, edit, state);
+
+                    // Clean up checkpoint
+                    state.checkpoints.pop();
+
+                    // Transform the result back into a Group if successful
+                    if let Res::Ok(Node::List { items, len }) = result {
+                        let mut new_children = Vec::new();
+                        for child in items {
+                            match &child {
+                                Node::Token(_) | Node::Missing(_) | Node::Unexpected(_) => {
+                                    new_children.push(child);
+                                }
+                                Node::List { items, .. } => {
+                                    // Flatten list items
+                                    for item in items {
+                                        new_children.push(item.clone());
+                                    }
+                                }
+                                Node::Group { .. } => {
+                                    new_children.push(child);
+                                }
+                            }
+                        }
+
+                        return Res::Ok(Node::Group {
+                            kind,
+                            children: new_children,
+                            len,
+                            parser: self,
+                            breaks_from_parent,
+                        });
+                    }
+
+                    // Propagate any errors
+                    return result;
+                } else {
+                    // Not a group node - can't edit with Named parser
+                    Res::Err
+                }
+            }
+        }
+    }
+
+    /// Attempts to edit a stream of nodes or perform recovery if needed
+    pub fn try_edit<'a, 't>(
+        &'a self,
+        existing: &mut Peekable<impl Iterator<Item = &'a Node<'a>>>,
+        new: &mut Vec<Node<'a>>,
+        index: usize,
+        edit: &mut TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> Res<'a> {
+        // First try to edit the next existing node
+        if let Some(&node) = existing.peek() {
+            let node_len = node.len();
+            let node_span = index..(index + node_len);
+
+            // Early returns: empty edit or node before edit
+            if edit.is_empty() || node_span.end <= edit.remove.start {
+                existing.next(); // Consume the node we peeked
+
+                // Simply add the node to the result and return
+                match node {
+                    Node::Token(t) => {
+                        new.push(Node::Token(*t));
+                    }
+                    Node::List { items, len } => {
+                        // Create a proper copy of the List node
+                        let mut copied_items = Vec::with_capacity(items.len());
+                        for item in items {
+                            match item {
+                                Node::Token(t) => copied_items.push(Node::Token(*t)),
+                                Node::Missing(p) => copied_items.push(Node::Missing(*p)),
+                                Node::Unexpected(l) => copied_items.push(Node::Unexpected(*l)),
+                                // For nested lists/groups, use Missing as a fallback to avoid deep copying
+                                // In practice, we rarely need to copy these exactly when not editing
+                                _ => copied_items.push(Node::Missing(self)),
+                            }
+                        }
+                        new.push(Node::List {
+                            items: copied_items,
+                            len: *len,
+                        });
+                    }
+                    Node::Group {
+                        kind,
+                        children,
+                        len,
+                        parser,
+                        breaks_from_parent,
+                    } => {
+                        // Create a proper copy of the Group node
+                        let mut copied_children = Vec::with_capacity(children.len());
+                        for child in children {
+                            match child {
+                                Node::Token(t) => copied_children.push(Node::Token(*t)),
+                                Node::Missing(p) => copied_children.push(Node::Missing(*p)),
+                                Node::Unexpected(l) => copied_children.push(Node::Unexpected(*l)),
+                                // For nested lists/groups, use Missing as a fallback to avoid deep copying
+                                _ => copied_children.push(Node::Missing(*parser)),
+                            }
+                        }
+                        new.push(Node::Group {
+                            kind: *kind,
+                            children: copied_children,
+                            len: *len,
+                            parser: *parser,
+                            breaks_from_parent: breaks_from_parent.clone(),
+                        });
+                    }
+                    Node::Missing(p) => {
+                        new.push(Node::Missing(*p));
+                    }
+                    Node::Unexpected(l) => {
+                        new.push(Node::Unexpected(*l));
+                    }
+                }
+
+                return Res::Ok(Node::Token(0)); // Placeholder return for early skip
+            }
+
+            // If the node needs editing
+            if node_span.contains(&edit.remove.start) {
+                existing.next(); // Consume the node
+
+                // Try to edit it
+                let edit_result = match node {
+                    Node::Token(t) => self.edit(
+                        Node::Token(*t),
+                        index,
+                        TokenEdit {
+                            remove: edit.remove.clone(),
+                            insert: edit.insert,
+                        },
+                        state,
+                    ),
+                    Node::List { items, len } => {
+                        // Create a List node for editing
+                        let list = Node::List {
+                            items: items.iter().map(|item| item.clone()).collect(),
+                            len: *len,
+                        };
+                        self.edit(
+                            list,
+                            index,
+                            TokenEdit {
+                                remove: edit.remove.clone(),
+                                insert: edit.insert,
+                            },
+                            state,
+                        )
+                    }
+                    Node::Group {
+                        kind,
+                        children,
+                        len,
+                        parser,
+                        breaks_from_parent,
+                    } => {
+                        // Create a Group node for editing
+                        let group = Node::Group {
+                            kind: *kind,
+                            children: children.iter().map(|child| child.clone()).collect(),
+                            len: *len,
+                            parser: *parser,
+                            breaks_from_parent: breaks_from_parent.clone(),
+                        };
+                        self.edit(
+                            group,
+                            index,
+                            TokenEdit {
+                                remove: edit.remove.clone(),
+                                insert: edit.insert,
+                            },
+                            state,
+                        )
+                    }
+                    _ => Res::Err,
+                };
+
+                if let Res::Ok(edited_node) = edit_result {
+                    // Update the edit and add the node
+                    let edited_len = edited_node.len();
+                    edit.reduce(edited_len, node_len);
+
+                    new.push(edited_node);
+                    return Res::Ok(Node::Token(0)); // Placeholder
+                }
+
+                // If editing failed, try recovery
+                new.push(Node::Unexpected(node_len));
+
+                // Try to parse something new
+                let new_index = index + node_len;
+                if state.token_at(new_index).is_some() {
+                    let res = self.parse(new_index, state);
+                    if let Res::Ok(node) = res {
+                        new.push(node);
+                        return Res::Ok(Node::Token(0)); // Placeholder
+                    }
+                    return res;
+                }
+
+                return Res::Break(0);
+            }
+
+            // Skip to next node
+            existing.next();
+            new.push(Node::Unexpected(node_len));
+
+            let new_index = index + node_len;
+            return self.try_edit(existing, new, new_index, edit, state);
+        }
+
+        // No existing node - try to parse something new
+        if !edit.is_empty() && state.token_at(index).is_some() {
+            return self.parse(index, state);
+        }
+
+        Res::Break(0)
+    }
+
+    pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {
+        match self {
+            Parser::Just(tok) => {
+                if let Node::Token(id) = node {
+                    tok == id
+                } else {
+                    false
+                }
+            }
+            Parser::Choice(parsers) => parsers.iter().any(|it| it.peak_edit(node)),
+            Parser::Seq(parsers) => parsers.first().unwrap().peak_edit(node),
+            Parser::Rep(parser) => parser.peak_edit(node),
+            Parser::Named { name, .. } => {
+                if let Node::Group { kind, .. } = node {
+                    name == kind
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
+impl<'a> Res<'a> {
+    pub fn map(self, f: fn(Node<'a>) -> Node<'a>) -> Res<'a> {
+        match self {
+            Res::Ok(node) => Res::Ok(f(node)),
+            res => res,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::runtime::{
+        lexer::{edit::{TextEdit, TokenEdit}, token::Tok, Lexer, LexerToken, pos::Pos, state::LexerState},
+        parser::{Parser, node::Node, res::Res, state::State}
+    };
+    use crate::lexer::{RegexAst, seq::parse_seq};
+
+    const WHITESPACE: u32 = 0;
+    const STRING: u32 = 1;
+    const LET: u32 = 2;
+    const EQ: u32 = 3;
+    const IDENT: u32 = 4;
+    
+    // Create test helpers similar to those in lexer/edit.rs tests
+    fn create_lexer() -> Lexer {
+        Lexer {
+            tokens: vec![
+                LexerToken {
+                    id: LET,
+                    name: "let".to_string(),
+                    regex: parse_seq("(let)[^a-zA-Z0-9]", &mut 0).unwrap(),
+                },
+                LexerToken {
+                    id: IDENT,
+                    regex: parse_seq("[a-zA-Z][a-zA-Z0-9]+", &mut 0).unwrap(),
+                    name: "ident".to_string(),
+                },
+                LexerToken {
+                    id: STRING,
+                    regex: parse_seq("\"[^\"]*\"", &mut 0).unwrap(),
+                    name: "string".to_string(),
+                },
+                LexerToken {
+                    id: EQ,
+                    regex: parse_seq("=", &mut 0).unwrap(),
+                    name: "eq".to_string(),
+                },
+                LexerToken {
+                    id: WHITESPACE,
+                    regex: parse_seq("\\s+", &mut 0).unwrap(),
+                    name: "whitespace".to_string(),
+                },
+            ],
+        }
+    }
+
+    // Helper to create a token node
+    fn token_node(kind: u32) -> Node<'static> {
+        Node::Token(kind)
+    }
+    
+    // Helper to create a list node with token nodes
+    fn list_node(kinds: Vec<u32>) -> Node<'static> {
+        let items = kinds.into_iter().map(|k| Node::Token(k)).collect();
+        let len = items.len();
+        Node::List {
+            items,
+            len
+        }
+    }
+    
+    #[test]
+    fn test_edit_token_node() {
+        // Test editing a token node
+        let lexer = create_lexer();
+        let mut lexer_state = lexer.lex("hello".to_string());
+        
+        // Create a basic parser to test
+        let parser = Parser::Just(IDENT);
+        let node = Node::Token(IDENT);
+        
+        // Create an edit that changes "hello" to "hi"
+        let text_edit = TextEdit {
+            remove: 1..5,
+            text: "i".to_string(),
+        };
+        
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+        
+        // Create parser state
+        let mut state = State {
+            tokens: &lexer_state.tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+        
+        // Test editing
+        let result = parser.edit(node, 0, token_edit, &mut state);
+        
+        // The token edit should succeed
+        assert!(matches!(result, Res::Ok(Node::Token(IDENT))));
+    }
+    
+    #[test]
+    fn test_edit_list_node() {
+        // Test editing a list node
+        let lexer = create_lexer();
+        let mut lexer_state = lexer.lex("hello world".to_string());
+        
+        // Create a list parser
+        let parser = Parser::Rep(Box::new(Parser::Choice(vec![
+            Parser::Just(IDENT),
+            Parser::Just(WHITESPACE)
+        ])));
+        
+        // Create a list node with three tokens
+        let node = list_node(vec![IDENT, WHITESPACE, IDENT]);
+        
+        // Create an edit that changes "hello world" to "hi there"
+        let text_edit = TextEdit {
+            remove: 1..10,
+            text: "i ther".to_string(),
+        };
+        
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+        
+        // Create parser state
+        let mut state = State {
+            tokens: &lexer_state.tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+        
+        // Test editing
+        let result = parser.edit(node, 0, token_edit, &mut state);
+        
+        // The list edit should succeed
+        assert!(matches!(result, Res::Ok(Node::List { .. })));
+        
+        if let Res::Ok(Node::List { items, .. }) = result {
+            // Should still have 3 items (IDENT, WHITESPACE, IDENT)
+            assert_eq!(items.len(), 3);
+            
+            // Check that the first item is a token node with IDENT
+            if let Node::Token(kind) = &items[0] {
+                assert_eq!(*kind, IDENT);
+            } else {
+                panic!("First item should be a token node");
+            }
+        } else {
+            panic!("Result should be Ok(Node::List)");
+        }
+    }
+    
+    #[test]
+    fn test_node_list_edit() {
+        // Test the Node::List edit method directly
+        let lexer = create_lexer();
+        let mut lexer_state = lexer.lex("hello world".to_string());
+        
+        // Create a list node with three tokens
+        let node = list_node(vec![IDENT, WHITESPACE, IDENT]);
+        
+        // Create an edit that changes "hello" to "hi"
+        let text_edit = TextEdit {
+            remove: 1..5,
+            text: "i".to_string(),
+        };
+        
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+        
+        // Create parser state
+        let mut state = State {
+            tokens: &lexer_state.tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+        
+        // Test the Node::edit method
+        let (result, _) = node.edit(0, &token_edit, &mut state);
+        
+        // The edit should succeed
+        assert!(matches!(result, Some(Res::Ok(Node::List { .. }))));
+        
+        if let Some(Res::Ok(Node::List { items, .. })) = result {
+            // Should still have 3 items
+            assert_eq!(items.len(), 3);
+        } else {
+            panic!("Result should be Some(Res::Ok(Node::List))");
+        }
+    }
+}
+
+    #[test]
+    fn test_edit_token_node_with_lexer() {
+        // Test editing a token node
+        let lexer = create_lexer();
+        let mut lexer_state = lexer.lex("hello".to_string());
+
+        // Create a basic parser to test
+        let parser = Parser::Just(IDENT);
+        let node = Node::Token(IDENT);
+
+        // Create an edit that changes "hello" to "hi"
+        let text_edit = TextEdit {
+            remove: 1..5,
+            text: "i".to_string(),
+        };
+
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+
+        // Create parser state
+        let mut state = State {
+            tokens: &lexer_state.tokens,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+        };
+
+        // Test editing
+        let result = parser.edit(node, 0, token_edit, &mut state);
+
+        // The token edit should succeed
+        assert!(matches!(result, Res::Ok(Node::Token(IDENT))));
+    }
+
+    #[test]
+    fn test_edit_list_node() {
+        // Test editing a list node
+        let lexer = lexer();
+        let mut lexer_state = lexer.lex("hello world".to_string());
+
+        // Create a list parser
+        let parser = Parser::Rep(Box::new(Parser::Choice(vec![
+            Parser::Just(IDENT),
+            Parser::Just(WHITESPACE),
+        ])));
+
+        // Create a list node with two tokens
+        let node = list_node(vec![IDENT, WHITESPACE, IDENT]);
+
+        // Create an edit that changes "hello world" to "hi there"
+        let text_edit = TextEdit {
+            remove: 1..10,
+            text: "i ther".to_string(),
+        };
+
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+
+        // Create parser state
+        let mut state = State {
+            token_index: 0,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+            lexer_state: &mut lexer_state,
+            lexer: &lexer,
+            parser_tokens: Vec::new(),
+        };
+
+        // Test editing
+        let result = parser.edit(node, 0, token_edit, &mut state);
+
+        // The list edit should succeed
+        assert!(matches!(result, Res::Ok(Node::List { .. })));
+
+        if let Res::Ok(Node::List { items, .. }) = result {
+            // Should still have 3 items (IDENT, WHITESPACE, IDENT)
+            assert_eq!(items.len(), 3);
+
+            // Check that the first item is a token node with IDENT
+            if let Node::Token(kind) = &items[0] {
+                assert_eq!(*kind, IDENT);
+            } else {
+                panic!("First item should be a token node");
+            }
+        } else {
+            panic!("Result should be Ok(Node::List)");
+        }
+    }
+
+    #[test]
+    fn test_node_list_edit() {
+        // Test the Node::List edit method directly
+        let lexer = lexer();
+        let mut lexer_state = lexer.lex("hello world".to_string());
+
+        // Create a list node with two tokens
+        let node = list_node(vec![IDENT, WHITESPACE, IDENT]);
+
+        // Create an edit that changes "hello" to "hi"
+        let text_edit = TextEdit {
+            remove: 1..5,
+            text: "i".to_string(),
+        };
+
+        let token_edit = lexer_state.edit(&lexer, &text_edit);
+
+        // Create parser state
+        let mut state = State {
+            token_index: 0,
+            checkpoints: Vec::new(),
+            break_stack: Vec::new(),
+            lexer_state: &mut lexer_state,
+            lexer: &lexer,
+            parser_tokens: Vec::new(),
+        };
+
+        // Test the Node::edit method
+        let (result, _) = node.edit(0, &token_edit, &mut state);
+
+        // The edit should succeed
+        assert!(matches!(result, Some(Res::Ok(Node::List { .. }))));
+
+        if let Some(Res::Ok(Node::List { items, .. })) = result {
+            // Should still have 3 items
+            assert_eq!(items.len(), 3);
+        } else {
+            panic!("Result should be Some(Res::Ok(Node::List))");
+        }
+    }
+}
+
+impl<'a> Node<'a> {
+    pub fn edit<'t>(
+        self,
+        index: usize,
+        edit: &TokenEdit,
+        state: &mut State<'a, 't>,
+    ) -> (Option<Res<'a>>, Option<usize>) {
+        match self {
+            Node::Unexpected(len) => (None, None),
+            Node::Missing(parser) => (None, None),
+            Node::Token(_) => (None, None),
+            Node::List { items, len } => {
+                // Track our position through the list
+                let mut current_index = index;
+                let mut new_items = Vec::with_capacity(items.len());
+                let mut edited_len = 0;
+                let mut edit_processed = false;
+                let mut resulting_offset = None;
+
+                for item in items {
+                    let item_len = item.len();
+                    let item_range = current_index..(current_index + item_len);
+
+                    // If the edit is already processed or doesn't affect this item, just copy it
+                    if edit_processed
+                        || edit.is_empty()
+                        || item_range.end <= edit.remove.start
+                        || item_range.start >= edit.remove.end
+                    {
+                        new_items.push(item.clone()); // Clone the item to preserve the original
+                        edited_len += item_len;
+                        current_index += item_len;
+                        continue;
+                    }
+
+                    // If the edit affects this item, try to edit it
+                    if let (Some(res), Some(new_index)) =
+                        item.clone().edit(current_index, edit, state)
+                    {
+                        if let Res::Ok(edited_item) = res {
+                            // Successfully edited the item
+                            new_items.push(edited_item.clone());
+                            edited_len += edited_item.len();
+                            resulting_offset = Some(new_index);
+                            edit_processed = true;
+                        } else {
+                            // Failed to edit, keep the original
+                            new_items.push(item.clone());
+                            edited_len += item_len;
+                        }
+                    } else {
+                        // Item doesn't support editing, keep it as is
+                        new_items.push(item.clone());
+                        edited_len += item_len;
+                    }
+
+                    current_index += item_len;
+                }
+
+                // Adjust len based on any edits
+                let new_len = if edit_processed {
+                    edited_len
+                } else {
+                    // If no items were edited but the edit affects this list,
+                    // calculate the new length by applying the edit's change
+                    if edit.remove.start >= index && edit.remove.end <= index + len {
+                        usize::try_from(isize::try_from(len).unwrap() + edit.change()).unwrap_or(0)
+                    } else {
+                        len
+                    }
+                };
+
+                let result = Res::Ok(Node::List {
+                    items: new_items,
+                    len: new_len,
+                });
+
+                (Some(result), resulting_offset)
+            }
+            Node::Group {
+                mut children,
+                parser,
+                kind,
+                len,
+                breaks_from_parent,
+            } => {
+                let mut off = index;
+                info!(
+                    "Editing {kind}@{span:?} at {index} with {edit:?}",
+                    span = off..off + len
+                );
+                let mut s = None;
+                for i in 0..children.len() {
+                    let child_len = children[i].len();
+                    let span = off..off + child_len;
+                    info!("Checking child {i}@{span:?}");
+                    if span.contains(&edit.remove.start) {
+                        if edit.remove.end > off + child_len {
+                            info!("Edit if after token end");
+                            return (None, None);
+                        }
+                        if let Node::Group { parser: inner, .. } = &children[i] {
+                            let expected_len = isize::try_from(child_len).unwrap() + edit.change();
+                            for b in &breaks_from_parent {
+                                state.break_stack.push(b);
+                            }
+                            let child = children.remove(i);
+                            let new = if let (Some(res), start) = child.edit(off, edit, state) {
+                                s = start;
+                                res
+                            } else {
+                                inner.parse(off, state)
+                            };
+                            for _ in &breaks_from_parent {
+                                state.break_stack.pop();
+                            }
+                            if let Res::Ok(new) = new {
+                                if usize::try_from(expected_len).unwrap() == new.len() {
+                                    children.insert(i, new);
+                                    info!("New matches the edit size");
+                                    break;
+                                }
+                                info!(
+                                    "Failed to parse new {new_len} != {expected_len} (new != expected)",
+                                    new_len = new.len()
+                                );
+                            }
+                        } else {
+                            return (None, None);
+                        }
+                        info!("Parse failed with err",);
+                        return (None, None);
+                    }
+                    off += child_len;
+                }
+                info!("Done {kind}");
+                (
+                    Some(Res::Ok(Node::Group {
+                        kind,
+                        children,
+                        len: usize::try_from(isize::try_from(len).unwrap() + edit.change())
+                            .unwrap(),
+                        parser,
+                        breaks_from_parent,
+                    })),
+                    Some(s.unwrap_or(off)),
+                )
+            }
+        }
+    }
+}

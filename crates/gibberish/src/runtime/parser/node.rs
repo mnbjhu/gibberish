@@ -83,7 +83,15 @@ impl<'a> Node<'a> {
                 }
                 Ok(())
             }
-            Node::List { items, len } => todo!(),
+            Node::List { items, len } => {
+                writeln!(f, "List")?;
+                let mut current_offset = offset;
+                for item in items {
+                    item.fmt_at(f, indent + 1, current_offset, state)?;
+                    current_offset += item.len();
+                }
+                Ok(())
+            }
         }
     }
 }
