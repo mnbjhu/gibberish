@@ -2,6 +2,9 @@ use std::path::PathBuf;
 
 // use crate::cli::lsp::lsp;
 
+use opentelemetry::{KeyValue, global};
+use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::Resource;
 use tower_lsp::lsp_types::DiagnosticSeverity;
 use tracing_subscriber::layer::SubscriberExt as _;
 use tracing_subscriber::util::SubscriberInitExt as _;
@@ -129,18 +132,25 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn run(&self) {
-        if !matches!(&self, Command::Lsp) {
-            let fmt_layer = fmt::layer().with_target(false);
-            let filter_layer = EnvFilter::try_from_default_env()
-                .or_else(|_| EnvFilter::try_new("info"))
-                .unwrap();
+    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let resource = Resource::new(vec![KeyValue::new("service.name", "gibberish")]);
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .tonic()
+                    .with_endpoint("http://127.0.0.1:4317"),
+            )
+            .with_trace_config(
+                opentelemetry_sdk::trace::Config::default()
+                    .with_resource(resource)
+                    .with_sampler(opentelemetry_sdk::trace::Sampler::AlwaysOn),
+            )
+            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-            tracing_subscriber::registry()
-                .with(filter_layer)
-                .with(fmt_layer)
-                .init();
-        }
+        tracing_subscriber::registry()
+            .with(tracing_opentelemetry::layer().with_tracer(tracer))
+            .init();
 
         match self {
             Command::Lex {
@@ -198,5 +208,7 @@ impl Command {
             Command::Lsp => start_lsp().await,
             Command::Runtime(r) => r.run(),
         }
+        global::shutdown_tracer_provider();
+        Ok(())
     }
 }

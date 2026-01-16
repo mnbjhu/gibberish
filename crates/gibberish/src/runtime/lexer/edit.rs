@@ -140,7 +140,7 @@ impl LexerState {
                 // } else {
                 //     is_start = false;
                 // }
-                    insert += 1;
+                insert += 1;
                 pos += tok.relative_pos;
                 new.push(tok);
             }

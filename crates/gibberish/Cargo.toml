@@ -24,10 +24,21 @@ thiserror = "2.0.3"
 
 lsp-types = "0.97.0"
 
+tracing = { version = "0.1" }
 notify = "8.0.0"
 clap = { version = "4.5.53", features = ["derive"] }
-tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-chrome = "0.7.2"
 tracing-log = "0.2"
 pretty = "0.12.5"
 repl-rs = "0.2.9"
+
+
+opentelemetry = { version = "0.23", features = ["trace"] }
+opentelemetry_sdk = { version = "0.23", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.16", features = [
+  "trace",
+  "metrics",
+  "grpc-tonic",
+] }
+tracing-opentelemetry = "0.24"

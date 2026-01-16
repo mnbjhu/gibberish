@@ -11,5 +11,5 @@ mod runtime;
 
 #[tokio::main]
 async fn main() {
-    Command::parse().run().await;
+    Command::parse().run().await.unwrap();
 }

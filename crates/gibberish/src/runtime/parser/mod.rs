@@ -1,4 +1,5 @@
 use log::info;
+use tracing::{info_span, warn};
 
 use crate::runtime::{
     LexerParserState,
@@ -8,6 +9,7 @@ use crate::runtime::{
 pub mod edit;
 pub mod node;
 pub mod res;
+pub mod seq;
 pub mod state;
 
 #[derive(Debug, Clone)]
@@ -30,6 +32,15 @@ impl<'a> Parser {
         }
     }
 
+    #[tracing::instrument(
+        ret,
+        level = "info",
+        skip_all,
+        fields(
+            offset = offset,
+            parser = self.kind(),
+        )
+    )]
     pub fn parse<'t>(&'a self, mut offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
         match self {
             Parser::Just(token) => {
@@ -97,9 +108,9 @@ impl<'a> Parser {
                         && index == break_index
                     {
                         res = p.try_parse(&mut offset, state, &mut nodes);
-                        if matches!(res, Res::Break(_)) {
-                            nodes.push(Node::Missing(p));
-                        }
+                        // if matches!(res, Res::Break(_)) {
+                        //     nodes.push(Node::Missing(p));
+                        // }
                     } else {
                         nodes.push(Node::Missing(p));
                     }
@@ -169,6 +180,7 @@ impl<'a> Parser {
                 if let Some(Node::Unexpected(len)) = nodes.last_mut() {
                     *len += 1;
                 } else {
+                    warn!("Created unexpected");
                     nodes.push(Node::Unexpected(1));
                 }
             } else {

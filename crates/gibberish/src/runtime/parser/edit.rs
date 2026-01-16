@@ -1,6 +1,7 @@
 use std::{iter::Peekable, ops::Range, ptr};
 
-use tracing::info;
+use log::warn;
+use tracing::{Level, error, info, info_span, span};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
@@ -8,20 +9,27 @@ use crate::runtime::{
 };
 
 impl Parser {
+    #[tracing::instrument(
+        ret,
+        level = "info",
+        skip_all,
+        fields(
+            parser = self.kind(),
+            next = input.peek().map(Node::name),
+        )
+    )]
     pub fn from_existing<'a, 'i, 't, 's, I: Iterator<Item = Node<'a>>>(
         &'a self,
         input: &mut Peekable<I>,
     ) -> Option<Node<'a>> {
         if let Some(Node::Missing(p)) = input.peek() {
-            assert!(
-                ptr::eq(*p, self),
-                "Expected {current} but found {missing}",
-                current = self.kind(),
-                missing = p.kind()
-            );
-            return input.next();
-        }
-        if let Some(Node::Unexpected(_)) = input.peek() {
+            if !ptr::eq(*p, self) {
+                error!(
+                    "Expected {current} but found {missing}",
+                    current = self.kind(),
+                    missing = p.kind()
+                );
+            }
             return input.next();
         }
         match self {
@@ -35,6 +43,12 @@ impl Parser {
                 let mut res = Vec::new();
                 let mut len = 0;
                 for p in parsers {
+                    while let Some(Node::Unexpected(_)) = input.peek() {
+                        warn!("Reusing unexpected");
+                        let next = input.next().unwrap();
+                        len += next.len();
+                        res.push(next);
+                    }
                     let part = p.from_existing(input).unwrap();
                     len += part.len();
                     if let Node::List { items, .. } = part {
@@ -55,12 +69,28 @@ impl Parser {
                     } else {
                         res.push(item)
                     }
+                    while let Some(Node::Unexpected(_)) = input.peek() {
+                        warn!("Reusing unexpected");
+                        let next = input.next().unwrap();
+                        len += next.len();
+                        res.push(next);
+                    }
                 }
                 Some(Node::List { items: res, len })
             }
         }
     }
 
+    #[tracing::instrument(
+        ret,
+        level = "info",
+        skip_all,
+        fields(
+            offset = offset,
+            parser = self.kind(),
+            node = node.name(),
+        )
+    )]
     pub fn edit<'a, 'i, 't, 's>(
         &'a self,
         mut offset: usize,
@@ -69,11 +99,6 @@ impl Parser {
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
     ) -> Res<'a> {
-        info!(
-            "Editing {name} with {parser} {edit:?}",
-            name = node.name(),
-            parser = self.kind()
-        );
         if offset + node.len() < edit.remove.start || edit.remove.end <= offset {
             info!("Reusing {:?}", offset..offset + node.len());
             return Res::Ok(node);

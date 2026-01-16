@@ -21,9 +21,9 @@ impl RuntimeBuilder {
         if let Some(p) = self.parsers.get(name) {
             p.clone()
         } else {
-            self.lexer.get_parser(name).expect(&format!(
-                "Not doing real errors rn but '{name}' wasn't found"
-            ))
+            self.lexer
+                .get_parser(name)
+                .unwrap_or_else(|| panic!("Not doing real errors rn but '{name}' wasn't found"))
         }
     }
 }
