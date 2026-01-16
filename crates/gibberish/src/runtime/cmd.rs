@@ -12,7 +12,7 @@ use tracing::debug;
 use crate::runtime::{
     LexerParserState,
     lexer::edit::TextEdit,
-    lsp::{build_parser, start_lsp},
+    lsp::{build_parser_from_file, start_lsp},
     parser::res::Res,
 };
 
@@ -51,7 +51,7 @@ impl RuntimeCommand {
         debug!("Running {self:?}");
         match self {
             RuntimeCommand::Lex { src, parser } => {
-                let builder = build_parser(parser);
+                let builder = build_parser_from_file(parser);
                 let text = fs::read_to_string(src).unwrap();
                 let state = LexerParserState::new(text, &builder);
                 for tok in state.lexer_state.tokens {
@@ -59,7 +59,7 @@ impl RuntimeCommand {
                 }
             }
             RuntimeCommand::Parse { src, parser } => {
-                let builder = build_parser(parser);
+                let builder = build_parser_from_file(parser);
                 let text = fs::read_to_string(src).unwrap();
                 let state = LexerParserState::new(text, &builder);
                 match &state.node {
@@ -79,7 +79,7 @@ impl RuntimeCommand {
 }
 
 fn repl(parser: &Path) -> Result<(), repl_rs::Error> {
-    let builder = build_parser(parser);
+    let builder = build_parser_from_file(parser);
     let mut repl = Repl::new(LexerParserState::new(String::new(), &builder))
         .with_name("gibberish")
         .with_version("v0.1.0")
@@ -135,11 +135,11 @@ fn edit(
     let start: usize = args["start"].convert()?;
     let end: usize = args["end"].convert()?;
     let insert: String = args["insert"].convert()?;
-    context.edit(&TextEdit {
+    let stats = context.edit(&TextEdit {
         remove: start..end,
         text: insert,
     });
-    Ok(None)
+    Ok(Some(format!("{stats:#?}")))
 }
 
 fn lex(

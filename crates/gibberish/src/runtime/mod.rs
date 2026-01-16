@@ -1,18 +1,19 @@
-use std::collections::HashMap;
+use std::{
+    cmp::{max, min},
+    collections::HashMap,
+    ops::Range,
+};
+use tracing::{debug, info};
 
-use tracing::debug;
-
-use crate::{
-    ast::builder::ParserBuilder,
-    runtime::{
-        build::RuntimeBuilder,
-        lexer::{
-            Lexer,
-            edit::{TextEdit, TokenEdit},
-            state::LexerState,
-        },
-        parser::{Parser, res::Res, state::State},
+use crate::runtime::{
+    build::RuntimeBuilder,
+    lexer::{
+        Lexer,
+        edit::{TextEdit, TokenEdit},
+        state::LexerState,
+        token::Tok,
     },
+    parser::{Parser, res::Res, state::State},
 };
 
 pub mod build;
@@ -27,6 +28,22 @@ pub struct LexerParserState<'a> {
     named: &'a HashMap<u32, String>,
     lexer_state: LexerState,
     node: Res<'a>,
+}
+
+impl<'a> Res<'a> {
+    pub fn update_changed(self, offset: usize, changed: &mut Range<usize>) -> Res<'a> {
+        if let Res::Ok(node) = self {
+            if *changed == (0..0) {
+                *changed = offset..offset + node.len()
+            } else {
+                changed.start = min(changed.start, offset);
+                changed.end = max(changed.end, offset + node.len())
+            }
+            Res::Ok(node)
+        } else {
+            self
+        }
+    }
 }
 
 impl<'a> LexerParserState<'a> {
@@ -66,25 +83,29 @@ impl<'a> LexerParserState<'a> {
     }
 
     pub fn edit(&mut self, edit: &TextEdit) -> EditStats {
-        let edit = self.lexer_state.edit(self.lexer, edit);
+        let before_tokens = self.lexer_state.tokens.clone(); // TODO: For debugging
+        let mut edit = self.lexer_state.edit(self.lexer, edit);
+        info!(
+            "Removed: [{removed}], Inserted: [{inserted}]",
+            removed = token_text(&before_tokens[edit.remove.clone()], self.lexer),
+            inserted = token_text(
+                &self.lexer_state.tokens[edit.remove.start..edit.remove.start + edit.insert],
+                self.lexer
+            )
+        );
         let mut state = State {
             tokens: &self.lexer_state.tokens,
             break_stack: vec![],
             checkpoints: vec![],
         };
-        let mut s = None;
-        self.node = if let Res::Ok(node) = self.node.pop()
-            && let (Some(res), start) = node.edit(0, &edit, &mut state)
-        {
-            s = start;
-            res
+        let mut changed = 0..0;
+        self.node = if let Res::Ok(node) = self.node.pop() {
+            self.parser
+                .edit(0, node, &mut state, &mut edit, &mut changed)
         } else {
             self.parser.parse(0, &mut state)
         };
-        EditStats {
-            start_index: s.unwrap_or(0),
-            edit,
-        }
+        EditStats { changed, edit }
     }
 
     pub fn parse(&mut self, text: String) {
@@ -100,8 +121,21 @@ impl<'a> LexerParserState<'a> {
     }
 }
 
+fn token_text(tokens: &[Tok], lexer: &Lexer) -> String {
+    let mut res = String::new();
+    for (index, t) in tokens.iter().enumerate() {
+        if index == 0 {
+            res += lexer.name_by_id(t.kind)
+        } else {
+            res += " ,";
+            res += lexer.name_by_id(t.kind)
+        }
+    }
+    res
+}
+
 #[derive(Debug)]
 pub struct EditStats {
-    start_index: usize,
+    changed: Range<usize>,
     edit: TokenEdit,
 }

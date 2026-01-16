@@ -1,7 +1,7 @@
 use gibberish_gibberish_parser::Gibberish;
 use lsp_types::{
-    DidChangeTextDocumentParams, DidOpenTextDocumentParams, DocumentSymbolResponse, MessageType,
-    ShowMessageParams, Uri,
+    Diagnostic, DidChangeTextDocumentParams, DidOpenTextDocumentParams, DocumentSymbolResponse,
+    MessageType, PublishDiagnosticsParams, Range, Uri,
     notification::{
         DidChangeTextDocument, DidOpenTextDocument, Exit, Initialized, Notification as _,
     },
@@ -11,13 +11,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{self, BufRead, Write};
 use std::{collections::HashMap, fs, path::Path};
-use tower_lsp::jsonrpc;
 use tracing::debug;
 
 use crate::{
     ast::RootAst,
     runtime::{
-        LexerParserState, build::RuntimeBuilder, lexer::edit::TextEdit,
+        LexerParserState,
+        build::RuntimeBuilder,
+        lexer::{edit::TextEdit, pos::Pos},
         lsp::semantic_tokens::semantic_tokens_structured,
     },
 };
@@ -25,21 +26,24 @@ use crate::{
 pub mod document_symbols;
 pub mod semantic_tokens;
 
-pub fn build_parser(path: &Path) -> RuntimeBuilder {
-    let text = fs::read_to_string(path).unwrap();
-    let lst = Gibberish::parse(&text);
+pub fn build_parser(text: &str) -> RuntimeBuilder {
+    let lst = Gibberish::parse(text);
     if lst.has_errors() {
         panic!("Errors in syntax");
     }
     let ast = RootAst(lst.as_group());
     let mut builder = RuntimeBuilder::default();
     ast.build_runtime(&mut builder);
-    debug!("Built parser");
     builder
 }
 
+pub fn build_parser_from_file(path: &Path) -> RuntimeBuilder {
+    let text = fs::read_to_string(path).unwrap();
+    build_parser(&text)
+}
+
 pub fn start_lsp(path: &Path) {
-    let builder = build_parser(path);
+    let builder = build_parser_from_file(path);
     let stdin = io::stdin();
     let mut stdin_lock = stdin.lock();
     let mut stdout = io::stdout();
@@ -166,9 +170,30 @@ pub fn start_lsp(path: &Path) {
                             remove: start..end,
                             text: change.text,
                         };
-                        let offset = state.edit(&edit);
-                        server_show_message(&mut stdout, MessageType::ERROR, format!("{offset:#?}"))
-                            .unwrap()
+                        let stats = state.edit(&edit);
+                        let mut edit_start = Pos::zero();
+                        for tok in &state.lexer_state.tokens[..stats.changed.start] {
+                            edit_start += tok.relative_pos
+                        }
+                        let mut edit_end = edit_start;
+                        for tok in &state.lexer_state.tokens[stats.changed.start..stats.changed.end]
+                        {
+                            edit_end += tok.relative_pos
+                        }
+                        server_diags(
+                            &mut stdout,
+                            vec![Diagnostic::new_simple(
+                                Range {
+                                    start: edit_start.to_lsp_pos(),
+                                    end: edit_end.to_lsp_pos(),
+                                },
+                                "Updated".to_string(),
+                            )],
+                            params.text_document.uri.clone(),
+                        )
+                        .unwrap();
+                        // server_show_message(&mut stdout, MessageType::ERROR, format!("{stats:#?}"))
+                        //     .unwrap()
                     }
                 }
             }
@@ -398,6 +423,32 @@ fn server_log<W: Write>(w: &mut W, typ: MessageType, message: String) -> io::Res
         jsonrpc: "2.0",
         method: "window/logMessage",
         params: LogParams { typ, message },
+    };
+
+    let body = serde_json::to_vec(&notif)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    write!(w, "Content-Length: {}\r\n\r\n", body.len())?;
+    w.write_all(&body)?;
+    w.flush()?;
+    Ok(())
+}
+
+fn server_diags<W: Write>(w: &mut W, diags: Vec<Diagnostic>, uri: Uri) -> io::Result<()> {
+    #[derive(Serialize)]
+    struct Notif<'a> {
+        jsonrpc: &'static str,
+        method: &'a str,
+        params: PublishDiagnosticsParams,
+    }
+
+    let notif = Notif {
+        jsonrpc: "2.0",
+        method: "textDocument/publishDiagnostics",
+        params: PublishDiagnosticsParams {
+            uri,
+            diagnostics: diags,
+            version: None,
+        },
     };
 
     let body = serde_json::to_vec(&notif)

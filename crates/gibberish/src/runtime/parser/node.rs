@@ -15,8 +15,6 @@ pub enum Node<'a> {
         kind: u32,
         children: Vec<Node<'a>>,
         len: usize,
-        parser: &'a Parser,
-        breaks_from_parent: Vec<&'a Parser>,
     },
 }
 
@@ -92,6 +90,16 @@ impl<'a> Node<'a> {
                 }
                 Ok(())
             }
+        }
+    }
+
+    pub fn name(&self) -> &'a str {
+        match self {
+            Node::Unexpected(_) => "unexpected",
+            Node::Missing(_) => "missing",
+            Node::Token(_) => "token",
+            Node::List { .. } => "list",
+            Node::Group { .. } => "group",
         }
     }
 }

@@ -22,13 +22,6 @@ impl TextEdit {
     }
 }
 
-// Lets say we have:
-// ABCDEF
-// and by our parsing rules it creates two nodes:
-// <ABC> and <DEF> with spans 0..3 and 3..6 respectivly
-// Suppose it was edited A<remove>B<remove/>CDEF and inserting:
-// XY this would be the edit 1..2 -> XY and would create AXYCDEF
-
 impl TokenEdit {
     pub fn change(&self) -> isize {
         isize::try_from(self.insert).unwrap() - isize::try_from(self.remove.len()).unwrap()
@@ -39,50 +32,26 @@ impl TokenEdit {
     }
 
     pub fn reduce(&mut self, before: usize, after: usize) -> usize {
-        // before: size of the first token in the edited text
-        // after: size of the first token in the original text
-        // Returns: how much of the second token was consumed by the first token
-
         if before == after {
-            // Sizes match, the edit didn't affect this token
             self.remove = self.remove.start..self.remove.start;
             self.insert = 0;
             return 0;
         }
-
         let edit_start = self.remove.start;
         let edit_end = self.remove.end;
-
-        // The position where the next token starts in the original
-        // The first token is 'after' bytes long, so next starts at position 'after'
         let next_token_start = after;
-
-        // Maps a position in the edited text to the original text
-        // This is the exclusive end position we've reached in the original
         let original_end_pos = if before <= edit_start {
-            // Haven't reached the edit yet - consumed (before) chars of original
             before
         } else if before <= edit_start + self.insert {
-            // We're within the inserted content
-            // We've consumed up to edit_start in the original
             edit_start
         } else {
-            // We've gone past the inserted content
-            // Consumed: edit_start + (content before edit) + (content after edit)
             let past_insert = before - (edit_start + self.insert);
             edit_end + past_insert
         };
 
         if original_end_pos > next_token_start {
-            // The first token consumed into the next token's original range
             let consumed = original_end_pos - next_token_start;
-
-            // Adjust the edit for the next token
-            // The new edit removes what we consumed from the next token
             self.remove = next_token_start..original_end_pos;
-
-            // If the original edit is fully consumed (edit_end <= original_end_pos),
-            // there are no more insertions. Otherwise, reduce by what was consumed.
             if edit_end <= original_end_pos {
                 self.insert = 0;
             } else {
@@ -91,8 +60,6 @@ impl TokenEdit {
 
             return consumed;
         }
-
-        // The first token ends before or exactly at the next token boundary
         self.remove = self.remove.start..self.remove.start;
         self.insert = 0;
         0
@@ -142,7 +109,8 @@ impl LexerState {
                 new.push(*t);
             }
         }
-        let start = new.len();
+        let mut start = new.len();
+        let mut is_start = true;
         let rest = self.tokens[index..].to_vec();
         let mut rest_iter = rest.into_iter();
         let mut after_edit_offset = isize::try_from(pos.offset).unwrap() + edit.change();
@@ -159,9 +127,7 @@ impl LexerState {
                 after_edit_offset += isize::try_from(next.relative_pos.offset).unwrap();
             }
             if after_edit_offset == ioffset && pos.offset >= edit_end {
-                let end = new.len();
                 new.extend(rest_iter);
-                let new_len = new.len();
                 self.tokens = new;
                 return TokenEdit {
                     remove: start..start + removed,
@@ -169,7 +135,12 @@ impl LexerState {
                 };
             }
             if let Some(tok) = self.lex_token(pos, lexer) {
-                insert += 1;
+                // if is_start && tok == self.tokens[index] {
+                //     start += 1;
+                // } else {
+                //     is_start = false;
+                // }
+                    insert += 1;
                 pos += tok.relative_pos;
                 new.push(tok);
             }

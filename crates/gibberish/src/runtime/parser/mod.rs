@@ -22,7 +22,7 @@ pub enum Parser {
 impl<'a> Parser {
     pub fn kind(&self) -> String {
         match self {
-            Parser::Just(t) => format!("{t:?}"),
+            Parser::Just(t) => format!("just({t:?})"),
             Parser::Choice(_) => "choice".to_string(),
             Parser::Seq(_) => "seq".to_string(),
             Parser::Rep(_) => "rep".to_string(),
@@ -31,7 +31,6 @@ impl<'a> Parser {
     }
 
     pub fn parse<'t>(&'a self, mut offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
-        info!("Parsing {self:#?} at {offset}",);
         match self {
             Parser::Just(token) => {
                 if let Some(current) = state.token_at(offset) {
@@ -135,35 +134,9 @@ impl<'a> Parser {
                         return Res::Err;
                     }
                 }
-                loop {
-                    let res = inner.try_parse(&mut offset, state, &mut items);
-                    match res {
-                        Res::Ok(node) => {
-                            offset += node.len();
-                            items.push(node);
-                        }
-                        _ => {
-                            state.break_stack.pop();
-                            return Res::Ok(Node::List {
-                                len: items.iter().map(|it| it.len()).sum(),
-                                items: items
-                                    .into_iter()
-                                    .flat_map(|it| {
-                                        if let Node::List { items, .. } = it {
-                                            items.into_iter()
-                                        } else {
-                                            vec![it].into_iter()
-                                        }
-                                    })
-                                    .collect(),
-                            });
-                        }
-                    }
-                }
+                finish_rep(&mut offset, state, inner, items)
             }
             Parser::Named { name, inner } => {
-                let last_named_index = state.checkpoints.last().copied().unwrap_or(0);
-                let breaks_from_parent = state.break_stack[last_named_index..].to_vec();
                 state.checkpoints.push(state.break_stack.len());
                 let res = match inner.parse(offset, state) {
                     Res::Ok(node) => {
@@ -173,8 +146,6 @@ impl<'a> Parser {
                             kind: *name,
                             len: children.iter().map(Node::len).sum(),
                             children,
-                            breaks_from_parent,
-                            parser: self,
                         })
                     }
                     res => res,
@@ -230,6 +201,39 @@ impl<'a> Parser {
             Parser::Seq(parsers) => parsers.first().unwrap().expected(),
             Parser::Rep(parser) => parser.expected(),
             Parser::Named { name, .. } => vec![Expected::Syntax(*name)],
+        }
+    }
+}
+
+pub fn finish_rep<'a, 't>(
+    offset: &mut usize,
+    state: &mut State<'a, 't>,
+    inner: &'a Parser,
+    mut items: Vec<Node<'a>>,
+) -> Res<'a> {
+    loop {
+        let res = inner.try_parse(offset, state, &mut items);
+        match res {
+            Res::Ok(node) => {
+                *offset += node.len();
+                items.push(node);
+            }
+            _ => {
+                state.break_stack.pop();
+                return Res::Ok(Node::List {
+                    len: items.iter().map(|it| it.len()).sum(),
+                    items: items
+                        .into_iter()
+                        .flat_map(|it| {
+                            if let Node::List { items, .. } = it {
+                                items.into_iter()
+                            } else {
+                                vec![it].into_iter()
+                            }
+                        })
+                        .collect(),
+                });
+            }
         }
     }
 }
