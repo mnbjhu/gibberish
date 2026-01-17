@@ -9,19 +9,44 @@ use crate::runtime::{
 };
 
 impl Parser {
-    #[tracing::instrument(
-        ret,
-        level = "info",
-        skip_all,
-        fields(
-            parser = self.kind(),
-            next = input.peek().map(Node::name),
-        )
-    )]
     pub fn from_existing<'a, 'i, 't, 's, I: Iterator<Item = Node<'a>>>(
         &'a self,
         input: &mut Peekable<I>,
     ) -> Option<Node<'a>> {
+        let _span = match self {
+            Parser::Just(token) => tracing::span!(
+                tracing::Level::INFO,
+                "from_existing: token",
+                token = token,
+                next = input.peek().map(Node::name),
+            )
+            .entered(),
+            Parser::Choice(_) => tracing::span!(
+                tracing::Level::INFO,
+                "from_existing: choice",
+                next = input.peek().map(Node::name),
+            )
+            .entered(),
+            Parser::Seq(_) => tracing::span!(
+                tracing::Level::INFO,
+                "from_existing: seq",
+                next = input.peek().map(Node::name),
+            )
+            .entered(),
+            Parser::Rep(_) => tracing::span!(
+                tracing::Level::INFO,
+                "from_existing: rep",
+                next = input.peek().map(Node::name),
+            )
+            .entered(),
+            Parser::Named { name, .. } => tracing::span!(
+                tracing::Level::INFO,
+                "from_existing: named",
+                name = name,
+                next = input.peek().map(Node::name),
+            )
+            .entered(),
+        };
         if let Some(Node::Missing(p)) = input.peek() {
             if !ptr::eq(*p, self) {
                 error!(
@@ -30,9 +55,14 @@ impl Parser {
                     missing = p.kind()
                 );
             }
-            return input.next();
+            let result = input.next();
+            match &result {
+                Some(_) => info!("Result: Ok"),
+                None => info!("Result: Err"),
+            };
+            return result;
         }
-        match self {
+        let result = match self {
             Parser::Just(_) | Parser::Named { .. } => input.next(),
             Parser::Choice(parsers) => {
                 let next = input.peek()?;
@@ -78,19 +108,15 @@ impl Parser {
                 }
                 Some(Node::List { items: res, len })
             }
-        }
+        };
+
+        match &result {
+            Some(_) => info!("Result: Ok"),
+            None => info!("Result: Err"),
+        };
+        result
     }
 
-    #[tracing::instrument(
-        ret,
-        level = "info",
-        skip_all,
-        fields(
-            offset = offset,
-            parser = self.kind(),
-            node = node.name(),
-        )
-    )]
     pub fn edit<'a, 'i, 't, 's>(
         &'a self,
         mut offset: usize,
@@ -99,6 +125,45 @@ impl Parser {
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
     ) -> Res<'a> {
+        let _span = match self {
+            Parser::Just(token) => tracing::span!(
+                tracing::Level::INFO,
+                "edit: token",
+                token = token,
+                offset = offset,
+                node = node.name(),
+            )
+            .entered(),
+            Parser::Choice(_) => tracing::span!(
+                tracing::Level::INFO,
+                "edit: choice",
+                offset = offset,
+                node = node.name(),
+            )
+            .entered(),
+            Parser::Seq(_) => tracing::span!(
+                tracing::Level::INFO,
+                "edit: seq",
+                offset = offset,
+                node = node.name(),
+            )
+            .entered(),
+            Parser::Rep(_) => tracing::span!(
+                tracing::Level::INFO,
+                "edit: rep",
+                offset = offset,
+                node = node.name(),
+            )
+            .entered(),
+            Parser::Named { name, .. } => tracing::span!(
+                tracing::Level::INFO,
+                "edit: named",
+                name = name,
+                offset = offset,
+                node = node.name(),
+            )
+            .entered(),
+        };
         if offset + node.len() < edit.remove.start || edit.remove.end <= offset {
             info!("Reusing {:?}", offset..offset + node.len());
             return Res::Ok(node);
@@ -107,7 +172,7 @@ impl Parser {
             info!("Reparsing {:?}", offset..offset + node.len());
             return self.parse(offset, state).update_changed(offset, changed);
         }
-        match (self, node) {
+        let result = match (self, node) {
             (Parser::Choice(parsers), node) => {
                 let parser = parsers.iter().find(|it| it.peak_edit(&node)).unwrap();
                 parser.edit(offset, node, state, edit, changed)
@@ -166,7 +231,14 @@ impl Parser {
                 })
             }
             (_, _) => panic!("Unexpected parser/node combo"),
-        }
+        };
+
+        match &result {
+            Res::Ok(_) => info!("Result: Ok"),
+            Res::Err => info!("Result: Err"),
+            Res::Break(idx) => info!("Result: Break({})", idx),
+        };
+        result
     }
 
     pub fn try_edit<'a, 'i, 't, 's, I: Iterator<Item = Node<'a>>>(
@@ -179,6 +251,8 @@ impl Parser {
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
     ) -> Res<'a> {
+        let _span = tracing::span!(tracing::Level::INFO, "try_edit", offset = offset,).entered();
+
         loop {
             let next_offset = if *offset > edit.remove.start {
                 usize::try_from(isize::try_from(*next_existing_offset).unwrap() + edit.change())
@@ -208,7 +282,13 @@ impl Parser {
                         new.push(Node::Unexpected(n));
                         continue;
                     } else {
-                        return Res::Ok(next);
+                        let result = Res::Ok(next);
+                        match &result {
+                            Res::Ok(_) => info!("Result: Ok"),
+                            Res::Err => info!("Result: Err"),
+                            Res::Break(idx) => info!("Result: Break({})", idx),
+                        };
+                        return result;
                     }
                 }
 
@@ -224,6 +304,11 @@ impl Parser {
                 self.parse(*offset, state).update_changed(*offset, changed)
             };
             if !matches!(res, Res::Err) {
+                match &res {
+                    Res::Ok(_) => info!("Result: Ok"),
+                    Res::Err => info!("Result: Err"),
+                    Res::Break(idx) => info!("Result: Break({})", idx),
+                };
                 return res;
             } else if let Some(Node::Unexpected(n)) = new.last_mut() {
                 *n += 1;

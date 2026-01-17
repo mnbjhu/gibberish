@@ -32,17 +32,34 @@ impl<'a> Parser {
         }
     }
 
-    #[tracing::instrument(
-        ret,
-        level = "info",
-        skip_all,
-        fields(
-            offset = offset,
-            parser = self.kind(),
-        )
-    )]
     pub fn parse<'t>(&'a self, mut offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
-        match self {
+        let _span = match self {
+            Parser::Just(token) => tracing::span!(
+                tracing::Level::INFO,
+                "parse: token",
+                token = token,
+                offset = offset,
+            )
+            .entered(),
+            Parser::Choice(_) => {
+                tracing::span!(tracing::Level::INFO, "parse: choice", offset = offset,).entered()
+            }
+            Parser::Seq(_) => {
+                tracing::span!(tracing::Level::INFO, "parse: seq", offset = offset,).entered()
+            }
+            Parser::Rep(_) => {
+                tracing::span!(tracing::Level::INFO, "parse: rep", offset = offset,).entered()
+            }
+            Parser::Named { name, .. } => tracing::span!(
+                tracing::Level::INFO,
+                "parse: named",
+                name = name,
+                offset = offset,
+            )
+            .entered(),
+        };
+
+        let result = match self {
             Parser::Just(token) => {
                 if let Some(current) = state.token_at(offset) {
                     if current == *token {
@@ -164,7 +181,14 @@ impl<'a> Parser {
                 state.checkpoints.pop();
                 res
             }
-        }
+        };
+
+        match &result {
+            Res::Ok(_) => info!("Result: Ok"),
+            Res::Err => info!("Result: Err"),
+            Res::Break(idx) => info!("Result: Break({})", idx),
+        };
+        result
     }
 
     fn try_parse<'t>(
@@ -173,6 +197,8 @@ impl<'a> Parser {
         state: &mut State<'a, 't>,
         nodes: &mut Vec<Node<'a>>,
     ) -> Res<'a> {
+        let _span = tracing::span!(tracing::Level::INFO, "try_parse", offset = offset,).entered();
+
         let mut res = self.parse(*offset, state);
         while let Res::Err = res {
             if state.token_at(*offset).is_some() {
@@ -184,10 +210,21 @@ impl<'a> Parser {
                     nodes.push(Node::Unexpected(1));
                 }
             } else {
-                return Res::Break(0);
+                let result = Res::Break(0);
+                match &result {
+                    Res::Ok(_) => info!("Result: Ok"),
+                    Res::Err => info!("Result: Err"),
+                    Res::Break(idx) => info!("Result: Break({})", idx),
+                };
+                return result;
             }
             res = self.parse(*offset, state);
         }
+        match &res {
+            Res::Ok(_) => info!("Result: Ok"),
+            Res::Err => info!("Result: Err"),
+            Res::Break(idx) => info!("Result: Break({})", idx),
+        };
         res
     }
 
