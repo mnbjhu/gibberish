@@ -1,5 +1,5 @@
 use log::info;
-use tracing::{info_span, warn};
+use tracing::{error, info_span, warn};
 
 use crate::runtime::{
     LexerParserState,
@@ -184,7 +184,7 @@ impl<'a> Parser {
         };
 
         match &result {
-            Res::Ok(_) => info!("Result: Ok"),
+            Res::Ok(node) => info!("Result: {node:?}"),
             Res::Err => info!("Result: Err"),
             Res::Break(idx) => info!("Result: Break({})", idx),
         };
@@ -206,13 +206,13 @@ impl<'a> Parser {
                 if let Some(Node::Unexpected(len)) = nodes.last_mut() {
                     *len += 1;
                 } else {
-                    warn!("Created unexpected");
+                    error!("Created unexpected");
                     nodes.push(Node::Unexpected(1));
                 }
             } else {
                 let result = Res::Break(0);
                 match &result {
-                    Res::Ok(_) => info!("Result: Ok"),
+                    Res::Ok(node) => info!("Result: {node:?}"),
                     Res::Err => info!("Result: Err"),
                     Res::Break(idx) => info!("Result: Break({})", idx),
                 };
@@ -221,7 +221,7 @@ impl<'a> Parser {
             res = self.parse(*offset, state);
         }
         match &res {
-            Res::Ok(_) => info!("Result: Ok"),
+            Res::Ok(node) => info!("Result: {node:?}"),
             Res::Err => info!("Result: Err"),
             Res::Break(idx) => info!("Result: Break({})", idx),
         };

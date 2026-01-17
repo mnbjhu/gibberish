@@ -57,7 +57,7 @@ impl Parser {
             }
             let result = input.next();
             match &result {
-                Some(_) => info!("Result: Ok"),
+                Some(node) => info!("Result: {node:?}"),
                 None => info!("Result: Err"),
             };
             return result;
@@ -74,7 +74,7 @@ impl Parser {
                 let mut len = 0;
                 for p in parsers {
                     while let Some(Node::Unexpected(_)) = input.peek() {
-                        warn!("Reusing unexpected");
+                        error!("Reusing unexpected");
                         let next = input.next().unwrap();
                         len += next.len();
                         res.push(next);
@@ -100,7 +100,7 @@ impl Parser {
                         res.push(item)
                     }
                     while let Some(Node::Unexpected(_)) = input.peek() {
-                        warn!("Reusing unexpected");
+                        error!("Reusing unexpected");
                         let next = input.next().unwrap();
                         len += next.len();
                         res.push(next);
@@ -111,7 +111,7 @@ impl Parser {
         };
 
         match &result {
-            Some(_) => info!("Result: Ok"),
+            Some(node) => info!("Result: {node:?}"),
             None => info!("Result: Err"),
         };
         result
@@ -164,6 +164,7 @@ impl Parser {
             )
             .entered(),
         };
+        info!("edit: {:?}", edit);
         if offset + node.len() < edit.remove.start || edit.remove.end <= offset {
             info!("Reusing {:?}", offset..offset + node.len());
             return Res::Ok(node);
@@ -212,12 +213,13 @@ impl Parser {
                     self.parse(offset, state).update_changed(offset, changed)
                 }
             }
-            (Parser::Named { name, inner }, Node::Group { children, len, .. }) => {
+            (Parser::Named { name, inner }, Node::Group { children, .. }) => {
                 let child = inner
                     .from_existing(&mut children.into_iter().peekable())
                     .unwrap();
                 let name = *name;
                 inner.edit(offset, child, state, edit, changed).map(|it| {
+                    let len = it.len();
                     let children = if let Node::List { items, .. } = it {
                         items
                     } else {
@@ -234,7 +236,7 @@ impl Parser {
         };
 
         match &result {
-            Res::Ok(_) => info!("Result: Ok"),
+            Res::Ok(node) => info!("Result: {node:?}"),
             Res::Err => info!("Result: Err"),
             Res::Break(idx) => info!("Result: Break({})", idx),
         };
@@ -251,7 +253,13 @@ impl Parser {
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
     ) -> Res<'a> {
-        let _span = tracing::span!(tracing::Level::INFO, "try_edit", offset = offset,).entered();
+        let _span = tracing::span!(
+            tracing::Level::INFO,
+            "try_edit",
+            offset = offset,
+            next = input.peek().map(|it| it.name())
+        )
+        .entered();
 
         loop {
             let next_offset = if *offset > edit.remove.start {
@@ -260,6 +268,7 @@ impl Parser {
             } else {
                 *next_existing_offset
             };
+            info!(name = "Exsting check", offset, next_offset);
             let res = if *offset == next_offset
                 && let Some(next) = self.from_existing(input)
             {
@@ -284,7 +293,7 @@ impl Parser {
                     } else {
                         let result = Res::Ok(next);
                         match &result {
-                            Res::Ok(_) => info!("Result: Ok"),
+                            Res::Ok(node) => info!("Result: {node:?}"),
                             Res::Err => info!("Result: Err"),
                             Res::Break(idx) => info!("Result: Break({})", idx),
                         };
@@ -305,7 +314,7 @@ impl Parser {
             };
             if !matches!(res, Res::Err) {
                 match &res {
-                    Res::Ok(_) => info!("Result: Ok"),
+                    Res::Ok(node) => info!("Result: {node:?}"),
                     Res::Err => info!("Result: Err"),
                     Res::Break(idx) => info!("Result: Break({})", idx),
                 };
@@ -315,6 +324,7 @@ impl Parser {
                 *offset += 1;
             } else {
                 *offset += 1;
+                error!("Bump error");
                 new.push(Node::Unexpected(1));
             }
         }
