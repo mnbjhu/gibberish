@@ -110,8 +110,10 @@ impl LexerState {
             }
         }
         let mut start = new.len();
-        let mut is_start = true;
+        let mut old_rest_index = index; // Track position in old tokens for comparison
+        let mut unmatched_at_start = 0; // Count of unmatched tokens from the start
         let rest = self.tokens[index..].to_vec();
+        let rest_len = rest.len();
         let mut rest_iter = rest.into_iter();
         let mut after_edit_offset = isize::try_from(pos.offset).unwrap() + edit.change();
         let mut removed = 0;
@@ -128,18 +130,17 @@ impl LexerState {
             }
             if after_edit_offset == ioffset && pos.offset >= edit_end {
                 new.extend(rest_iter);
+                let old_tokens = std::mem::take(&mut self.tokens);
                 self.tokens = new;
-                return TokenEdit {
-                    remove: start..start + removed,
+                return self.calculate_token_edit(
+                    &old_tokens,
+                    start,
+                    unmatched_at_start,
+                    removed,
                     insert,
-                };
+                );
             }
             if let Some(tok) = self.lex_token(pos, lexer) {
-                // if is_start && tok == self.tokens[index] {
-                //     start += 1;
-                // } else {
-                //     is_start = false;
-                // }
                 insert += 1;
                 pos += tok.relative_pos;
                 new.push(tok);
@@ -151,10 +152,60 @@ impl LexerState {
             new.push(tok);
         }
         let old_len = self.tokens.len();
+        let old_tokens = std::mem::take(&mut self.tokens);
         self.tokens = new;
+        self.calculate_token_edit(&old_tokens, start, unmatched_at_start, removed, insert)
+    }
+
+    fn calculate_token_edit(
+        &self,
+        old_tokens: &[Tok],
+        start: usize,
+        _unmatched_at_start: usize,
+        removed: usize,
+        insert: usize,
+    ) -> TokenEdit {
+        // Count matching tokens from the start of newly lexed tokens
+        let new_tokens_start = start;
+        let old_removed_start = start;
+        let mut matched_at_start = 0;
+
+        while matched_at_start < insert && matched_at_start < removed {
+            let new_tok = &self.tokens[new_tokens_start + matched_at_start];
+            let old_tok = &old_tokens[old_removed_start + matched_at_start];
+
+            // Compare token kind and position, but not lookahead since lookahead can change during re-lexing
+            if new_tok.kind == old_tok.kind && new_tok.relative_pos == old_tok.relative_pos {
+                matched_at_start += 1;
+            } else {
+                break;
+            }
+        }
+
+        // Count matching tokens from the end of newly lexed tokens
+        let new_tokens_end = start + insert;
+        let old_removed_end = start + removed;
+        let mut matched_at_end = 0;
+
+        while matched_at_end < insert - matched_at_start
+            && matched_at_end < removed - matched_at_start
+        {
+            let new_idx = new_tokens_end - 1 - matched_at_end;
+            let old_idx = old_removed_end - 1 - matched_at_end;
+
+            let new_tok = &self.tokens[new_idx];
+            let old_tok = &old_tokens[old_idx];
+
+            // Compare token kind and position, but not lookahead since lookahead can change during re-lexing
+            if new_tok.kind == old_tok.kind && new_tok.relative_pos == old_tok.relative_pos {
+                matched_at_end += 1;
+            } else {
+                break;
+            }
+        }
         TokenEdit {
-            remove: start..old_len,
-            insert,
+            remove: (start + matched_at_start)..(start + removed - matched_at_end),
+            insert: insert - matched_at_start - matched_at_end,
         }
     }
 }
@@ -387,10 +438,13 @@ mod tests {
         assert_eq!(res.tokens[3].kind, WHITESPACE);
         assert_eq!(res.tokens[4].kind, STRING);
 
-        // REMOVE WS, IDENT, WS, EQ
-        // INSERT WS, IDENT
-        assert_eq!(edit.remove, 1..5);
-        assert_eq!(edit.insert, 2);
+        // After re-lexing:
+        // - Token 1 (WS) matches: kind=0, relative_pos matches
+        // - Token 2 (IDENT) is different: was "test" (4 chars), now "xy" (2 chars)
+        // - We insert 2 tokens (WS, IDENT), and 1 matches from the start
+        // - With the new behavior, we trim matched tokens from the report
+        assert_eq!(edit.remove, 2..5);
+        assert_eq!(edit.insert, 1);
     }
 
     #[test]

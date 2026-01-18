@@ -262,13 +262,26 @@ impl Parser {
         .entered();
 
         loop {
-            let next_offset = if *offset > edit.remove.start {
+            let next_offset = if *offset >= edit.remove.start {
                 usize::try_from(isize::try_from(*next_existing_offset).unwrap() + edit.change())
                     .unwrap()
             } else {
                 *next_existing_offset
             };
-            info!(name = "Exsting check", offset, next_offset);
+            info!(name = "Existing check", offset, next_offset);
+            if next_offset < *offset && input.peek().is_some() {
+                let next = input.next().unwrap();
+                info!("Skipping {next:?}");
+                *next_existing_offset += next.len();
+                if next.len() > edit.remove.len() {
+                    let insert = next.len() - edit.remove.len();
+                    edit.remove.end = edit.remove.start;
+                    edit.insert += insert;
+                } else {
+                    edit.remove.end -= next.len();
+                }
+                continue;
+            }
             let res = if *offset == next_offset
                 && let Some(next) = self.from_existing(input)
             {
