@@ -5,7 +5,11 @@ use crate::{
         token::{TokenDefAst, parse_string},
     },
     lexer::{RegexAst, seq::parse_seq},
-    runtime::{build::RuntimeBuilder, lexer::LexerToken, parser::Parser},
+    runtime::{
+        build::RuntimeBuilder,
+        lexer::LexerToken,
+        parser::{Parser, api::named::Named},
+    },
 };
 
 impl<'a> StmtAst<'a> {
@@ -41,10 +45,10 @@ impl<'a> ParserDefAst<'a> {
         let expr = if name.starts_with("_") {
             expr
         } else {
-            Parser::Named {
+            Parser::Named(Named {
                 name: builder.parsers.len() as u32,
                 inner: Box::new(expr),
-            }
+            })
         };
         builder.parsers.insert(name, expr);
     }

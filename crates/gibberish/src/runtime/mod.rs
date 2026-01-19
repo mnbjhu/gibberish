@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     ops::Range,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, instrument};
 
 use crate::runtime::{
     build::RuntimeBuilder,
@@ -82,6 +82,7 @@ impl<'a> LexerParserState<'a> {
         self.node = res;
     }
 
+    #[instrument(skip(self), ret)]
     pub fn edit(&mut self, edit: &TextEdit) -> EditStats {
         let before_tokens = self.lexer_state.tokens.clone(); // TODO: For debugging
         let mut edit = self.lexer_state.edit(self.lexer, edit);

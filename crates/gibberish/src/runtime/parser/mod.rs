@@ -3,22 +3,27 @@ use tracing::{error, info_span, warn};
 
 use crate::runtime::{
     LexerParserState,
-    parser::{node::Node, res::Res, state::State},
+    parser::{
+        api::{choice::Choice, just::Just, named::Named, rep::Rep, seq::Seq},
+        node::Node,
+        res::Res,
+        state::State,
+    },
 };
 
+pub mod api;
 pub mod edit;
 pub mod node;
 pub mod res;
-pub mod seq;
 pub mod state;
 
 #[derive(Debug, Clone)]
 pub enum Parser {
-    Just(u32),
-    Choice(Vec<Parser>),
-    Seq(Vec<Parser>),
-    Rep(Box<Parser>),
-    Named { name: u32, inner: Box<Parser> },
+    Just(Just),
+    Choice(Choice),
+    Seq(Seq),
+    Rep(Rep),
+    Named(Named),
 }
 
 impl<'a> Parser {
@@ -32,163 +37,14 @@ impl<'a> Parser {
         }
     }
 
-    pub fn parse<'t>(&'a self, mut offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
-        let _span = match self {
-            Parser::Just(token) => tracing::span!(
-                tracing::Level::INFO,
-                "parse: token",
-                token = token,
-                offset = offset,
-            )
-            .entered(),
-            Parser::Choice(_) => {
-                tracing::span!(tracing::Level::INFO, "parse: choice", offset = offset,).entered()
-            }
-            Parser::Seq(_) => {
-                tracing::span!(tracing::Level::INFO, "parse: seq", offset = offset,).entered()
-            }
-            Parser::Rep(_) => {
-                tracing::span!(tracing::Level::INFO, "parse: rep", offset = offset,).entered()
-            }
-            Parser::Named { name, .. } => tracing::span!(
-                tracing::Level::INFO,
-                "parse: named",
-                name = name,
-                offset = offset,
-            )
-            .entered(),
-        };
-
-        let result = match self {
-            Parser::Just(token) => {
-                if let Some(current) = state.token_at(offset) {
-                    if current == *token {
-                        Res::Ok(Node::Token(*token))
-                    } else if let Some(index) = state.get_break(offset) {
-                        let b = index + 1;
-                        Res::Break(b)
-                    } else {
-                        Res::Err
-                    }
-                } else {
-                    Res::Break(0)
-                }
-            }
-            Parser::Choice(parsers) => {
-                let mut res = Res::Err;
-                let mut index = 0;
-                for (i, p) in parsers.iter().enumerate() {
-                    res = p.parse(offset, state);
-                    if matches!(res, Res::Ok(_)) {
-                        index = i;
-                        break;
-                    }
-                }
-                if let Res::Ok(inner) = res {
-                    Res::Ok(inner)
-                } else {
-                    res
-                }
-            }
-            Parser::Seq(parsers) => {
-                let mut nodes = vec![];
-                let lowest_break = 1 + state.break_stack.len();
-                let highest_break = lowest_break + parsers.len() - 2;
-                parsers[1..]
-                    .iter()
-                    .rev()
-                    .for_each(|it| state.break_stack.push(it));
-                let mut res = parsers[0].parse(offset, state);
-                if !matches!(res, Res::Ok(_)) {
-                    parsers[1..].iter().for_each(|_| {
-                        state.break_stack.pop();
-                    });
-                    if let Res::Break(index) = res
-                        && index >= lowest_break
-                    {
-                        return Res::Err;
-                    } else {
-                        return res;
-                    }
-                }
-                for (i, p) in parsers[1..].iter().enumerate() {
-                    let break_index = highest_break - i;
-                    state.break_stack.pop();
-                    if let Res::Ok(node) = res {
-                        offset += node.len();
-                        nodes.push(node);
-                        res = p.try_parse(&mut offset, state, &mut nodes);
-                        if matches!(res, Res::Break(_)) {
-                            nodes.push(Node::Missing(p));
-                        }
-                    } else if let Res::Break(index) = res
-                        && index == break_index
-                    {
-                        res = p.try_parse(&mut offset, state, &mut nodes);
-                        // if matches!(res, Res::Break(_)) {
-                        //     nodes.push(Node::Missing(p));
-                        // }
-                    } else {
-                        nodes.push(Node::Missing(p));
-                    }
-                }
-                if let Res::Ok(node) = res {
-                    nodes.push(node);
-                }
-                Res::Ok(Node::List {
-                    len: nodes.iter().map(|it| it.len()).sum(),
-                    items: nodes,
-                })
-            }
-            Parser::Rep(inner) => {
-                let mut items = vec![];
-                state.break_stack.push(inner);
-                let break_index = state.break_stack.len();
-                let res = inner.parse(offset, state);
-                match res {
-                    Res::Ok(node) => {
-                        offset += node.len();
-                        items.push(node);
-                    }
-                    Res::Break(index) => {
-                        state.break_stack.pop();
-                        if index == break_index {
-                            return Res::Err;
-                        }
-                        return Res::Break(index);
-                    }
-                    Res::Err => {
-                        state.break_stack.pop();
-                        return Res::Err;
-                    }
-                }
-                finish_rep(&mut offset, state, inner, items)
-            }
-            Parser::Named { name, inner } => {
-                state.checkpoints.push(state.break_stack.len());
-                let res = match inner.parse(offset, state) {
-                    Res::Ok(node) => {
-                        let mut children = vec![];
-                        node.add_into(&mut children);
-                        Res::Ok(Node::Group {
-                            kind: *name,
-                            len: children.iter().map(Node::len).sum(),
-                            children,
-                        })
-                    }
-                    res => res,
-                };
-                state.checkpoints.pop();
-                res
-            }
-        };
-
-        match &result {
-            Res::Ok(node) => info!("Result: {node:?}"),
-            Res::Err => info!("Result: Err"),
-            Res::Break(idx) => info!("Result: Break({})", idx),
-        };
-        result
+    pub fn parse<'t>(&'a self, offset: usize, state: &mut State<'a, 't>) -> Res<'a> {
+        match self {
+            Parser::Just(token) => token.parse(offset, state),
+            Parser::Choice(choice) => choice.parse(offset, state),
+            Parser::Seq(seq) => seq.parse(offset, state),
+            Parser::Rep(rep) => rep.parse(offset, state),
+            Parser::Named(named) => named.parse(offset, state),
+        }
     }
 
     fn try_parse<'t>(
@@ -197,7 +53,7 @@ impl<'a> Parser {
         state: &mut State<'a, 't>,
         nodes: &mut Vec<Node<'a>>,
     ) -> Res<'a> {
-        let _span = tracing::span!(tracing::Level::INFO, "try_parse", offset = offset,).entered();
+        let _span = tracing::span!(tracing::Level::INFO, "try_parse", offset = offset).entered();
 
         let mut res = self.parse(*offset, state);
         while let Res::Err = res {
@@ -230,59 +86,21 @@ impl<'a> Parser {
 
     fn peak<'t>(&self, offset: usize, state: &State<'a, 't>) -> bool {
         match self {
-            Parser::Just(token) => state.token_at(offset).is_some_and(|it| it == *token),
-            Parser::Choice(parsers) => parsers.iter().any(|it| it.peak(offset, state)),
-            Parser::Seq(parsers) => parsers.first().is_some_and(|it| it.peak(offset, state)),
-            Parser::Rep(parser) => parser.peak(offset, state),
-            Parser::Named { inner, .. } => inner.peak(offset, state),
+            Parser::Just(j) => j.peak(offset, state),
+            Parser::Choice(c) => c.peak(offset, state),
+            Parser::Seq(s) => s.peak(offset, state),
+            Parser::Rep(r) => r.peak(offset, state),
+            Parser::Named(n) => n.peak(offset, state),
         }
     }
 
     pub fn expected(&self) -> Vec<Expected> {
         match self {
-            Parser::Just(tok) => {
-                vec![Expected::Token(*tok)]
-            }
-            Parser::Choice(parsers) => parsers
-                .iter()
-                .flat_map(|it| it.expected().into_iter())
-                .collect(),
-            Parser::Seq(parsers) => parsers.first().unwrap().expected(),
-            Parser::Rep(parser) => parser.expected(),
-            Parser::Named { name, .. } => vec![Expected::Syntax(*name)],
-        }
-    }
-}
-
-pub fn finish_rep<'a, 't>(
-    offset: &mut usize,
-    state: &mut State<'a, 't>,
-    inner: &'a Parser,
-    mut items: Vec<Node<'a>>,
-) -> Res<'a> {
-    loop {
-        let res = inner.try_parse(offset, state, &mut items);
-        match res {
-            Res::Ok(node) => {
-                *offset += node.len();
-                items.push(node);
-            }
-            _ => {
-                state.break_stack.pop();
-                return Res::Ok(Node::List {
-                    len: items.iter().map(|it| it.len()).sum(),
-                    items: items
-                        .into_iter()
-                        .flat_map(|it| {
-                            if let Node::List { items, .. } = it {
-                                items.into_iter()
-                            } else {
-                                vec![it].into_iter()
-                            }
-                        })
-                        .collect(),
-                });
-            }
+            Parser::Just(j) => j.expected(),
+            Parser::Choice(c) => c.expected(),
+            Parser::Seq(s) => s.expected(),
+            Parser::Rep(r) => r.expected(),
+            Parser::Named(n) => n.expected(),
         }
     }
 }

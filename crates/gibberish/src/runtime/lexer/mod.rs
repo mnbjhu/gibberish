@@ -13,7 +13,7 @@ use crate::{
     lexer::RegexAst,
     runtime::{
         lexer::{pos::Pos, state::LexerState},
-        parser::Parser,
+        parser::{Parser, api::just::Just},
     },
 };
 
@@ -45,7 +45,7 @@ impl Lexer {
     pub fn get_parser(&self, name: &str) -> Option<Parser> {
         self.tokens.iter().find_map(|it| {
             if it.name == name {
-                Some(Parser::Just(it.id))
+                Some(Parser::Just(Just(it.id)))
             } else {
                 None
             }

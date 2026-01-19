@@ -1,7 +1,6 @@
 use std::{iter::Peekable, ops::Range, ptr};
 
-use log::warn;
-use tracing::{Level, error, field, info, info_span, span};
+use tracing::{error, field, info, instrument};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
@@ -13,40 +12,6 @@ impl Parser {
         &'a self,
         input: &mut Peekable<I>,
     ) -> Option<Node<'a>> {
-        let _span = match self {
-            Parser::Just(token) => tracing::span!(
-                tracing::Level::INFO,
-                "from_existing: token",
-                token = token,
-                next = input.peek().map(Node::name),
-            )
-            .entered(),
-            Parser::Choice(_) => tracing::span!(
-                tracing::Level::INFO,
-                "from_existing: choice",
-                next = input.peek().map(Node::name),
-            )
-            .entered(),
-            Parser::Seq(_) => tracing::span!(
-                tracing::Level::INFO,
-                "from_existing: seq",
-                next = input.peek().map(Node::name),
-            )
-            .entered(),
-            Parser::Rep(_) => tracing::span!(
-                tracing::Level::INFO,
-                "from_existing: rep",
-                next = input.peek().map(Node::name),
-            )
-            .entered(),
-            Parser::Named { name, .. } => tracing::span!(
-                tracing::Level::INFO,
-                "from_existing: named",
-                name = name,
-                next = input.peek().map(Node::name),
-            )
-            .entered(),
-        };
         if let Some(Node::Missing(p)) = input.peek() {
             if !ptr::eq(*p, self) {
                 error!(
@@ -62,108 +27,22 @@ impl Parser {
             };
             return result;
         }
-        let result = match self {
+        match self {
             Parser::Just(_) | Parser::Named { .. } => input.next(),
-            Parser::Choice(parsers) => {
-                let next = input.peek()?;
-                let parser = parsers.iter().find(|it| it.peak_edit(next)).unwrap();
-                parser.from_existing(input)
-            }
-            Parser::Seq(parsers) => {
-                let mut res = Vec::new();
-                let mut len = 0;
-                for p in parsers {
-                    while let Some(Node::Unexpected(_)) = input.peek() {
-                        error!("Reusing unexpected");
-                        let next = input.next().unwrap();
-                        len += next.len();
-                        res.push(next);
-                    }
-                    let part = p.from_existing(input).unwrap();
-                    len += part.len();
-                    if let Node::List { items, .. } = part {
-                        res.extend(items);
-                    } else {
-                        res.push(part)
-                    }
-                }
-                Some(Node::List { items: res, len })
-            }
-            Parser::Rep(parser) => {
-                let mut res = vec![];
-                let mut len = 0;
-                while let Some(item) = parser.from_existing(input) {
-                    len += item.len();
-                    if let Node::List { items, .. } = item {
-                        res.extend(items);
-                    } else {
-                        res.push(item)
-                    }
-                    while let Some(Node::Unexpected(_)) = input.peek() {
-                        error!("Reusing unexpected");
-                        let next = input.next().unwrap();
-                        len += next.len();
-                        res.push(next);
-                    }
-                }
-                Some(Node::List { items: res, len })
-            }
-        };
-
-        match &result {
-            Some(node) => info!("Result: {node:?}"),
-            None => info!("Result: Err"),
-        };
-        result
+            Parser::Choice(choice) => choice.from_existing(input),
+            Parser::Seq(seq) => seq.from_existing(input),
+            Parser::Rep(rep) => rep.from_existing(input),
+        }
     }
 
-    pub fn edit<'a, 'i, 't, 's>(
+    pub fn edit<'a, 't>(
         &'a self,
-        mut offset: usize,
+        offset: usize,
         node: Node<'a>,
         state: &mut State<'a, 't>,
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
     ) -> Res<'a> {
-        let _span = match self {
-            Parser::Just(token) => tracing::span!(
-                tracing::Level::INFO,
-                "edit: token",
-                token = token,
-                offset = offset,
-                node = node.name(),
-            )
-            .entered(),
-            Parser::Choice(_) => tracing::span!(
-                tracing::Level::INFO,
-                "edit: choice",
-                offset = offset,
-                node = node.name(),
-            )
-            .entered(),
-            Parser::Seq(_) => tracing::span!(
-                tracing::Level::INFO,
-                "edit: seq",
-                offset = offset,
-                node = node.name(),
-            )
-            .entered(),
-            Parser::Rep(_) => tracing::span!(
-                tracing::Level::INFO,
-                "edit: rep",
-                offset = offset,
-                node = node.name(),
-            )
-            .entered(),
-            Parser::Named { name, .. } => tracing::span!(
-                tracing::Level::INFO,
-                "edit: named",
-                name = name,
-                offset = offset,
-                node = node.name(),
-            )
-            .entered(),
-        };
         info!("edit: {:?}", edit);
         if offset + node.len() < edit.remove.start || edit.remove.end <= offset {
             info!("Reusing {:?}", offset..offset + node.len());
@@ -173,77 +52,27 @@ impl Parser {
             info!("Reparsing {:?}", offset..offset + node.len());
             return self.parse(offset, state).update_changed(offset, changed);
         }
-        let result = match (self, node) {
-            (Parser::Choice(parsers), node) => {
-                let parser = parsers.iter().find(|it| it.peak_edit(&node)).unwrap();
-                parser.edit(offset, node, state, edit, changed)
-            }
+        match (self, node) {
+            (Parser::Choice(choice), node) => choice.edit(offset, node, state, edit, changed),
             (Parser::Just(_), Node::Token(_)) => {
                 self.parse(offset, state).update_changed(offset, changed)
             }
-            (Parser::Seq(parsers), Node::List { items, len }) => {
+            (Parser::Seq(_), Node::List { .. }) => {
                 self.parse(offset, state).update_changed(offset, changed)
             }
-            (Parser::Rep(parser), Node::List { items, .. }) => {
-                let mut input = items.into_iter().peekable();
-                let mut items = vec![];
-                let mut next_existing_offset = 0;
-                if let Some(first) = input.peek()
-                    && parser.peak_edit(first)
-                {
-                    state.break_stack.push(parser);
-                    while let Res::Ok(node) = parser.try_edit(
-                        &mut offset,
-                        &mut next_existing_offset,
-                        &mut input,
-                        &mut items,
-                        state,
-                        edit,
-                        changed,
-                    ) {
-                        offset += node.len();
-                        items.push(node);
-                    }
-                    state.break_stack.pop();
-                    Res::Ok(Node::List {
-                        len: items.iter().map(|it| it.len()).sum(),
-                        items,
-                    })
-                } else {
-                    self.parse(offset, state).update_changed(offset, changed)
-                }
+            (Parser::Rep(rep), Node::List { items, .. }) => {
+                rep.edit(offset, items, state, edit, changed)
             }
-            (Parser::Named { name, inner }, Node::Group { children, .. }) => {
-                let child = inner
-                    .from_existing(&mut children.into_iter().peekable())
-                    .unwrap();
-                let name = *name;
-                inner.edit(offset, child, state, edit, changed).map(|it| {
-                    let len = it.len();
-                    let children = if let Node::List { items, .. } = it {
-                        items
-                    } else {
-                        vec![it]
-                    };
-                    Node::Group {
-                        kind: name,
-                        children,
-                        len,
-                    }
-                })
+
+            (Parser::Named(named), Node::Group { children, .. }) => {
+                named.edit(offset, children, state, edit, changed)
             }
             (_, _) => panic!("Unexpected parser/node combo"),
-        };
-
-        match &result {
-            Res::Ok(node) => info!("Result: {node:?}"),
-            Res::Err => info!("Result: Err"),
-            Res::Break(idx) => info!("Result: Break({})", idx),
-        };
-        result
+        }
     }
 
-    pub fn try_edit<'a, 'i, 't, 's, I: Iterator<Item = Node<'a>>>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn try_edit<'a, 't, I: Iterator<Item = Node<'a>>>(
         &'a self,
         offset: &mut usize,
         next_existing_offset: &mut usize,
@@ -349,37 +178,11 @@ impl Parser {
 
     pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {
         match self {
-            Parser::Just(tok) => {
-                if let Node::Token(id) = node {
-                    tok == id
-                } else {
-                    false
-                }
-            }
-            Parser::Choice(parsers) => parsers.iter().any(|it| it.peak_edit(node)),
-            Parser::Seq(parsers) => {
-                if let Node::List { items, .. } = node {
-                    items
-                        .first()
-                        .is_some_and(|first| parsers.first().unwrap().peak_edit(first))
-                } else {
-                    parsers.first().unwrap().peak_edit(node)
-                }
-            }
-            Parser::Rep(parser) => {
-                if let Node::List { items, .. } = node {
-                    items.first().is_some_and(|first| parser.peak_edit(first))
-                } else {
-                    parser.peak_edit(node)
-                }
-            }
-            Parser::Named { name, .. } => {
-                if let Node::Group { kind, .. } = node {
-                    name == kind
-                } else {
-                    false
-                }
-            }
+            Parser::Just(tok) => tok.peak_edit(node),
+            Parser::Choice(c) => c.peak_edit(node),
+            Parser::Seq(s) => s.peak_edit(node),
+            Parser::Rep(r) => r.peak_edit(node),
+            Parser::Named(n) => n.peak_edit(node),
         }
     }
 }
