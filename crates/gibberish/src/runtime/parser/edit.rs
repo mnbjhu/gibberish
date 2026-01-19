@@ -1,7 +1,7 @@
 use std::{iter::Peekable, ops::Range, ptr};
 
 use log::warn;
-use tracing::{Level, error, info, info_span, span};
+use tracing::{Level, error, field, info, info_span, span};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
@@ -263,16 +263,20 @@ impl Parser {
 
         loop {
             let next_offset = if *offset >= edit.remove.start {
-                usize::try_from(isize::try_from(*next_existing_offset).unwrap() + edit.change())
-                    .unwrap()
+                isize::try_from(*next_existing_offset).unwrap() + edit.change()
             } else {
-                *next_existing_offset
+                isize::try_from(*next_existing_offset).unwrap()
             };
-            info!(name = "Existing check", offset, next_offset);
-            if next_offset < *offset && input.peek().is_some() {
+            info!(
+                name = "Existing check",
+                offset,
+                next_offset,
+                edit = field::debug(&edit)
+            );
+            if next_offset < isize::try_from(*offset).unwrap() && input.peek().is_some() {
                 let next = input.next().unwrap();
                 info!("Skipping {next:?}");
-                *next_existing_offset += next.len();
+                // *next_existing_offset += next.len();
                 if next.len() > edit.remove.len() {
                     let insert = next.len() - edit.remove.len();
                     edit.remove.end = edit.remove.start;
@@ -282,7 +286,7 @@ impl Parser {
                 }
                 continue;
             }
-            let res = if *offset == next_offset
+            let res = if isize::try_from(*offset).unwrap() == next_offset
                 && let Some(next) = self.from_existing(input)
             {
                 let before_len = next.len();
