@@ -18,7 +18,7 @@ impl Choice {
     ) -> Option<Node<'a>> {
         let next = input.peek()?;
         let parser = self.0.iter().find(|it| it.peak_edit(next)).unwrap();
-        parser.from_existing(input)
+        parser.get_existing(input)
     }
 
     #[instrument(name = "parse_choice", skip(self, state), ret)]
@@ -45,9 +45,10 @@ impl Choice {
         state: &mut State<'a, 't>,
         edit: &mut TokenEdit,
         changed: &mut Range<usize>,
+        mut next_existing_offset: usize,
     ) -> Res<'a> {
         let parser = self.0.iter().find(|it| it.peak_edit(&node)).unwrap();
-        parser.edit(offset, node, state, edit, changed)
+        parser.edit(offset, node, state, edit, changed, next_existing_offset)
     }
 
     pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {

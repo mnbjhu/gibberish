@@ -18,7 +18,7 @@ impl Rep {
     ) -> Option<Node<'a>> {
         let mut res = vec![];
         let mut len = 0;
-        while let Some(item) = self.0.from_existing(input) {
+        while let Some(item) = self.0.get_existing(input) {
             len += item.len();
             if let Node::List { items, .. } = item {
                 res.extend(items);
@@ -73,10 +73,10 @@ impl Rep {
         state: &mut State<'a, 't>,
         edit: &mut TokenEdit,
         changed: &mut std::ops::Range<usize>,
+        mut next_existing_offset: usize,
     ) -> Res<'a> {
         let mut input = items.into_iter().peekable();
         let mut items = vec![];
-        let mut next_existing_offset = 0;
         if let Some(first) = input.peek()
             && self.0.peak_edit(first)
         {

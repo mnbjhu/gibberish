@@ -102,7 +102,7 @@ impl<'a> LexerParserState<'a> {
         let mut changed = 0..0;
         self.node = if let Res::Ok(node) = self.node.pop() {
             self.parser
-                .edit(0, node, &mut state, &mut edit, &mut changed)
+                .edit(0, node, &mut state, &mut edit, &mut changed, 0)
         } else {
             self.parser.parse(0, &mut state)
         };

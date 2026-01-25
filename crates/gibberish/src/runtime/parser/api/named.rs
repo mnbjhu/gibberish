@@ -43,14 +43,15 @@ impl Named {
         state: &mut State<'a, 't>,
         edit: &mut TokenEdit,
         changed: &mut std::ops::Range<usize>,
+        mut next_existing_offset: usize,
     ) -> Res<'a> {
         let child = self
             .inner
-            .from_existing(&mut children.into_iter().peekable())
+            .get_existing(&mut children.into_iter().peekable())
             .unwrap();
         let name = self.name;
         self.inner
-            .edit(offset, child, state, edit, changed)
+            .edit(offset, child, state, edit, changed, next_existing_offset)
             .map(|it| {
                 let len = it.len();
                 let children = if let Node::List { items, .. } = it {
