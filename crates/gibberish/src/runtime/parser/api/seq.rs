@@ -4,7 +4,13 @@ use tracing::{error, instrument};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
-    parser::{Expected, Parser, node::Node, res::Res, state::State},
+    parser::{
+        Expected, Parser,
+        edit::{EditState, ExistingInput},
+        node::Node,
+        res::Res,
+        state::State,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +20,7 @@ impl Seq {
     #[instrument(name = "existing_seq", skip(self, input), ret, fields(next = input.peek().map(|it| it.name())))]
     pub fn from_existing<'a, I: Iterator<Item = Node<'a>>>(
         &'a self,
-        input: &mut Peekable<I>,
+        input: &mut ExistingInput<'a, I>,
     ) -> Option<Node<'a>> {
         let mut res = Vec::new();
         let mut len = 0;
@@ -100,38 +106,31 @@ impl Seq {
     }
 
     #[instrument(name = "edit_seq", skip(self, state), ret)]
-    pub fn edit<'a, 't>(
+    pub fn edit<'a, 't, 's>(
         &'a self,
-        mut offset: usize,
+        state: &mut EditState<'a, 't, 's>,
         items: Vec<Node<'a>>,
-        state: &mut State<'a, 't>,
-        edit: &mut TokenEdit,
-        changed: &mut std::ops::Range<usize>,
-        mut next_existing_offset: usize,
+        next_existing_offset: usize,
     ) -> Res<'a> {
         if !self.peak_edit(&items[0]) {
-            return self.parse(offset, state);
+            return self.parse(state.offset, state.state);
         }
-        let mut input = items.into_iter().peekable();
+        let input = items.into_iter().peekable();
+        let mut input = ExistingInput {
+            input,
+            existing_offset: next_existing_offset,
+        };
         let mut nodes = vec![];
-        let lowest_break = 1 + state.break_stack.len();
+        let lowest_break = 1 + state.state.break_stack.len();
         let highest_break = lowest_break + self.0.len() - 2;
         self.0[1..]
             .iter()
             .rev()
-            .for_each(|it| state.break_stack.push(it));
-        let mut res = self.0[0].try_edit(
-            &mut offset,
-            &mut next_existing_offset,
-            &mut input,
-            &mut nodes,
-            state,
-            edit,
-            changed,
-        );
+            .for_each(|it| state.state.break_stack.push(it));
+        let mut res = self.0[0].try_edit(&mut input, &mut nodes, state);
         if !matches!(res, Res::Ok(_)) {
             self.0[1..].iter().for_each(|_| {
-                state.break_stack.pop();
+                state.state.break_stack.pop();
             });
             if let Res::Break(index) = res
                 && index >= lowest_break
@@ -143,34 +142,18 @@ impl Seq {
         }
         for (i, p) in self.0[1..].iter().enumerate() {
             let break_index = highest_break - i;
-            state.break_stack.pop();
+            state.state.break_stack.pop();
             if let Res::Ok(node) = res {
-                offset += node.len();
+                state.offset += node.len();
                 nodes.push(node);
-                res = p.try_edit(
-                    &mut offset,
-                    &mut next_existing_offset,
-                    &mut input,
-                    &mut nodes,
-                    state,
-                    edit,
-                    changed,
-                );
+                res = p.try_edit(&mut input, &mut nodes, state);
                 if matches!(res, Res::Break(_)) {
                     nodes.push(Node::Missing(p));
                 }
             } else if let Res::Break(index) = res
                 && index == break_index
             {
-                res = p.try_edit(
-                    &mut offset,
-                    &mut next_existing_offset,
-                    &mut input,
-                    &mut nodes,
-                    state,
-                    edit,
-                    changed,
-                )
+                res = p.try_edit(&mut input, &mut nodes, state)
             } else {
                 nodes.push(Node::Missing(p));
             }

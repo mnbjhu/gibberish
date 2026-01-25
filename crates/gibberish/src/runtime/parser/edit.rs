@@ -6,8 +6,8 @@ use crate::runtime::{
 };
 
 pub struct ExistingInput<'a, I: Iterator<Item = Node<'a>>> {
-    input: Peekable<I>,
-    existing_offset: usize,
+    pub input: Peekable<I>,
+    pub existing_offset: usize,
 }
 
 impl<'a, I: Iterator<Item = Node<'a>>> ExistingInput<'a, I> {
@@ -25,9 +25,9 @@ impl<'a, I: Iterator<Item = Node<'a>>> ExistingInput<'a, I> {
 }
 
 pub struct EditState<'a, 't, 's> {
-    offset: usize,
-    edit: &'s TokenEdit,
-    state: &'s mut State<'a, 't>,
+    pub offset: usize,
+    pub edit: &'s TokenEdit,
+    pub state: &'s mut State<'a, 't>,
 }
 
 #[cfg(test)]

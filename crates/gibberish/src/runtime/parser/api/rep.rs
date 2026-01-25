@@ -4,7 +4,13 @@ use tracing::{error, instrument};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
-    parser::{Expected, Parser, node::Node, res::Res, state::State},
+    parser::{
+        Expected, Parser,
+        edit::{EditState, ExistingInput},
+        node::Node,
+        res::Res,
+        state::State,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +20,7 @@ impl Rep {
     #[instrument(name = "existing_rep", skip(self, input), ret, fields(next = input.peek().map(|it| it.name())))]
     pub fn from_existing<'a, I: Iterator<Item = Node<'a>>>(
         &'a self,
-        input: &mut Peekable<I>,
+        input: &mut ExistingInput<'a, I>,
     ) -> Option<Node<'a>> {
         let mut res = vec![];
         let mut len = 0;
@@ -66,40 +72,34 @@ impl Rep {
     }
 
     #[instrument(name = "edit_rep", skip(self, state), ret)]
-    pub fn edit<'a, 't>(
+    pub fn edit<'a, 't, 's>(
         &'a self,
-        mut offset: usize,
+        state: &mut EditState<'a, 't, 's>,
         items: Vec<Node<'a>>,
-        state: &mut State<'a, 't>,
-        edit: &mut TokenEdit,
-        changed: &mut std::ops::Range<usize>,
-        mut next_existing_offset: usize,
+        next_existing_offset: usize,
     ) -> Res<'a> {
-        let mut input = items.into_iter().peekable();
+        let input = items.into_iter().peekable();
+        let mut input = ExistingInput {
+            input,
+            existing_offset: next_existing_offset,
+        };
+
         let mut items = vec![];
         if let Some(first) = input.peek()
             && self.0.peak_edit(first)
         {
-            state.break_stack.push(&self.0);
-            while let Res::Ok(node) = self.0.try_edit(
-                &mut offset,
-                &mut next_existing_offset,
-                &mut input,
-                &mut items,
-                state,
-                edit,
-                changed,
-            ) {
-                offset += node.len();
+            state.state.break_stack.push(&self.0);
+            while let Res::Ok(node) = self.0.try_edit(&mut input, &mut items, state) {
+                state.offset += node.len();
                 items.push(node);
             }
-            state.break_stack.pop();
+            state.state.break_stack.pop();
             Res::Ok(Node::List {
                 len: items.iter().map(|it| it.len()).sum(),
                 items,
             })
         } else {
-            self.parse(offset, state).update_changed(offset, changed)
+            self.parse(state.offset, state.state)
         }
     }
 

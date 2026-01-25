@@ -2,7 +2,13 @@ use tracing::instrument;
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
-    parser::{Expected, Parser, node::Node, res::Res, state::State},
+    parser::{
+        Expected, Parser,
+        edit::{EditState, ExistingInput},
+        node::Node,
+        res::Res,
+        state::State,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -36,22 +42,21 @@ impl Named {
     }
 
     #[instrument(name = "edit_named", skip(self, state), ret)]
-    pub fn edit<'a, 't>(
+    pub fn edit<'a, 't, 's>(
         &'a self,
-        offset: usize,
+        state: &mut EditState<'a, 't, 's>,
         children: Vec<Node<'a>>,
-        state: &mut State<'a, 't>,
-        edit: &mut TokenEdit,
-        changed: &mut std::ops::Range<usize>,
-        mut next_existing_offset: usize,
+        next_existing_offset: usize,
     ) -> Res<'a> {
-        let child = self
-            .inner
-            .get_existing(&mut children.into_iter().peekable())
-            .unwrap();
+        let input = children.into_iter().peekable();
+        let mut input = ExistingInput {
+            input,
+            existing_offset: next_existing_offset,
+        };
+        let child = self.inner.get_existing(&mut input).unwrap();
         let name = self.name;
         self.inner
-            .edit(offset, child, state, edit, changed, next_existing_offset)
+            .edit(child, state, next_existing_offset)
             .map(|it| {
                 let len = it.len();
                 let children = if let Node::List { items, .. } = it {

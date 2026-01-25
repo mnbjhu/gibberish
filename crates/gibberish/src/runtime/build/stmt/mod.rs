@@ -4,7 +4,7 @@ use crate::{
         parser::ParserDefAst,
         token::{TokenDefAst, parse_string},
     },
-    lexer::{RegexAst, seq::parse_seq},
+    lexer::seq::parse_seq,
     runtime::{
         build::RuntimeBuilder,
         lexer::LexerToken,

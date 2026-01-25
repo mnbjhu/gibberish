@@ -4,7 +4,13 @@ use tracing::instrument;
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
-    parser::{Expected, Parser, node::Node, res::Res, state::State},
+    parser::{
+        Expected, Parser,
+        edit::{EditState, ExistingInput},
+        node::Node,
+        res::Res,
+        state::State,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +20,7 @@ impl Choice {
     #[instrument(name = "existing_choice", skip(self, input), ret, fields(next = input.peek().map(|it| it.name())))]
     pub fn from_existing<'a, I: Iterator<Item = Node<'a>>>(
         &'a self,
-        input: &mut Peekable<I>,
+        input: &mut ExistingInput<'a, I>,
     ) -> Option<Node<'a>> {
         let next = input.peek()?;
         let parser = self.0.iter().find(|it| it.peak_edit(next)).unwrap();
@@ -38,17 +44,14 @@ impl Choice {
     }
 
     #[instrument(name = "edit_choice", skip(self, state), ret)]
-    pub fn edit<'a, 't>(
+    pub fn edit<'a, 't, 's>(
         &'a self,
-        offset: usize,
         node: Node<'a>,
-        state: &mut State<'a, 't>,
-        edit: &mut TokenEdit,
-        changed: &mut Range<usize>,
-        mut next_existing_offset: usize,
+        state: &mut EditState<'a, 't, 's>,
+        next_existing_offset: usize,
     ) -> Res<'a> {
         let parser = self.0.iter().find(|it| it.peak_edit(&node)).unwrap();
-        parser.edit(offset, node, state, edit, changed, next_existing_offset)
+        parser.edit(node, state, next_existing_offset)
     }
 
     pub fn peak_edit<'a>(&'a self, node: &Node<'a>) -> bool {

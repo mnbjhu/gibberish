@@ -13,7 +13,7 @@ use crate::runtime::{
         state::LexerState,
         token::Tok,
     },
-    parser::{Parser, res::Res, state::State},
+    parser::{Parser, edit::EditState, res::Res, state::State},
 };
 
 pub mod build;
@@ -99,10 +99,14 @@ impl<'a> LexerParserState<'a> {
             break_stack: vec![],
             checkpoints: vec![],
         };
-        let mut changed = 0..0;
+        let mut edit_state = EditState {
+            offset: 0,
+            edit: &edit,
+            state: &mut state,
+        };
+        let mut changed = 0..1;
         self.node = if let Res::Ok(node) = self.node.pop() {
-            self.parser
-                .edit(0, node, &mut state, &mut edit, &mut changed, 0)
+            self.parser.edit(node, &mut edit_state, 0)
         } else {
             self.parser.parse(0, &mut state)
         };
