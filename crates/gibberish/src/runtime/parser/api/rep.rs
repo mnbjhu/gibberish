@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use tracing::{error, instrument};
+use tracing::{error, field, info, instrument};
 
 use crate::runtime::{
     lexer::edit::TokenEdit,
@@ -89,9 +89,31 @@ impl Rep {
             && self.0.peak_edit(first)
         {
             state.state.break_stack.push(&self.0);
-            while let Res::Ok(node) = self.0.try_edit(&mut input, &mut items, state) {
-                state.offset += node.len();
-                items.push(node);
+            loop {
+                let offset_in_existing = if state.offset >= state.edit.remove.start {
+                    isize::try_from(state.offset).unwrap() - state.edit.change()
+                } else {
+                    isize::try_from(state.offset).unwrap()
+                };
+                info!(
+                    name = "Existing check",
+                    state.offset,
+                    offset_in_existing,
+                    edit = field::debug(&state.edit)
+                );
+                if offset_in_existing > isize::try_from(input.existing_offset).unwrap()
+                    && input.peek().is_some()
+                {
+                    let next = input.next().unwrap();
+                    info!("Skipping {next:?}");
+                    continue;
+                }
+                if let Res::Ok(node) = self.0.try_edit(&mut input, &mut items, state) {
+                    state.offset += node.len();
+                    items.push(node);
+                } else {
+                    break;
+                }
             }
             state.state.break_stack.pop();
             Res::Ok(Node::List {

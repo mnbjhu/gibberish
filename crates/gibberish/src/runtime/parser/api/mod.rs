@@ -119,13 +119,6 @@ impl Parser {
                 offset_in_existing,
                 edit = field::debug(&state.edit)
             );
-            if offset_in_existing > isize::try_from(input.existing_offset).unwrap()
-                && input.peek().is_some()
-            {
-                let next = input.next().unwrap();
-                info!("Skipping {next:?}");
-                continue;
-            }
             let start_existing_offset = input.existing_offset;
             let res = if isize::try_from(start_existing_offset).unwrap() == offset_in_existing
                 && let Some(next) = self.get_existing(input)
@@ -133,57 +126,39 @@ impl Parser {
                 let before_len = next.len();
                 let end = state.offset + before_len;
 
-                if let Node::Missing(p) = next {
-                    if !ptr::eq(p, self) {
-                        error!(
-                            "Expected {current} but found {missing}",
-                            current = self.kind(),
-                            missing = p.kind()
-                        );
-                    };
-                    info!("Replacing missing");
-                    p.parse(state.offset, state.state).map(|it| {
-                        info!("Found missing");
-                        it
-                    })
-                } else {
-                    // If the edit's remove contains 'next' we just delete it from the tree
-                    if state.edit.remove.start <= state.offset && end <= state.edit.remove.end {
-                        info!("Deleting {:?}", state.offset..end);
+                // If the edit's remove contains 'next' we just delete it from the tree
+                if state.edit.remove.start <= state.offset && end <= state.edit.remove.end {
+                    info!("Deleting {:?}", state.offset..end);
+                    continue;
+                }
+                let next_len = next.len();
+
+                // If we're before or after the edit we can just use the existing
+                if state.edit.remove.start >= end || state.edit.remove.end <= state.offset {
+                    info!(
+                        "Reusing (try) {:?}, next_len: {next_len}, offset: {offset}, next_existing_offset: {next_existing_offset}",
+                        state.offset..end,
+                        next_len = next_len,
+                        offset = state.offset,
+                        next_existing_offset = input.existing_offset
+                    );
+                    if let Node::Unexpected(n) = next {
+                        state.offset += n;
+                        new.push(Node::Unexpected(n));
                         continue;
-                    }
-                    let next_len = next.len();
-
-                    // If we're before or after the edit we can just use the existing
-                    if state.edit.remove.start >= end || state.edit.remove.end <= state.offset {
-                        info!(
-                            "Reusing (try) {:?}, next_len: {next_len}, offset: {offset}, next_existing_offset: {next_existing_offset}",
-                            state.offset..end,
-                            next_len = next_len,
-                            offset = state.offset,
-                            next_existing_offset = input.existing_offset
-                        );
-                        if let Node::Unexpected(n) = next {
-                            state.offset += n;
-                            new.push(Node::Unexpected(n));
-                            continue;
-                        } else {
-                            info!("Result: {next:?}");
-                            return Res::Ok(next);
-                        }
-                    }
-
-                    let res = if state.offset <= state.edit.remove.start
-                        && state.edit.remove.start < end
-                    {
-                        // If the the edit starts in the item then perform an edit
-                        info!("Editing (try) {:?}", state.offset..end);
-                        self.edit(next, state, start_existing_offset)
                     } else {
-                        info!("Reparsing (try) {:?}", state.offset..end);
-                        self.parse(state.offset, state.state)
-                    };
-                    res
+                        info!("Result: {next:?}");
+                        return Res::Ok(next);
+                    }
+                }
+
+                if state.offset <= state.edit.remove.start && state.edit.remove.start < end {
+                    // If the the edit starts in the item then perform an edit
+                    info!("Editing (try) {:?}", state.offset..end);
+                    self.edit(next, state, start_existing_offset)
+                } else {
+                    info!("Reparsing (try) {:?}", state.offset..end);
+                    self.parse(state.offset, state.state)
                 }
             } else {
                 self.parse(state.offset, state.state)
