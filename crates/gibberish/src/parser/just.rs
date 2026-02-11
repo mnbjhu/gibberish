@@ -46,17 +46,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
         }}
         break;
     }}
-
-    size_t index = state->breaks.len;
-    while (index != 0) {{
-        index -= 1;
-        PeakFunc pf = state->breaks.data[index];
-        if (pf && pf(state)) {{
-            return index + 3;
-        }}
-    }}
-
-    return 1;
+    return try_breaks(state);
 }}
 "#,
             id = id,

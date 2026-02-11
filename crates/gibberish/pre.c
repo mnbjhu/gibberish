@@ -418,3 +418,15 @@ static inline size_t push_break(ParserState *state, PeakFunc f) {
   break_stack_push(&state->breaks, f);
   return state->breaks.len + 2;
 }
+
+static inline size_t try_breaks(ParserState *state) {
+  size_t index = state->breaks.len;
+  while (index != 0) {
+    index -= 1;
+    PeakFunc pf = state->breaks.data[index];
+    if (pf && pf(state)) {
+      return index + 3;
+    }
+  }
+  return 1;
+}

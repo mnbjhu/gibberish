@@ -51,7 +51,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     res = parse_{item}(state, unmatched_checkpoint);
     if (res != 0) {{
         if (res == sep_brk) {{
-            return 1;
+            return try_breaks(state);
         }}
         return res;
     }}

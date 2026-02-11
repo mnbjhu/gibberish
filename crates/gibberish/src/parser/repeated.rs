@@ -51,7 +51,7 @@ static size_t parse_{id}(ParserState *state, size_t unmatched_checkpoint) {{
     if(res != 0) {{
         (void)break_stack_pop(&state->breaks, NULL);
         if (res == brk) {{
-            return 1;
+            return try_breaks(state);
         }}
         return res;
     }}
